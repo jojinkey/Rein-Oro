@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rein Oro | Thank You For Your Order</title>
+    <!-- Fonts: Cormorant Garamond (Luxury Serif) and Inter (Modern Sans-serif) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="index.css">
+</head>
+<body>
+
+    <!-- Luxury Preloader -->
+    <div id="preloader">
+        <div class="preloader-content">
+            <img src="images/logo.png" alt="Rein Oro Logo" class="preloader-logo-img">
+            <div class="preloader-subtitle">CRAFTED FOR THE DISCERNING</div>
+            <div class="preloader-bar-container">
+                <div class="preloader-bar"></div>
+            </div>
+            <div class="preloader-percentage">0%</div>
+            <div class="preloader-status">Preloading details...</div>
+        </div>
+    </div>
+
+    <!-- Top Utility Header Banner -->
+    <div class="utility-banner">
+        <div class="utility-container">
+            <span class="utility-left">Purity Crowned in Gold</span>
+            <div class="utility-right">
+                <span class="utility-item">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                    Free Shipping on Orders ₹999+
+                </span>
+                <span class="utility-item">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+                    Track Order
+                </span>
+                <span class="utility-item currency-selector">
+                    India (INR ₹) 
+                    <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Apple-style Navigation Header -->
+    <nav id="main-nav" class="scrolled">
+        <div class="nav-container">
+            <a href="index.html" class="nav-logo">
+                <img src="images/logo.png" alt="Rein Oro Logo" class="brand-logo-img">
+            </a>
+            <div class="nav-links">
+                <a href="index.html">Home</a>
+                <a href="shop.html">Shop</a>
+                <a href="shop.html">Collections</a>
+                <a href="about.html">About Us</a>
+                <a href="index.html#gifting-section">Corporate Gifting</a>
+                <a href="#">Track Order</a>
+            </div>
+            <!-- Header Icons -->
+            <div class="nav-icons">
+                <button class="nav-icon-btn" aria-label="Search">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-search"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                </button>
+                <button class="nav-icon-btn" aria-label="Account">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-user"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                </button>
+                <button class="nav-icon-btn bag-btn" aria-label="Shopping Bag">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-shopping-bag"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+                    <span class="bag-count">0</span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Confirmation Layout Container -->
+    <main class="confirmation-page-container">
+        <!-- Top Success Header Block -->
+        <header class="confirmation-header-block">
+            <div class="thankyou-check-circle">
+                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="checkmark-icon"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+            <h1 class="thankyou-headline">Thank You!</h1>
+            <p class="thankyou-subheadline">Your order has been placed successfully.</p>
+            <p class="thankyou-paragraph">We appreciate your trust in Rein Oro. You will receive an order confirmation email with all the details shortly.</p>
+            
+            <div class="confirmation-order-id-badge">
+                Order ID &nbsp;<span id="conf-order-id">RO12345678</span>
+            </div>
+        </header>
+
+        <!-- Receipt Details Columns Grid -->
+        <div class="confirmation-columns-grid">
+            
+            <!-- Column 1: Order Details -->
+            <div class="confirmation-details-col">
+                <h3 class="confirmation-col-title">Order Details</h3>
+                
+                <div class="detail-row-group">
+                    <div class="detail-icon-frame">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                    </div>
+                    <div class="detail-text-frame">
+                        <label>Order Date</label>
+                        <span id="conf-order-date">18 May 2025, 10:45 AM</span>
+                    </div>
+                </div>
+
+                <div class="detail-row-group">
+                    <div class="detail-icon-frame">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+                    </div>
+                    <div class="detail-text-frame">
+                        <label>Estimated Delivery</label>
+                        <span id="conf-order-delivery">22 - 24 May 2025</span>
+                    </div>
+                </div>
+
+                <div class="detail-row-group">
+                    <div class="detail-icon-frame">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                    </div>
+                    <div class="detail-text-frame">
+                        <label>Payment Method</label>
+                        <span id="conf-order-payment">Paid Online</span>
+                    </div>
+                </div>
+
+                <button class="btn btn-outline btn-track-order" onclick="alert('Order tracking details are processing. A tracking link will be emailed once shipped.');">
+                    Track Your Order
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 6px;"><path d="m9 18 6-6-6-6"/></svg>
+                </button>
+            </div>
+
+            <!-- Column 2: Order Summary -->
+            <div class="confirmation-summary-col">
+                <h3 class="confirmation-col-title">Order Summary</h3>
+                
+                <!-- Items Purchased list -->
+                <div id="conf-summary-items-list" class="conf-summary-items-list">
+                    <!-- Dynamic Items populated here -->
+                </div>
+
+                <!-- Summary Cost Breakdown -->
+                <div class="summary-card-rows conf-cost-breakdown">
+                    <div class="summary-card-row">
+                        <span>Subtotal</span>
+                        <span id="conf-subtotal">₹0</span>
+                    </div>
+                    <div class="summary-card-row" id="conf-discount-row" style="display: none;">
+                        <span class="discount-label">Discount</span>
+                        <span id="conf-discount" class="discount-value">-₹0</span>
+                    </div>
+                    <div class="summary-card-row">
+                        <span>Shipping</span>
+                        <span id="conf-shipping">₹0</span>
+                    </div>
+                    <div class="summary-card-row">
+                        <span>Tax (18%)</span>
+                        <span id="conf-tax">₹0</span>
+                    </div>
+                    <div class="summary-card-row" id="conf-cod-row" style="display: none;">
+                        <span>COD Fee</span>
+                        <span>₹49</span>
+                    </div>
+                    <hr class="summary-card-divider">
+                    <div class="summary-card-row total-row conf-total-paid-row">
+                        <span>Total Paid</span>
+                        <span id="conf-total">₹0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Column 3: Brand Promo card -->
+            <div class="confirmation-promo-col">
+                <div class="confirmation-promo-card">
+                    <h3 class="promo-card-heading">Purity. Passion. Perfection.</h3>
+                    <p class="promo-card-subheading">Crafted with love, delivered with care.</p>
+                    <div class="promo-card-img-wrapper">
+                        <img src="images/makhana_cheese_onion.png" alt="Rein Oro Luxury Snacks">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Trust Features Row Bar -->
+        <section class="trust-bar confirmation-trust-bar">
+            <div class="trust-container">
+                <div class="trust-item">
+                    <div class="trust-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-truck"><path d="M5 18H3c-1.1 0-2-.9-2-2V5c0-1.1.9-2 2-2h4c1.1 0 2 .9 2 2v5h4l5 2 2 2v2c0 1.1-.9 2-2 2h-2"/><circle cx="7.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+                    </div>
+                    <div class="trust-text">
+                        <h4>Free Shipping</h4>
+                        <p>On all orders above ₹999</p>
+                    </div>
+                </div>
+                <div class="trust-item">
+                    <div class="trust-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-shield-check"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
+                    </div>
+                    <div class="trust-text">
+                        <h4>Secure Payments</h4>
+                        <p>100% secure checkout</p>
+                    </div>
+                </div>
+                <div class="trust-item">
+                    <div class="trust-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-rotate-ccw"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                    </div>
+                    <div class="trust-text">
+                        <h4>Easy Returns</h4>
+                        <p>Hassle-free returns</p>
+                    </div>
+                </div>
+                <div class="trust-item">
+                    <div class="trust-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-award"><circle cx="12" cy="8" r="7"/><path d="M8.21 13.89 7 23l5-3 5 3-1.21-9.12"/></svg>
+                    </div>
+                    <div class="trust-text">
+                        <h4>Quality Guarantee</h4>
+                        <p>Premium quality products</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- What Happens Next timeline section -->
+        <section class="confirmation-timeline-section">
+            <h2 class="timeline-headline">What Happens Next?</h2>
+            
+            <div class="timeline-container">
+                <!-- Step 1: Order Confirmed (Active) -->
+                <div class="timeline-step active">
+                    <div class="timeline-icon-node">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    </div>
+                    <h4 class="timeline-step-title">Order Confirmed</h4>
+                    <p class="timeline-step-desc">We've received your order and it's being processed.</p>
+                </div>
+                
+                <div class="timeline-connector-line active"></div>
+
+                <!-- Step 2: Packed -->
+                <div class="timeline-step">
+                    <div class="timeline-icon-node">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+                    </div>
+                    <h4 class="timeline-step-title">Packed With Care</h4>
+                    <p class="timeline-step-desc">Your items are carefully packed and prepared.</p>
+                </div>
+
+                <div class="timeline-connector-line"></div>
+
+                <!-- Step 3: Shipped -->
+                <div class="timeline-step">
+                    <div class="timeline-icon-node">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+                    </div>
+                    <h4 class="timeline-step-title">On The Way</h4>
+                    <p class="timeline-step-desc">Your order is shipped and on its way to you.</p>
+                </div>
+
+                <div class="timeline-connector-line"></div>
+
+                <!-- Step 4: Delivered -->
+                <div class="timeline-step">
+                    <div class="timeline-icon-node">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                    </div>
+                    <h4 class="timeline-step-title">Delivered</h4>
+                    <p class="timeline-step-desc">Delivered to your doorstep. Enjoy your snacks!</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Multi-Column Footer Section -->
+    <footer class="footer-section" id="footer-section">
+        <div class="footer-container">
+            <!-- Brand Column -->
+            <div class="footer-brand-col">
+                <a href="index.html" class="footer-logo">
+                    <img src="images/logo.png" alt="Rein Oro Logo" class="footer-logo-img">
+                </a>
+                <p class="brand-tagline">Purity Crowned in Gold.</p>
+                <div class="social-links">
+                    <a href="#" aria-label="Instagram">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-instagram"><rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+                    </a>
+                    <a href="#" aria-label="Facebook">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-facebook"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
+                    </a>
+                    <a href="#" aria-label="Twitter">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-twitter"><path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z"/></svg>
+                    </a>
+                    <a href="#" aria-label="Pinterest">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-pin"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-.44-1.24l-2.33-2.92a3 3 0 0 1-.64-1.84V6a4 4 0 0 0-8 0v3.24c0 .68-.22 1.33-.63 1.84l-2.33 2.92A2 2 0 0 0 5 15.24Z"/></svg>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Footer Columns -->
+            <div class="footer-links-col">
+                <h4>Shop</h4>
+                <a href="shop.html">All Products</a>
+                <a href="shop.html">Makhana</a>
+                <a href="shop.html">Nuts</a>
+                <a href="index.html#gifting-section">Gift Hampers</a>
+                <a href="shop.html">Combos</a>
+                <a href="shop.html">New Arrivals</a>
+            </div>
+
+            <div class="footer-links-col">
+                <h4>Collections</h4>
+                <a href="shop.html">Premium Nuts</a>
+                <a href="shop.html">Makhana Collection</a>
+                <a href="shop.html">Healthy Snacks</a>
+                <a href="shop.html">Roasted Nuts</a>
+                <a href="shop.html">Festive Special</a>
+            </div>
+
+            <div class="footer-links-col">
+                <h4>Customer Care</h4>
+                <a href="#">Track Order</a>
+                <a href="shipping.html">Shipping Policy</a>
+                <a href="returns.html">Returns & Refunds</a>
+                <a href="#">FAQs</a>
+                <a href="contact.html">Contact Us</a>
+            </div>
+
+            <div class="footer-links-col">
+                <h4>Company</h4>
+                <a href="about.html">About Us</a>
+                <a href="about.html">Our Story</a>
+                <a href="index.html#gifting-section">Corporate Gifting</a>
+                <a href="index.html#blog-section">Blog</a>
+                <a href="#">Careers</a>
+            </div>
+
+            <!-- Newsletter Column -->
+            <div class="footer-links-col newsletter-col">
+                <h4>Newsletter</h4>
+                <p>Subscribe to get special offers, new launches and updates.</p>
+                <form class="newsletter-form" onsubmit="event.preventDefault(); alert('Thank you for subscribing.');">
+                    <input type="email" placeholder="Enter your email" required aria-label="Email address">
+                    <button type="submit" class="btn btn-primary">Subscribe</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="footer-bottom">
+            <p>&copy; 2026 Rein Oro Luxury Foods. All rights reserved.</p>
+            <div class="footer-bottom-links">
+                <a href="terms.html">Terms & Conditions</a> &bull; <a href="privacy.html">Privacy Policy</a>
+            </div>
+            <div class="footer-bottom-payments">
+                <img src="images/logo.png" alt="Visa" class="partner-logo-img visa-mock">
+                <img src="images/logo.png" alt="Mastercard" class="partner-logo-img mastercard-mock">
+                <img src="images/logo.png" alt="UPI" class="partner-logo-img upi-mock">
+                <img src="images/logo.png" alt="Paytm" class="partner-logo-img paytm-mock">
+                <img src="images/logo.png" alt="RuPay" class="partner-logo-img rupay-mock">
+            </div>
+        </div>
+    </footer>
+
+    <!-- Luxury Side Cart Drawer Backdrop -->
+    <div id="cart-drawer-overlay" class="cart-drawer-overlay"></div>
+
+    <!-- Luxury Side Cart Drawer -->
+    <div id="cart-drawer" class="cart-drawer" role="dialog" aria-modal="true" aria-labelledby="cart-drawer-title">
+        <div class="cart-drawer-header">
+            <div>
+                <h2 id="cart-drawer-title" class="cart-drawer-headline">Your Cart</h2>
+                <p class="cart-drawer-subtitle"><span id="cart-subtitle-count">0</span> items in your cart</p>
+            </div>
+            <button id="btn-close-drawer" class="btn-close-drawer" aria-label="Close Cart">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+        </div>
+
+        <div class="cart-drawer-body">
+            <div id="cart-empty-message" class="cart-empty-message">
+                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="empty-bag-icon"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+                <p>Your shopping bag is empty</p>
+                <a href="shop.html" class="btn btn-outline empty-shop-btn">Shop Collection</a>
+            </div>
+            <div id="cart-items-list" class="cart-items-list"></div>
+            
+            <!-- Gift Note Row -->
+            <div class="gift-note-container">
+                <button id="gift-note-toggle" class="gift-note-toggle">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v14"/><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5A4.8 4.8 0 0 1 12 8a4.8 4.8 0 0 1 4.5-5 2.5 2.5 0 0 1 0 5"/></svg>
+                    <span>Add a Gift Note</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="chevron-icon"><path d="m9 18 6-6-6-6"/></svg>
+                </button>
+                <div id="gift-note-input-wrapper" class="gift-note-input-wrapper">
+                    <textarea id="gift-note-text" placeholder="Enter your personalized gift message here..." rows="3" class="gift-note-textarea"></textarea>
+                </div>
+            </div>
+
+            <!-- Promo Code Row -->
+            <div class="promo-code-container">
+                <div class="promo-input-row">
+                    <div class="promo-field-wrapper">
+                        <svg class="promo-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.05 2.05h10l9.74 9.74a2.85 2.85 0 0 1 0 4.03l-5.66 5.66a2.85 2.85 0 0 1-4.03 0l-9.74-9.74v-10z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+                        <input type="text" id="promo-code-input" placeholder="Have a promo code?" class="promo-input">
+                    </div>
+                    <button id="promo-apply-btn" class="promo-apply-btn">Apply</button>
+                </div>
+                <div id="promo-status-msg" class="promo-status-msg"></div>
+            </div>
+
+            <!-- Order Summary -->
+            <div class="cart-order-summary">
+                <h3 class="summary-headline">Order Summary</h3>
+                <div class="summary-row">
+                    <span>Subtotal (<span id="summary-item-count">0</span> items)</span>
+                    <span id="cart-summary-subtotal">₹0</span>
+                </div>
+                <div class="summary-row" id="discount-row" style="display: none;">
+                    <span class="discount-label">Discount (10% Off)</span>
+                    <span id="cart-summary-discount" class="discount-value">-₹0</span>
+                </div>
+                <div class="summary-row">
+                    <span>Shipping</span>
+                    <div class="shipping-value-col">
+                        <span id="cart-summary-shipping">₹0</span>
+                        <p class="shipping-hint">Free shipping on orders above ₹999</p>
+                    </div>
+                </div>
+                <div class="summary-row">
+                    <span>Tax (18%)</span>
+                    <span id="cart-summary-tax">₹0</span>
+                </div>
+                <hr class="summary-divider">
+                <div class="summary-row total-row">
+                    <span>Total</span>
+                    <span id="cart-summary-total">₹0</span>
+                </div>
+            </div>
+
+            <!-- Free Shipping Tracker -->
+            <div class="shipping-tracker-wrapper">
+                <p id="shipping-tracker-text" class="shipping-tracker-text">You are ₹999 away from FREE shipping!</p>
+                <div class="shipping-progress-bg">
+                    <div id="shipping-progress-bar" class="shipping-progress-fill" style="width: 0%;"></div>
+                    <div id="shipping-progress-truck" class="shipping-progress-truck">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 18H3c-1.1 0-2-.9-2-2V5c0-1.1.9-2 2-2h4c1.1 0 2 .9 2 2v5h4l5 2 2 2v2c0 1.1-.9 2-2 2h-2"/><circle cx="7.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Checkout Button -->
+            <button id="btn-proceed-checkout" class="btn btn-detail-primary checkout-btn">Proceed to Checkout</button>
+            
+            <!-- Trust Signals -->
+            <div class="cart-trust-signals">
+                <div class="trust-signal-item">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="trust-icon"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
+                    <div>
+                        <strong>Secure Payments</strong>
+                        <span>100% secure checkout</span>
+                    </div>
+                </div>
+                <div class="trust-signal-item">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="trust-icon"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                    <div>
+                        <strong>Easy Returns</strong>
+                        <span>Hassle-free returns</span>
+                    </div>
+                </div>
+                <div class="trust-signal-item">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="trust-icon"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+                    <div>
+                        <strong>24/7 Support</strong>
+                        <span>We're here to help</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- GSAP and ScrollTrigger Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    <script src="index.js"></script>
+</body>
+</html>

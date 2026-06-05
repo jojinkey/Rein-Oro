@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rein Oro | Makhana Cheese & Onion</title>
+    <!-- Fonts: Cormorant Garamond (Luxury Serif) and Inter (Modern Sans-serif) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="index.css">
+</head>
+<body>
+
+    <!-- Luxury Preloader -->
+    <div id="preloader">
+        <div class="preloader-content">
+            <img src="images/logo.png" alt="Rein Oro Logo" class="preloader-logo-img">
+            <div class="preloader-subtitle">CRAFTED FOR THE DISCERNING</div>
+            <div class="preloader-bar-container">
+                <div class="preloader-bar"></div>
+            </div>
+            <div class="preloader-percentage">0%</div>
+            <div class="preloader-status">Preloading details...</div>
+        </div>
+    </div>
+
+    <!-- Top Utility Header Banner -->
+    <div class="utility-banner">
+        <div class="utility-container">
+            <span class="utility-left">Purity Crowned in Gold</span>
+            <div class="utility-right">
+                <span class="utility-item">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                    Free Shipping on Orders ₹999+
+                </span>
+                <span class="utility-item">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+                    Track Order
+                </span>
+                <span class="utility-item currency-selector">
+                    India (INR ₹) 
+                    <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Apple-style Navigation Header (Opaque scrolled class initialized) -->
+    <nav id="main-nav" class="scrolled">
+        <div class="nav-container">
+            <a href="index.html" class="nav-logo">
+                <img src="images/logo.png" alt="Rein Oro Logo" class="brand-logo-img">
+            </a>
+            <div class="nav-links">
+                <a href="index.html">Home</a>
+                <a href="shop.html">Shop</a>
+                <a href="shop.html">Collections</a>
+                <a href="about.html">About Us</a>
+                <a href="index.html#gifting-section">Corporate Gifting</a>
+                <a href="#">Track Order</a>
+            </div>
+            <!-- Header Icons -->
+            <div class="nav-icons">
+                <button class="nav-icon-btn" aria-label="Search">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-search"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                </button>
+                <button class="nav-icon-btn" aria-label="Account">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-user"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                </button>
+                <button class="nav-icon-btn bag-btn" aria-label="Shopping Bag">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-shopping-bag"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+                    <span class="bag-count">2</span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Breadcrumbs Navigation -->
+    <div class="breadcrumbs-container">
+        <div class="breadcrumbs">
+            <a href="index.html">Home</a> &nbsp;/&nbsp; 
+            <a href="shop.html">All Products</a> &nbsp;/&nbsp; 
+            <a href="shop.html" id="breadcrumb-category">Makhana</a> &nbsp;/&nbsp; 
+            <span class="current-crumb">Makhana Cheese & Onion</span>
+        </div>
+    </div>
+
+    <!-- Product Main Hero Section -->
+    <main class="product-hero-container">
+        <!-- Left: Interactive Gallery -->
+        <section class="product-gallery">
+            <div class="gallery-wrapper">
+                <!-- Gallery Thumbnails Column (Vertical Stack) -->
+                <div class="gallery-thumbnails">
+                    <div class="thumb-item active-thumb" data-image="images/makhana_cheese_onion.png">
+                        <img src="images/makhana_cheese_onion.png" alt="Makhana Cheese & Onion Jar">
+                    </div>
+                    <div class="thumb-item" data-image="images/makhana_bowl_love.png">
+                        <img src="images/makhana_bowl_love.png" alt="Bowl of Makhana close up">
+                    </div>
+                    <div class="thumb-item" data-image="images/makhana_classic.png">
+                        <img src="images/makhana_classic.png" alt="Makhana Classic close up">
+                    </div>
+                    <div class="thumb-item" data-image="images/ingredient_cheese.png">
+                        <img src="images/ingredient_cheese.png" alt="Gourmet Cheese detail">
+                    </div>
+                    <div class="thumb-item video-thumb" data-image="images/makhana_bowl_love.png">
+                        <img src="images/makhana_bowl_love.png" alt="Makhana Video thumbnail">
+                        <div class="play-overlay">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" class="lucide lucide-play"><polygon points="6 3 20 12 6 21 6 3"/></svg>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Gallery Main Display Image -->
+                <div class="gallery-main-img">
+                    <img id="main-product-display" src="images/makhana_cheese_onion.png" alt="Makhana Cheese & Onion Premium Jar">
+                    <button class="zoom-btn" aria-label="Zoom Image">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-zoom-in"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Right: Product Pricing & Details Panel -->
+        <section class="product-info-panel">
+            <h1 class="product-detail-title">Makhana Cheese & Onion</h1>
+            
+            <div class="price-row">
+                <span class="product-detail-price">₹799</span>
+            </div>
+
+            <!-- Rating Row -->
+            <div class="product-rating-row">
+                <div class="rating-stars">
+                    <span class="star filled">★</span>
+                    <span class="star filled">★</span>
+                    <span class="star filled">★</span>
+                    <span class="star filled">★</span>
+                    <span class="star half-filled">★</span>
+                </div>
+                <span class="rating-text">4.8 (120 reviews)</span>
+                <span class="divider">|</span>
+                <span class="stock-status in-stock">In Stock</span>
+            </div>
+
+            <!-- Description -->
+            <p class="product-detail-description">
+                Crunchy, light and full of flavor. Our Cheese & Onion Makhana is roasted to perfect-ness with a delicious blend of savoury cheese and onion seasoning.
+            </p>
+
+            <!-- Trust Badges (4 inline columns) -->
+            <div class="product-trust-badges">
+                <div class="trust-badge-item">
+                    <div class="badge-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="7"/><path d="M8.21 13.89 7 23l5-3 5 3-1.21-9.12"/></svg>
+                    </div>
+                    <div class="badge-text">
+                        <h4>Premium Quality</h4>
+                        <p>Finest Ingredients</p>
+                    </div>
+                </div>
+                <div class="trust-badge-item">
+                    <div class="badge-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                    </div>
+                    <div class="badge-text">
+                        <h4>Source of</h4>
+                        <p>Protein</p>
+                    </div>
+                </div>
+                <div class="trust-badge-item">
+                    <div class="badge-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 3.58 1 9.8a7 7 0 0 1-9 8.2Z"/></svg>
+                    </div>
+                    <div class="badge-text">
+                        <h4>Gluten</h4>
+                        <p>Free</p>
+                    </div>
+                </div>
+                <div class="trust-badge-item">
+                    <div class="badge-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                    </div>
+                    <div class="badge-text">
+                        <h4>No Added</h4>
+                        <p>Preservatives</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Configuration Selector & Qty -->
+            <div class="product-configuration">
+                <div class="weight-selector-row">
+                    <span class="config-label">Net Weight:</span>
+                    <span class="active-weight">100g</span>
+                </div>
+                
+                <div class="qty-selector-row">
+                    <span class="config-label">Quantity</span>
+                    <div class="qty-spinner">
+                        <button class="qty-btn dec-qty-btn" aria-label="Decrease quantity">−</button>
+                        <input type="number" id="product-qty" class="qty-input" value="1" min="1" readonly>
+                        <button class="qty-btn inc-qty-btn" aria-label="Increase quantity">+</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CTA Action Buttons -->
+            <div class="product-actions-group">
+                <button class="btn btn-detail-primary add-to-cart-action">Add to Cart</button>
+                <button class="btn btn-detail-secondary buy-now-action">Buy Now</button>
+            </div>
+
+            <!-- Shipping & Return Policies -->
+            <div class="product-policies-list">
+                <div class="policy-item">
+                    <svg class="policy-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+                    <div class="policy-text">
+                        <strong>Free Shipping</strong>
+                        <span>On all orders above ₹999</span>
+                    </div>
+                </div>
+                <div class="policy-item">
+                    <svg class="policy-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                    <div class="policy-text">
+                        <strong>Secure Payments</strong>
+                        <span>100% secure checkout</span>
+                    </div>
+                </div>
+                <div class="policy-item">
+                    <svg class="policy-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>
+                    <div class="policy-text">
+                        <strong>Easy Returns</strong>
+                        <span>Hassle-free returns</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Secondary Info Grid Container (Benefits & Ingredients) -->
+    <section class="product-secondary-info">
+        <!-- Why You'll Love It -->
+        <div class="love-it-panel">
+            <h2 class="sub-heading-serif">Why You'll Love It</h2>
+            <div class="love-it-content">
+                <ul class="benefits-check-list">
+                    <li>
+                        <svg class="check-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                        Roasted, Not Fried
+                    </li>
+                    <li>
+                        <svg class="check-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                        Light & Crunchy
+                    </li>
+                    <li>
+                        <svg class="check-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                        Perfectly Seasoned
+                    </li>
+                    <li>
+                        <svg class="check-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                        Rich in Antioxidants
+                    </li>
+                    <li>
+                        <svg class="check-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                        Zero Trans Fat
+                    </li>
+                </ul>
+                <div class="benefits-image-wrapper">
+                    <img src="images/makhana_bowl_love.png" alt="Bowl of luxury roasted makhana">
+                </div>
+            </div>
+        </div>
+
+        <!-- Ingredients Panel -->
+        <div class="ingredients-panel">
+            <h2 class="sub-heading-serif">Ingredients</h2>
+            <div class="ingredients-content">
+                <div class="ingredients-circles-row">
+                    <div class="ingredient-circle-item">
+                        <div class="ingredient-img-frame">
+                            <img src="images/ingredient_makhana.png" alt="Makhana Lotus seed">
+                        </div>
+                        <span class="ingredient-label">Makhana</span>
+                    </div>
+                    <div class="ingredient-circle-item">
+                        <div class="ingredient-img-frame">
+                            <img src="images/ingredient_cheese.png" alt="Cheese Powder">
+                        </div>
+                        <span class="ingredient-label">Cheese Powder</span>
+                    </div>
+                    <div class="ingredient-circle-item">
+                        <div class="ingredient-img-frame">
+                            <img src="images/ingredient_onion.png" alt="Onion Powder">
+                        </div>
+                        <span class="ingredient-label">Onion Powder</span>
+                    </div>
+                    <div class="ingredient-circle-item">
+                        <div class="ingredient-img-frame">
+                            <img src="images/ingredient_salt.png" alt="Rock Salt">
+                        </div>
+                        <span class="ingredient-label">Rock Salt</span>
+                    </div>
+                    <div class="ingredient-circle-item">
+                        <div class="ingredient-img-frame">
+                            <img src="images/ingredient_spices.png" alt="Spices & Herbs">
+                        </div>
+                        <span class="ingredient-label">Spices & Herbs</span>
+                    </div>
+                </div>
+                <p class="ingredients-footnote">*Images are for illustration purpose only.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Certifications Banner -->
+    <section class="product-features-banner">
+        <div class="features-container">
+            <div class="feature-item">
+                <div class="feature-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
+                </div>
+                <div class="feature-text">
+                    <h4>100% Natural</h4>
+                    <p>No artificial colors or flavors</p>
+                </div>
+            </div>
+            <div class="feature-item">
+                <div class="feature-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 8v14M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/></svg>
+                </div>
+                <div class="feature-text">
+                    <h4>Roasted to Perfection</h4>
+                    <p>Not fried, just pure goodness</p>
+                </div>
+            </div>
+            <div class="feature-item">
+                <div class="feature-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="7"/><path d="M8.21 13.89 7 23l5-3 5 3-1.21-9.12"/></svg>
+                </div>
+                <div class="feature-text">
+                    <h4>Handpicked Quality</h4>
+                    <p>Only the best makhana</p>
+                </div>
+            </div>
+            <div class="feature-item">
+                <div class="feature-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2v20M20 10A8 8 0 0 1 4 10Z"/></svg>
+                </div>
+                <div class="feature-text">
+                    <h4>Made in India</h4>
+                    <p>Proudly made for you</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Product Details Intersecting Tabs Section -->
+    <section class="product-details-tabs-wrapper">
+        <div class="tabs-buttons-bar">
+            <button class="tab-btn active-tab-btn" data-tab="tab-description">Description</button>
+            <button class="tab-btn" data-tab="tab-nutrition">Nutrition Facts</button>
+            <button class="tab-btn" data-tab="tab-faq">FAQ</button>
+            <button class="tab-btn" data-tab="tab-reviews">Reviews (120)</button>
+        </div>
+
+        <div class="tabs-content-container">
+            <!-- Tab: Description -->
+            <div class="tab-panel active-tab-panel" id="tab-description">
+                <div class="tab-description-grid">
+                    <div class="description-paragraphs">
+                        <p>
+                            Rein Oro Makhana Cheese & Onion is a gourmet snack crafted for those who appreciate the finer things in life. Each piece is carefully roasted to a perfect crunch and seasoned with a rich blend of cheese and onion for an irresistible taste.
+                        </p>
+                        <p>
+                            High in protein and low in calories, it's the perfect snack for guilt-free indulgence. Enjoy it anytime, anywhere!
+                        </p>
+                        
+                        <div class="instruction-boxes-grid">
+                            <div class="instruction-box">
+                                <svg class="instruction-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22v-4h4"/></svg>
+                                <div>
+                                    <h5>Storage Instructions</h5>
+                                    <p>Store in a cool, dry place. Once opened, transfer to an airtight container.</p>
+                                </div>
+                            </div>
+                            <div class="instruction-box">
+                                <svg class="instruction-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/></svg>
+                                <div>
+                                    <h5>Allergen Information</h5>
+                                    <p>Processed in a facility that also handles nuts. May contain traces of peanuts.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Specifications Table -->
+                    <div class="specifications-table-wrapper">
+                        <table class="specs-table" id="specs-table-el">
+                            <tbody>
+                                <tr>
+                                    <td>Brand</td>
+                                    <td>Rein Oro</td>
+                                </tr>
+                                <tr>
+                                    <td>Flavour</td>
+                                    <td>Cheese & Onion</td>
+                                </tr>
+                                <tr>
+                                    <td>Net Weight</td>
+                                    <td>100g</td>
+                                </tr>
+                                <tr>
+                                    <td>Diet Type</td>
+                                    <td>Vegetarian</td>
+                                </tr>
+                                <tr>
+                                    <td>Shelf Life</td>
+                                    <td>6 Months from date of packaging</td>
+                                </tr>
+                                <tr>
+                                    <td>Country of Origin</td>
+                                    <td>India</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab: Nutrition Facts -->
+            <div class="tab-panel" id="tab-nutrition">
+                <div class="tab-description-grid">
+                    <div class="description-paragraphs">
+                        <h3>Nutrition Information (Per 100g Serving)</h3>
+                        <p>A wholesome snack option that is protein-rich and roasted without oil, giving you guilt-free pleasure with every crunchy handful.</p>
+                        
+                        <div class="instruction-boxes-grid">
+                            <div class="instruction-box">
+                                <div>
+                                    <h5>Energy Values</h5>
+                                    <p>Provides approx. 385 Kcal of energy per 100g serving.</p>
+                                </div>
+                            </div>
+                            <div class="instruction-box">
+                                <div>
+                                    <h5>Zero Cholesterol</h5>
+                                    <p>Completely free of cholesterol and trans fats for cardiovascular health.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="specifications-table-wrapper">
+                        <table class="specs-table" id="nutrition-table-el">
+                            <thead>
+                                <tr>
+                                    <th>Nutrient</th>
+                                    <th>Value per 100g</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Calories</td>
+                                    <td>385 Kcal</td>
+                                </tr>
+                                <tr>
+                                    <td>Protein</td>
+                                    <td>9.2g</td>
+                                </tr>
+                                <tr>
+                                    <td>Total Carbohydrates</td>
+                                    <td>68.4g</td>
+                                </tr>
+                                <tr>
+                                    <td>Dietary Fiber</td>
+                                    <td>7.5g</td>
+                                </tr>
+                                <tr>
+                                    <td>Total Fat</td>
+                                    <td>7.8g</td>
+                                </tr>
+                                <tr>
+                                    <td>Trans Fat</td>
+                                    <td>0g</td>
+                                </tr>
+                                <tr>
+                                    <td>Sodium</td>
+                                    <td>280mg</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab: FAQ -->
+            <div class="tab-panel" id="tab-faq">
+                <div class="faq-list">
+                    <div class="faq-item">
+                        <h4>Is Rein Oro Makhana deep-fried?</h4>
+                        <p>No. Our makhanas are 100% slow roasted without any oil to preserve nutrients and maintain their characteristic crunchy texture.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>Is this product gluten-free?</h4>
+                        <p>Yes, all our makhanas are naturally gluten-free and processed under strict hygienic conditions.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4>What is the shelf life of this makhana?</h4>
+                        <p>It has a shelf life of 6 months. We recommend storing it in an airtight container once opened to keep it crispy.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab: Reviews -->
+            <div class="tab-panel" id="tab-reviews">
+                <div class="reviews-header-block">
+                    <div>
+                        <h3>Customer Reviews</h3>
+                        <div class="product-rating-row">
+                            <div class="rating-stars">
+                                <span class="star filled">★</span>
+                                <span class="star filled">★</span>
+                                <span class="star filled">★</span>
+                                <span class="star filled">★</span>
+                                <span class="star half-filled">★</span>
+                            </div>
+                            <span class="rating-text"><strong>4.8 out of 5</strong> based on 120 customer ratings</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="reviews-list">
+                    <div class="review-card">
+                        <div class="review-meta">
+                            <strong>Aarav S.</strong>
+                            <span class="rating-stars small-stars">★★★★★</span>
+                            <span class="review-date">Verified Purchase &bull; 2 days ago</span>
+                        </div>
+                        <p class="review-text">Absolutely premium taste! The cheese and onion flavor is very balanced, not too salty. The container looks very high-end too.</p>
+                    </div>
+                    <div class="review-card">
+                        <div class="review-meta">
+                            <strong>Priya M.</strong>
+                            <span class="rating-stars small-stars">★★★★☆</span>
+                            <span class="review-date">Verified Purchase &bull; 1 week ago</span>
+                        </div>
+                        <p class="review-text">Extremely light and crisp. Perfect substitute for chips. Will try the peri peri flavor next.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- You May Also Like Slider Recommendation Carousel -->
+    <section class="recommendations-slider-section">
+        <div class="recommendations-header">
+            <h2 class="sub-heading-serif">You May Also Like</h2>
+            <div class="slider-arrows">
+                <button class="slider-arrow arrow-left" aria-label="Previous Products">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                </button>
+                <button class="slider-arrow arrow-right" aria-label="Next Products">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+                </button>
+            </div>
+        </div>
+
+        <div class="slider-viewport">
+            <div class="slider-track">
+                <!-- Related Product 1 -->
+                <div class="product-card" data-product-id="makhana_periperi">
+                    <div class="product-image-wrapper">
+                        <img src="images/makhana_periperi.png" alt="Makhana Peri Peri" class="product-img" loading="lazy">
+                        <button class="quick-add-btn" aria-label="Add to Bag">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-plus"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+                        </button>
+                    </div>
+                    <div class="product-info">
+                        <h3 class="product-name">Makhana</h3>
+                        <p class="product-flavor">Peri Peri</p>
+                        <span class="product-price">₹749</span>
+                    </div>
+                </div>
+
+                <!-- Related Product 2 -->
+                <div class="product-card" data-product-id="makhana_himalayan">
+                    <div class="product-image-wrapper">
+                        <img src="images/makhana_himalayan.png" alt="Makhana Himalayan Salt" class="product-img" loading="lazy">
+                        <button class="quick-add-btn" aria-label="Add to Bag">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-plus"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+                        </button>
+                    </div>
+                    <div class="product-info">
+                        <h3 class="product-name">Makhana</h3>
+                        <p class="product-flavor">Salted Caramel</p>
+                        <span class="product-price">₹799</span>
+                    </div>
+                </div>
+
+                <!-- Related Product 3 -->
+                <div class="product-card" data-product-id="makhana_classic">
+                    <div class="product-image-wrapper">
+                        <img src="images/makhana_classic.png" alt="Makhana Classic Salted" class="product-img" loading="lazy">
+                        <button class="quick-add-btn" aria-label="Add to Bag">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-plus"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+                        </button>
+                    </div>
+                    <div class="product-info">
+                        <h3 class="product-name">Makhana</h3>
+                        <p class="product-flavor">Classic Salted</p>
+                        <span class="product-price">₹749</span>
+                    </div>
+                </div>
+
+                <!-- Related Product 4 -->
+                <div class="product-card" data-product-id="makhana_himalayan">
+                    <div class="product-image-wrapper">
+                        <img src="images/makhana_himalayan.png" alt="Makhana Himalayan Salt & Pepper" class="product-img" loading="lazy">
+                        <button class="quick-add-btn" aria-label="Add to Bag">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-plus"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+                        </button>
+                    </div>
+                    <div class="product-info">
+                        <h3 class="product-name">Makhana</h3>
+                        <p class="product-flavor">Himalayan Salt & Pepper</p>
+                        <span class="product-price">₹749</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Multi-Column Footer Section -->
+    <footer class="footer-section" id="footer-section">
+        <div class="footer-container">
+            <!-- Brand Column -->
+            <div class="footer-brand-col">
+                <a href="index.html" class="footer-logo">
+                    <img src="images/logo.png" alt="Rein Oro Logo" class="footer-logo-img">
+                </a>
+                <p class="brand-tagline">Purity Crowned in Gold.</p>
+                <div class="social-links">
+                    <a href="#" aria-label="Instagram">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-instagram"><rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+                    </a>
+                    <a href="#" aria-label="Facebook">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-facebook"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
+                    </a>
+                    <a href="#" aria-label="Twitter">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-twitter"><path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z"/></svg>
+                    </a>
+                    <a href="#" aria-label="Pinterest">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-pin"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-.44-1.24l-2.33-2.92a3 3 0 0 1-.64-1.84V6a4 4 0 0 0-8 0v3.24c0 .68-.22 1.33-.63 1.84l-2.33 2.92A2 2 0 0 0 5 15.24Z"/></svg>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Footer Columns -->
+            <div class="footer-links-col">
+                <h4>Menu</h4>
+                <a href="shop.html">All Products</a>
+                <a href="index.html#gifting-section">Gift Boxes</a>
+                <a href="about.html">Wellness</a>
+                <a href="about.html">Our Story</a>
+            </div>
+
+            <div class="footer-links-col">
+                <h4>Company</h4>
+                <a href="about.html">About Us</a>
+                <a href="contact.html">Contact Us</a>
+                <a href="index.html#blog-section">Blog</a>
+                <a href="#">Careers</a>
+            </div>
+
+            <div class="footer-links-col">
+                <h4>Help</h4>
+                <a href="shipping.html">Shipping Policy</a>
+                <a href="returns.html">Returns & Refunds</a>
+                <a href="privacy.html">Privacy Policy</a>
+                <a href="terms.html">Terms & Conditions</a>
+            </div>
+
+            <!-- Contact Column -->
+            <div class="footer-links-col contact-col">
+                <h4>Contact</h4>
+                <p class="contact-info-item">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-phone"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                    +91 10 1234 5678
+                </p>
+                <p class="contact-info-item">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-mail"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+                    hello@reinoro.com
+                </p>
+            </div>
+        </div>
+
+        <div class="footer-bottom">
+            <p>&copy; 2026 Rein Oro Luxury Foods. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <!-- Luxury Side Cart Drawer Backdrop -->
+    <div id="cart-drawer-overlay" class="cart-drawer-overlay"></div>
+
+    <!-- Luxury Side Cart Drawer -->
+    <div id="cart-drawer" class="cart-drawer" role="dialog" aria-modal="true" aria-labelledby="cart-drawer-title">
+        <!-- Drawer Header -->
+        <div class="cart-drawer-header">
+            <div>
+                <h2 id="cart-drawer-title" class="cart-drawer-headline">Your Cart</h2>
+                <p class="cart-drawer-subtitle"><span id="cart-subtitle-count">0</span> items in your cart</p>
+            </div>
+            <button id="btn-close-drawer" class="btn-close-drawer" aria-label="Close Cart">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+        </div>
+
+        <!-- Scrollable Cart Items Wrapper -->
+        <div class="cart-drawer-body">
+            <div id="cart-empty-message" class="cart-empty-message">
+                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="empty-bag-icon"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+                <p>Your shopping bag is empty</p>
+                <a href="shop.html" class="btn btn-outline empty-shop-btn">Shop Collection</a>
+            </div>
+            <div id="cart-items-list" class="cart-items-list">
+                <!-- Dynamic Cart Items Rendered Here -->
+            </div>
+            
+            <!-- Gift Note Row -->
+            <div class="gift-note-container">
+                <button id="gift-note-toggle" class="gift-note-toggle">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v14"/><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5A4.8 4.8 0 0 1 12 8a4.8 4.8 0 0 1 4.5-5 2.5 2.5 0 0 1 0 5"/></svg>
+                    <span>Add a Gift Note</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="chevron-icon"><path d="m9 18 6-6-6-6"/></svg>
+                </button>
+                <div id="gift-note-input-wrapper" class="gift-note-input-wrapper">
+                    <textarea id="gift-note-text" placeholder="Enter your personalized gift message here..." rows="3" class="gift-note-textarea"></textarea>
+                </div>
+            </div>
+
+            <!-- Promo Code Row -->
+            <div class="promo-code-container">
+                <div class="promo-input-row">
+                    <div class="promo-field-wrapper">
+                        <svg class="promo-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.05 2.05h10l9.74 9.74a2.85 2.85 0 0 1 0 4.03l-5.66 5.66a2.85 2.85 0 0 1-4.03 0l-9.74-9.74v-10z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+                        <input type="text" id="promo-code-input" placeholder="Have a promo code?" class="promo-input">
+                    </div>
+                    <button id="promo-apply-btn" class="promo-apply-btn">Apply</button>
+                </div>
+                <div id="promo-status-msg" class="promo-status-msg"></div>
+            </div>
+
+            <!-- Order Summary -->
+            <div class="cart-order-summary">
+                <h3 class="summary-headline">Order Summary</h3>
+                <div class="summary-row">
+                    <span>Subtotal (<span id="summary-item-count">0</span> items)</span>
+                    <span id="cart-summary-subtotal">₹0</span>
+                </div>
+                <div class="summary-row" id="discount-row" style="display: none;">
+                    <span class="discount-label">Discount (10% Off)</span>
+                    <span id="cart-summary-discount" class="discount-value">-₹0</span>
+                </div>
+                <div class="summary-row">
+                    <span>Shipping</span>
+                    <div class="shipping-value-col">
+                        <span id="cart-summary-shipping">₹0</span>
+                        <p class="shipping-hint">Free shipping on orders above ₹999</p>
+                    </div>
+                </div>
+                <div class="summary-row">
+                    <span>Tax (18%)</span>
+                    <span id="cart-summary-tax">₹0</span>
+                </div>
+                <hr class="summary-divider">
+                <div class="summary-row total-row">
+                    <span>Total</span>
+                    <span id="cart-summary-total">₹0</span>
+                </div>
+            </div>
+
+            <!-- Free Shipping Tracker -->
+            <div class="shipping-tracker-wrapper">
+                <p id="shipping-tracker-text" class="shipping-tracker-text">You are ₹999 away from FREE shipping!</p>
+                <div class="shipping-progress-bg">
+                    <div id="shipping-progress-bar" class="shipping-progress-fill" style="width: 0%;"></div>
+                    <div id="shipping-progress-truck" class="shipping-progress-truck">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 18H3c-1.1 0-2-.9-2-2V5c0-1.1.9-2 2-2h4c1.1 0 2 .9 2 2v5h4l5 2 2 2v2c0 1.1-.9 2-2 2h-2"/><circle cx="7.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Checkout Button -->
+            <button id="btn-proceed-checkout" class="btn btn-detail-primary checkout-btn">Proceed to Checkout</button>
+            
+            <!-- Trust Signals -->
+            <div class="cart-trust-signals">
+                <div class="trust-signal-item">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="trust-icon"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
+                    <div>
+                        <strong>Secure Payments</strong>
+                        <span>100% secure checkout</span>
+                    </div>
+                </div>
+                <div class="trust-signal-item">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="trust-icon"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                    <div>
+                        <strong>Easy Returns</strong>
+                        <span>Hassle-free returns</span>
+                    </div>
+                </div>
+                <div class="trust-signal-item">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="trust-icon"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+                    <div>
+                        <strong>24/7 Support</strong>
+                        <span>We're here to help</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- GSAP and ScrollTrigger Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    <script src="index.js"></script>
+</body>
+</html>

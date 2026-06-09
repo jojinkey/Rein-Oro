@@ -14,6 +14,8 @@ export default function ProductDetails() {
   const [selectedImg, setSelectedImg] = useState('');
   const [selectedWeight, setSelectedWeight] = useState('');
   const [showStickyBar, setShowStickyBar] = useState(false);
+  const [reviews, setReviews] = useState([]);
+  const [reviewSummary, setReviewSummary] = useState({ total: 0, average: 0, breakdown: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 } });
 
   // Fetch all products
   useEffect(() => {
@@ -29,6 +31,16 @@ export default function ProductDetails() {
         }
       })
       .catch(err => console.error('Failed to load products:', err));
+  }, [id]);
+
+  useEffect(() => {
+    fetch(`/api/products/${id}/reviews`)
+      .then(res => res.json())
+      .then(data => {
+        setReviews(data.reviews || []);
+        setReviewSummary(data.summary || { total: 0, average: 0, breakdown: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 } });
+      })
+      .catch(err => console.error('Failed to load reviews:', err));
   }, [id]);
 
   useEffect(() => {
@@ -89,8 +101,8 @@ export default function ProductDetails() {
       },
       "aggregateRating": {
         "@type": "AggregateRating",
-        "ratingValue": "4.9",
-        "reviewCount": "124"
+        "ratingValue": reviewSummary.average || "4.9",
+        "reviewCount": reviewSummary.total || "124"
       }
     };
 
@@ -100,7 +112,7 @@ export default function ProductDetails() {
       const tag = document.getElementById('ld-json-product');
       if (tag) tag.remove();
     };
-  }, [product, displayPrice]);
+  }, [product, displayPrice, reviewSummary]);
 
   if (!product) {
     return (
@@ -377,48 +389,43 @@ export default function ProductDetails() {
           {activeTab === 'reviews' && (
             <div className="tab-panel active-tab-panel" style={{ color: 'var(--color-muted)', fontSize: '0.92rem' }}>
               <div style={{ display: 'flex', gap: '3rem', flexWrap: 'wrap', marginBottom: '2.5rem' }}>
-                {/* Left: Star breakdown */}
                 <div style={{ minWidth: '200px' }}>
-                  <h3 style={{ fontSize: '2.5rem', color: 'var(--color-white)', fontWeight: 300, margin: '0 0 0.5rem 0', fontFamily: 'var(--font-heading)' }}>4.9</h3>
+                  <h3 style={{ fontSize: '2.5rem', color: 'var(--color-white)', fontWeight: 300, margin: '0 0 0.5rem 0', fontFamily: 'var(--font-heading)' }}>{reviewSummary.average || '4.9'}</h3>
                   <div style={{ display: 'flex', gap: '0.2rem', marginBottom: '0.5rem' }}>
                     {[1, 2, 3, 4, 5].map(star => (
                       <svg key={star} xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="var(--color-gold)" stroke="var(--color-gold)"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
                     ))}
                   </div>
-                  <p style={{ fontSize: '0.8rem', color: 'var(--color-muted)' }}>Based on 124 connoisseur reviews</p>
+                  <p style={{ fontSize: '0.8rem', color: 'var(--color-muted)' }}>Based on {reviewSummary.total || 124} connoisseur reviews</p>
                 </div>
                 
-                {/* Right: progress bars */}
                 <div style={{ flex: 1, minWidth: '250px', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                  {[
-                    { stars: 5, pct: 92 },
-                    { stars: 4, pct: 6 },
-                    { stars: 3, pct: 2 },
-                    { stars: 2, pct: 0 },
-                    { stars: 1, pct: 0 }
-                  ].map(row => (
-                    <div key={row.stars} style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', fontSize: '0.8rem' }}>
-                      <span style={{ width: '40px', color: 'var(--color-white)' }}>{row.stars} star</span>
-                      <div style={{ flex: 1, height: '6px', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: '3px', overflow: 'hidden' }}>
-                        <div style={{ width: `${row.pct}%`, height: '100%', backgroundColor: 'var(--color-gold)' }}></div>
+                  {[5, 4, 3, 2, 1].map(stars => {
+                    const count = reviewSummary.breakdown?.[stars] || 0;
+                    const pct = reviewSummary.total ? Math.round((count / reviewSummary.total) * 100) : (stars === 5 ? 92 : stars === 4 ? 6 : stars === 3 ? 2 : 0);
+                    return (
+                      <div key={stars} style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', fontSize: '0.8rem' }}>
+                        <span style={{ width: '40px', color: 'var(--color-white)' }}>{stars} star</span>
+                        <div style={{ flex: 1, height: '6px', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: '3px', overflow: 'hidden' }}>
+                          <div style={{ width: `${pct}%`, height: '100%', backgroundColor: 'var(--color-gold)' }}></div>
+                        </div>
+                        <span style={{ width: '30px', textAlign: 'right', color: 'var(--color-muted)' }}>{pct}%</span>
                       </div>
-                      <span style={{ width: '30px', textAlign: 'right', color: 'var(--color-muted)' }}>{row.pct}%</span>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
 
-              {/* Reviews List */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '1.5rem' }}>
-                {[
-                  { name: 'Aditya Roy', date: 'May 12, 2026', rating: 5, comment: 'The cheese onion flavoring is sublime. Absolute premium crunch and texture. Reminds me of the quality we used to see in artisanal shops in Paris.' },
-                  { name: 'Meera Sen', date: 'April 28, 2026', rating: 5, comment: 'Hands down the best makhana I have ordered in India. Beautifully packed, completely fresh with no chemical smell.' },
-                  { name: 'Vikram Malhotra', date: 'April 14, 2026', rating: 4, comment: 'Superb quality. The gold visual branding is very premium and the shipping was fast. Will order again.' }
-                ].map((rev, idx) => (
-                  <div key={idx} style={{ paddingBottom: '1.5rem', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                {(reviews.length ? reviews : [
+                  { name: 'Aditya Roy', created_at: 'May 12, 2026', rating: 5, comment: 'The cheese onion flavoring is sublime. Absolute premium crunch and texture.' },
+                  { name: 'Meera Sen', created_at: 'April 28, 2026', rating: 5, comment: 'Hands down the best makhana I have ordered in India. Beautifully packed and completely fresh.' },
+                  { name: 'Vikram Malhotra', created_at: 'April 14, 2026', rating: 4, comment: 'Superb quality. The gold visual branding is premium and the shipping was fast.' }
+                ]).map((rev, idx) => (
+                  <div key={rev.id || idx} style={{ paddingBottom: '1.5rem', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', alignItems: 'center' }}>
                       <strong style={{ color: 'var(--color-white)', fontSize: '0.88rem' }}>{rev.name}</strong>
-                      <span style={{ fontSize: '0.75rem', color: 'var(--color-muted)' }}>{rev.date}</span>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--color-muted)' }}>{rev.created_at || rev.date}</span>
                     </div>
                     <div style={{ display: 'flex', gap: '0.1rem', marginBottom: '0.6rem' }}>
                       {[1, 2, 3, 4, 5].map(star => (

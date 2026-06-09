@@ -355,6 +355,8 @@ export default function Admin() {
   const [paymentSettings, setPaymentSettings] = useState({});
   const [shippingSettings, setShippingSettings] = useState({ freeShippingThreshold: '', shippingFee: '' });
   const [gatewaySettings, setGatewaySettings] = useState({ razorpay_key_id: '', razorpay_key_secret: '' });
+  const [ownerDashboard, setOwnerDashboard] = useState(null);
+  const [firestoreStatus, setFirestoreStatus] = useState(null);
 
   const fetchCategories = () => {
     fetch('/api/categories').then(res => res.json()).then(data => setCategories(data)).catch(err => console.error(err));
@@ -398,6 +400,15 @@ export default function Admin() {
   const fetchGatewaySettings = () => {
     fetch('/api/settings/gateway').then(res => res.json()).then(data => setGatewaySettings(data)).catch(err => console.error(err));
   };
+  const fetchOwnerDashboard = () => {
+    fetch('/api/owner/dashboard').then(res => res.json()).then(data => {
+      setOwnerDashboard(data);
+      setFirestoreStatus(data.firestore || null);
+    }).catch(err => console.error(err));
+  };
+  const fetchFirestoreStatus = () => {
+    fetch('/api/firestore/status').then(res => res.json()).then(data => setFirestoreStatus(data)).catch(err => console.error(err));
+  };
 
   // Check role and login status
   useEffect(() => {
@@ -439,6 +450,8 @@ export default function Admin() {
     fetchPaymentSettings();
     fetchShippingSettings();
     fetchGatewaySettings();
+    fetchOwnerDashboard();
+    fetchFirestoreStatus();
 
     // Sync styles form
     if (cmsStyles) {
@@ -1232,7 +1245,7 @@ export default function Admin() {
                   </div>
                   <div className="admin-dash-kpi-body">
                     <div className="admin-dash-kpi-value-row">
-                      <h4 className="admin-dash-kpi-value">2,350</h4>
+                      <h4 className="admin-dash-kpi-value">{ownerDashboard?.kpis?.customers ?? usersList.length ?? '2,350'}</h4>
                       <span className="admin-dash-kpi-trend positive">
                         <IconTrendingUp />
                         16.3%
@@ -1272,12 +1285,12 @@ export default function Admin() {
                   </div>
                   <div className="admin-dash-kpi-body" style={{ marginTop: '0.5rem' }}>
                     <div className="admin-dash-kpi-value-row" style={{ gap: '0.3rem' }}>
-                      <h4 className="admin-dash-kpi-value" style={{ fontSize: '1.4rem' }}>12</h4>
+                      <h4 className="admin-dash-kpi-value" style={{ fontSize: '1.4rem' }}>{ownerDashboard?.kpis?.reviews ?? 12}</h4>
                       <span className="admin-dash-kpi-trend positive" style={{ fontSize: '0.65rem' }}>
                         +2
                       </span>
                     </div>
-                    <p className="admin-dash-kpi-comparison" style={{ fontSize: '0.6rem', marginTop: '0.2rem' }}>Currently Active</p>
+                    <p className="admin-dash-kpi-comparison" style={{ fontSize: '0.6rem', marginTop: '0.2rem' }}>Product reviews stored</p>
                   </div>
                 </div>
               </div>
@@ -2513,6 +2526,9 @@ export default function Admin() {
               <div style={{ border: '1px solid rgba(255,255,255,0.03)', borderRadius: '8px', padding: '2.5rem', backgroundColor: '#0a0a0a', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                 <h3 style={{ fontSize: '1.2rem', fontFamily: 'var(--font-heading)', color: 'var(--color-white)' }}>Checkout Payment Options</h3>
                 <p style={{ fontSize: '0.85rem', color: 'var(--color-muted)', marginBottom: '1rem' }}>Configure payment processors and gateways displayed at buyer checkout.</p>
+                <div style={{ border: '1px solid rgba(201,168,76,0.16)', borderRadius: '6px', padding: '1rem', backgroundColor: 'rgba(201,168,76,0.04)', fontSize: '0.8rem', color: 'var(--color-muted)' }}>
+                  <strong style={{ color: 'var(--color-white)' }}>Firestore:</strong> {firestoreStatus?.mode || 'sqlite-local'} - {firestoreStatus?.message || 'Checking sync status...'}
+                </div>
                 
                 {['Cash on Delivery (COD)', 'UPI / NetBanking', 'Credit / Debit Card', 'Razorpay (Online Payment)'].map(methodName => (
                   <label key={methodName} className="checkbox-label" style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', padding: '1rem', border: '1px solid rgba(255,255,255,0.04)', borderRadius: '6px', cursor: 'pointer', backgroundColor: 'rgba(255,255,255,0.01)' }}>

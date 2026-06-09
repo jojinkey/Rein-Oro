@@ -1,8 +1,29 @@
 import crypto from 'crypto';
 import { db } from '../util/database.js';
+import { deleteFromFirestore, getFirestoreStatus, mirrorToFirestore, syncCollectionsToFirestore } from '../util/firestore.js';
 
 const DEFAULT_RAZORPAY_KEY_ID = 'rzp_test_defaultKeyId';
 const DEFAULT_RAZORPAY_KEY_SECRET = 'defaultKeySecret';
+
+function mirrorRecord(collectionName, documentId, data) {
+  mirrorToFirestore(collectionName, documentId, data).catch(err => {
+    console.error(`Firestore mirror failed for ${collectionName}/${documentId}:`, err.message);
+  });
+}
+
+function deleteMirrorRecord(collectionName, documentId) {
+  deleteFromFirestore(collectionName, documentId).catch(err => {
+    console.error(`Firestore delete failed for ${collectionName}/${documentId}:`, err.message);
+  });
+}
+
+function requireAdminSync(req, res) {
+  const secret = process.env.ADMIN_API_SECRET;
+  if (!secret) return true;
+  if (req.headers['x-admin-secret'] === secret) return true;
+  res.status(403).json({ error: 'Admin sync secret is required' });
+  return false;
+}
 
 function parseInteger(value, fallback = 0) {
   const parsed = Number.parseInt(value, 10);
@@ -20,9 +41,20 @@ function getGatewaySetting(key, fallback = '') {
   return row?.value || fallback;
 }
 
+function getEnvValue(...keys) {
+  for (const key of keys) {
+    const value = process.env[key];
+    if (typeof value === 'string' && value.trim()) return value.trim();
+  }
+  return '';
+}
+
 function getRazorpayCredentials() {
-  const keyId = getGatewaySetting('razorpay_key_id', DEFAULT_RAZORPAY_KEY_ID);
-  const keySecret = getGatewaySetting('razorpay_key_secret', DEFAULT_RAZORPAY_KEY_SECRET);
+  const envKeyId = getEnvValue('RAZORPAY_KEY_ID', 'NEXT_PUBLIC_RAZORPAY_KEY_ID');
+  const envKeySecret = getEnvValue('RAZORPAY_KEY_SECRET', 'RAZORPAY_SECRET');
+  const envConfigured = Boolean(envKeyId && envKeySecret);
+  const keyId = envKeyId || getGatewaySetting('razorpay_key_id', DEFAULT_RAZORPAY_KEY_ID);
+  const keySecret = envKeySecret || getGatewaySetting('razorpay_key_secret', DEFAULT_RAZORPAY_KEY_SECRET);
   const isConfigured = Boolean(
     keyId &&
     keySecret &&
@@ -30,7 +62,7 @@ function getRazorpayCredentials() {
     keySecret !== DEFAULT_RAZORPAY_KEY_SECRET
   );
 
-  return { keyId, keySecret, isConfigured };
+  return { keyId, keySecret, isConfigured, source: envConfigured ? 'env' : 'database' };
 }
 
 function verifyRazorpaySignature({ orderId, paymentId, signature, keySecret }) {
@@ -151,6 +183,48 @@ function formatPayment(payment) {
   };
 }
 
+function formatProductRow(row) {
+  return {
+    ...row,
+    benefits: JSON.parse(row.benefits),
+    ingredients: JSON.parse(row.ingredients),
+    specs: JSON.parse(row.specs),
+    nutrition: JSON.parse(row.nutrition)
+  };
+}
+
+function getProductById(id) {
+  const row = db.prepare('SELECT * FROM products WHERE id = ?').get(id);
+  return row ? formatProductRow(row) : null;
+}
+
+function getOrderWithItems(id) {
+  const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(id);
+  if (!order) return null;
+  const items = db.prepare('SELECT * FROM order_items WHERE order_id = ?').all(id);
+  return { ...order, items };
+}
+
+function formatReview(row) {
+  return {
+    ...row,
+    rating: parseInteger(row.rating, 5)
+  };
+}
+
+function getReviewSummary(productId) {
+  const rows = db.prepare('SELECT rating, COUNT(*) as count FROM reviews WHERE product_id = ? AND status = ? GROUP BY rating').all(productId, 'approved');
+  const total = rows.reduce((sum, row) => sum + row.count, 0);
+  const ratingTotal = rows.reduce((sum, row) => sum + (row.rating * row.count), 0);
+  const average = total ? Math.round((ratingTotal / total) * 10) / 10 : 0;
+  const breakdown = {};
+  for (let i = 1; i <= 5; i += 1) {
+    const found = rows.find(row => row.rating === i);
+    breakdown[i] = found ? found.count : 0;
+  }
+  return { total, average, breakdown };
+}
+
 function getCrmCustomers() {
   return db.prepare(`
     SELECT
@@ -208,6 +282,8 @@ function buildOwnerDashboard() {
   const leadCount = db.prepare('SELECT COUNT(*) AS count FROM enquiries').get();
   const openLeadCount = db.prepare("SELECT COUNT(*) AS count FROM enquiries WHERE status IN ('New', 'Open', 'Pending')").get();
   const newsletterCount = db.prepare('SELECT COUNT(*) AS count FROM newsletter').get();
+  const reviewCount = db.prepare('SELECT COUNT(*) AS count FROM reviews').get();
+  const pendingReviewCount = db.prepare("SELECT COUNT(*) AS count FROM reviews WHERE status != 'approved'").get();
   const paymentRows = db.prepare(`
     SELECT payment_provider, payment_status, COUNT(*) AS count, COALESCE(SUM(total), 0) AS revenue
     FROM orders
@@ -232,8 +308,11 @@ function buildOwnerDashboard() {
       customers: customerCount.count || 0,
       leads: leadCount.count || 0,
       open_leads: openLeadCount.count || 0,
-      newsletter_subscribers: newsletterCount.count || 0
+      newsletter_subscribers: newsletterCount.count || 0,
+      reviews: reviewCount.count || 0,
+      pending_reviews: pendingReviewCount.count || 0
     },
+    firestore: getFirestoreStatus(),
     payment_breakdown: paymentRows,
     recent_orders: recentOrders,
     top_products: topProducts,
@@ -246,14 +325,16 @@ function buildOwnerDashboard() {
 export function registerApiRoutes(router) {
   // --- Auth Routes ---
   router.post('/api/auth/register', (req, res) => {
-    const { email, password } = req.body;
+    const { email, password, firebase_uid } = req.body;
     if (!email || !password) {
       return res.status(400).json({ error: 'Email and password are required' });
     }
     try {
-      const stmt = db.prepare('INSERT INTO users (email, password, role) VALUES (?, ?, ?)');
-      const result = stmt.run(email, password, 'user');
-      res.json({ success: true, user: { email, role: 'user', id: result.lastInsertRowid } });
+      const stmt = db.prepare('INSERT INTO users (email, password, role, firebase_uid) VALUES (?, ?, ?, ?)');
+      const result = stmt.run(email, password, 'user', firebase_uid || null);
+      const newUser = { id: result.lastInsertRowid, email, role: 'user', firebase_uid: firebase_uid || null };
+      mirrorRecord('users', firebase_uid || email, newUser);
+      res.json({ success: true, user: newUser });
     } catch (err) {
       res.status(400).json({ error: 'Account already exists' });
     }
@@ -267,7 +348,7 @@ export function registerApiRoutes(router) {
     try {
       const user = db.prepare('SELECT * FROM users WHERE email = ? AND password = ?').get(email, password);
       if (user) {
-        res.json({ success: true, user: { email: user.email, role: user.role, member_since: user.member_since } });
+        res.json({ success: true, user: { id: user.id, email: user.email, role: user.role, member_since: user.member_since, firebase_uid: user.firebase_uid } });
       } else {
         res.status(401).json({ error: 'Invalid email or password' });
       }
@@ -280,14 +361,7 @@ export function registerApiRoutes(router) {
   router.get('/api/products', (req, res) => {
     try {
       const rows = db.prepare('SELECT * FROM products').all();
-      const formatted = rows.map(r => ({
-        ...r,
-        benefits: JSON.parse(r.benefits),
-        ingredients: JSON.parse(r.ingredients),
-        specs: JSON.parse(r.specs),
-        nutrition: JSON.parse(r.nutrition)
-      }));
-      res.json(formatted);
+      res.json(rows.map(formatProductRow));
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
@@ -300,11 +374,13 @@ export function registerApiRoutes(router) {
         INSERT INTO products (id, name, flavor, title, price, image, description, weight, benefits, benefits_image, ingredients, specs, nutrition, stock)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).run(
-        id, name, flavor, title, parseInt(price), image || 'images/makhana_classic.png', description, weight,
+        id, name, flavor, title, parseInteger(price), image || 'images/makhana_classic.png', description, weight,
         JSON.stringify(benefits || []), benefits_image || 'images/makhana_bowl_love.png',
         JSON.stringify(ingredients || []), JSON.stringify(specs || {}), JSON.stringify(nutrition || {}),
-        parseInt(stock !== undefined ? stock : 25)
+        parseInteger(stock !== undefined ? stock : 25)
       );
+      const savedProduct = getProductById(id);
+      if (savedProduct) mirrorRecord('products', id, savedProduct);
       res.json({ success: true });
     } catch (err) {
       res.status(400).json({ error: err.message });
@@ -321,12 +397,14 @@ export function registerApiRoutes(router) {
             benefits = ?, benefits_image = ?, ingredients = ?, specs = ?, nutrition = ?, stock = ?
         WHERE id = ?
       `).run(
-        name, flavor, title, parseInt(price), image, description, weight,
+        name, flavor, title, parseInteger(price), image, description, weight,
         JSON.stringify(benefits || []), benefits_image,
         JSON.stringify(ingredients || []), JSON.stringify(specs || {}), JSON.stringify(nutrition || {}),
-        parseInt(stock !== undefined ? stock : 25),
+        parseInteger(stock !== undefined ? stock : 25),
         id
       );
+      const savedProduct = getProductById(id);
+      if (savedProduct) mirrorRecord('products', id, savedProduct);
       res.json({ success: true });
     } catch (err) {
       res.status(400).json({ error: err.message });
@@ -337,6 +415,7 @@ export function registerApiRoutes(router) {
     const { id } = req.params;
     try {
       db.prepare('DELETE FROM products WHERE id = ?').run(id);
+      deleteMirrorRecord('products', id);
       res.json({ success: true });
     } catch (err) {
       res.status(400).json({ error: err.message });
@@ -450,6 +529,9 @@ export function registerApiRoutes(router) {
         });
       }
   
+      const savedOrder = getOrderWithItems(id);
+      if (savedOrder) mirrorRecord('orders', id, savedOrder);
+  
       res.json({
         success: true,
         orderId: id,
@@ -473,6 +555,8 @@ export function registerApiRoutes(router) {
   
       db.prepare('UPDATE orders SET status = COALESCE(?, status), payment_status = COALESCE(?, payment_status) WHERE id = ?')
         .run(status || null, payment_status || null, id);
+      const savedOrder = getOrderWithItems(id);
+      if (savedOrder) mirrorRecord('orders', id, savedOrder);
   
       res.json({ success: true });
     } catch (err) {
@@ -667,6 +751,79 @@ export function registerApiRoutes(router) {
     } catch (err) { res.status(400).json({ error: err.message }); }
   });
   
+  // --- Product Reviews ---
+  router.get('/api/reviews', (req, res) => {
+    const { product_id, status } = req.query;
+    try {
+      let rows;
+      if (product_id && status) {
+        rows = db.prepare('SELECT * FROM reviews WHERE product_id = ? AND status = ? ORDER BY id DESC').all(product_id, status);
+      } else if (product_id) {
+        rows = db.prepare('SELECT * FROM reviews WHERE product_id = ? ORDER BY id DESC').all(product_id);
+      } else if (status) {
+        rows = db.prepare('SELECT * FROM reviews WHERE status = ? ORDER BY id DESC').all(status);
+      } else {
+        rows = db.prepare('SELECT * FROM reviews ORDER BY id DESC').all();
+      }
+      res.json(rows.map(formatReview));
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  router.get('/api/products/:id/reviews', (req, res) => {
+    const { id } = req.params;
+    try {
+      const reviews = db.prepare('SELECT * FROM reviews WHERE product_id = ? AND status = ? ORDER BY id DESC').all(id, 'approved').map(formatReview);
+      res.json({ summary: getReviewSummary(id), reviews });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  router.post('/api/reviews', (req, res) => {
+    const { product_id, user_email, user_uid, name, rating, title, comment, status } = req.body;
+    if (!product_id || !name || !rating || !comment) {
+      return res.status(400).json({ error: 'Product, name, rating, and comment are required' });
+    }
+
+    try {
+      const result = db.prepare(`
+        INSERT INTO reviews (product_id, user_email, user_uid, name, rating, title, comment, status)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(product_id, user_email || null, user_uid || null, name, parseInteger(rating, 5), title || null, comment, status || 'pending');
+      const saved = db.prepare('SELECT * FROM reviews WHERE id = ?').get(result.lastInsertRowid);
+      mirrorRecord('reviews', result.lastInsertRowid, saved);
+      res.json({ success: true, id: result.lastInsertRowid, review: formatReview(saved) });
+    } catch (err) {
+      res.status(400).json({ error: err.message });
+    }
+  });
+
+  router.put('/api/reviews/:id/status', (req, res) => {
+    const { id } = req.params;
+    const { status } = req.body;
+    try {
+      db.prepare('UPDATE reviews SET status = ? WHERE id = ?').run(status || 'approved', id);
+      const saved = db.prepare('SELECT * FROM reviews WHERE id = ?').get(id);
+      if (saved) mirrorRecord('reviews', id, saved);
+      res.json({ success: true });
+    } catch (err) {
+      res.status(400).json({ error: err.message });
+    }
+  });
+
+  router.delete('/api/reviews/:id', (req, res) => {
+    const { id } = req.params;
+    try {
+      db.prepare('DELETE FROM reviews WHERE id = ?').run(id);
+      deleteMirrorRecord('reviews', id);
+      res.json({ success: true });
+    } catch (err) {
+      res.status(400).json({ error: err.message });
+    }
+  });
+
   // --- Testimonials Endpoints ---
   router.get('/api/testimonials', (req, res) => {
     try {
@@ -929,6 +1086,14 @@ export function registerApiRoutes(router) {
       const rows = db.prepare('SELECT * FROM gateway_settings').all();
       const settings = {};
       for (const r of rows) settings[r.key] = r.value;
+      const { keyId, isConfigured, source } = getRazorpayCredentials();
+      settings.razorpay_configured = isConfigured;
+      settings.razorpay_source = source;
+      settings.razorpay_mode = keyId?.startsWith('rzp_live_') ? 'live' : 'test';
+      if (source === 'env') {
+        settings.razorpay_key_id = keyId;
+        settings.razorpay_key_secret = 'Configured in backend .env';
+      }
       res.json(settings);
     } catch (err) { res.status(500).json({ error: err.message }); }
   });
@@ -938,6 +1103,8 @@ export function registerApiRoutes(router) {
     try {
       const stmt = db.prepare('INSERT INTO gateway_settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value');
       for (const [k, v] of Object.entries(settings)) {
+        if (['razorpay_configured', 'razorpay_source', 'razorpay_mode'].includes(k)) continue;
+        if (k === 'razorpay_key_secret' && v === 'Configured in backend .env') continue;
         stmt.run(k, v);
       }
       res.json({ success: true });
@@ -1095,7 +1262,20 @@ export function registerApiRoutes(router) {
               razorpay_signature = ?
           WHERE id = ?
         `).run(razorpay_order_id, razorpay_payment_id, razorpay_signature || null, order_id);
+        const savedOrder = getOrderWithItems(order_id);
+        if (savedOrder) mirrorRecord('orders', order_id, savedOrder);
       }
+  
+      mirrorRecord('payments', razorpay_payment_id, {
+        local_order_id: order_id,
+        provider: 'razorpay',
+        provider_order_id: razorpay_order_id,
+        provider_payment_id: razorpay_payment_id,
+        amount,
+        currency: 'INR',
+        status: 'captured',
+        is_mock: isMock ? 1 : 0
+      });
   
       res.json({
         success: true,
@@ -1122,6 +1302,29 @@ export function registerApiRoutes(router) {
     }
   });
   
+  // --- Firestore Sync / Status ---
+  router.get('/api/firestore/status', (req, res) => {
+    res.json(getFirestoreStatus());
+  });
+
+  router.post('/api/firestore/sync', async (req, res) => {
+    if (!requireAdminSync(req, res)) return;
+    try {
+      const snapshot = {
+        products: db.prepare('SELECT * FROM products').all().map(formatProductRow),
+        users: db.prepare('SELECT id, email, role, member_since, firebase_uid FROM users').all(),
+        orders: db.prepare('SELECT * FROM orders ORDER BY rowid DESC').all().map(order => getOrderWithItems(order.id)),
+        payments: db.prepare('SELECT * FROM payments ORDER BY id DESC').all().map(formatPayment),
+        reviews: db.prepare('SELECT * FROM reviews ORDER BY id DESC').all().map(formatReview),
+        crmNotes: db.prepare('SELECT * FROM crm_notes ORDER BY id DESC').all()
+      };
+      const result = await syncCollectionsToFirestore(snapshot);
+      res.json(result);
+    } catch (err) {
+      res.status(500).json({ error: err.message, status: getFirestoreStatus() });
+    }
+  });
+
   // sitemap.xml dynamic generation
   router.get('/sitemap.xml', (req, res) => {
     try {

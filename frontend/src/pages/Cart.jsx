@@ -148,7 +148,7 @@ export default function Cart() {
               <div className="shipping-progress-bg">
                 <div className="shipping-progress-fill" style={{ width: `${progressPercent}%` }}></div>
                 <div className="shipping-progress-truck" style={{ left: `calc(${progressPercent}% - 7px)` }}>
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 18H3c-1.1 0-2-.9-2-2V5c0-1.1.9-2 2-2h4c1.1 0 2 .9 2 2v5h4l5 2 2 2v2c0 1.1-.9 2-2 2h-2"/><circle cx="7.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 18H3c-1.1 0-2-.9-2-2V5c0-1.1.9-2 2-2h4c1.1 0 2 .9 2 2v5h4l5 2 2 2v2c0 1.1-.9 2-2 2h-2"/><circle cx="7.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
                 </div>
               </div>
             </div>

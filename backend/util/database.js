@@ -14,7 +14,8 @@ db.exec(`
     email TEXT UNIQUE NOT NULL,
     password TEXT NOT NULL,
     member_since TEXT DEFAULT CURRENT_TIMESTAMP,
-    role TEXT DEFAULT 'user'
+    role TEXT DEFAULT 'user',
+    firebase_uid TEXT
   );
 
   CREATE TABLE IF NOT EXISTS products (
@@ -186,11 +187,30 @@ db.exec(`
     owner TEXT DEFAULT 'owner',
     created_at TEXT DEFAULT CURRENT_TIMESTAMP
   );
+
+  CREATE TABLE IF NOT EXISTS reviews (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    product_id TEXT NOT NULL,
+    user_email TEXT,
+    user_uid TEXT,
+    name TEXT NOT NULL,
+    rating INTEGER NOT NULL,
+    title TEXT,
+    comment TEXT NOT NULL,
+    status TEXT DEFAULT 'approved',
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+  );
 `);
 
 // Schema Migration: Add stock column to products if not exists
 try {
   db.exec('ALTER TABLE products ADD COLUMN stock INTEGER DEFAULT 25');
+} catch (e) {
+  // Column already exists
+}
+
+try {
+  db.exec('ALTER TABLE users ADD COLUMN firebase_uid TEXT');
 } catch (e) {
   // Column already exists
 }
@@ -579,6 +599,17 @@ function seedTestimonials() {
   }
 }
 
+// Seed product reviews
+function seedReviews() {
+  const check = db.prepare('SELECT COUNT(*) as count FROM reviews').get();
+  if (check.count > 0) return;
+
+  const stmt = db.prepare('INSERT INTO reviews (product_id, user_email, name, rating, title, comment, status) VALUES (?, ?, ?, ?, ?, ?, ?)');
+  stmt.run('makhana_cheese_onion', 'aditya@example.com', 'Aditya Roy', 5, 'Premium crunch', 'The cheese onion flavoring is sublime. Absolute premium crunch and texture.', 'approved');
+  stmt.run('makhana_cheese_onion', 'meera@example.com', 'Meera Sen', 5, 'Fresh and beautifully packed', 'Hands down the best makhana I have ordered in India. Beautifully packed and completely fresh.', 'approved');
+  stmt.run('makhana_cheese_onion', 'vikram@example.com', 'Vikram Malhotra', 4, 'Will order again', 'Superb quality. The gold visual branding is premium and the shipping was fast.', 'approved');
+}
+
 // Seed blog
 function seedBlog() {
   const check = db.prepare('SELECT COUNT(*) as count FROM blog').get();
@@ -698,6 +729,7 @@ export function seedDatabase() {
   seedBanners();
   seedMedia();
   seedTestimonials();
+  seedReviews();
   seedBlog();
   seedFAQs();
   seedCoupons();

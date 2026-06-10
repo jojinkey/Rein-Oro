@@ -24,6 +24,7 @@ export default function Checkout() {
   const [enabledPayments, setEnabledPayments] = useState({});
   const [showMockPaymentModal, setShowMockPaymentModal] = useState(false);
   const [mockOrderPayload, setMockOrderPayload] = useState(null);
+  const [mockPaymentMeta, setMockPaymentMeta] = useState(null);
   const [agreed, setAgreed] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -93,6 +94,25 @@ export default function Checkout() {
       ...prev,
       [id]: type === 'checkbox' ? checked : value
     }));
+  };
+
+  const verifyRazorpayPayment = async ({ orderId, paymentId, signature, localOrderId, amount }) => {
+    const response = await fetch('/api/payments/razorpay/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        razorpay_order_id: orderId,
+        razorpay_payment_id: paymentId,
+        razorpay_signature: signature,
+        order_id: localOrderId,
+        amount
+      })
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.error || 'Payment verification failed');
+    }
+    return data;
   };
 
   const saveOrderToDB = async (payload) => {
@@ -176,6 +196,7 @@ export default function Checkout() {
 
         if (orderData.isMock) {
           setMockOrderPayload(orderPayload);
+          setMockPaymentMeta(orderData);
           setShowMockPaymentModal(true);
           setIsSubmitting(false);
         } else {
@@ -203,10 +224,19 @@ export default function Checkout() {
             },
             handler: async function (response) {
               try {
+                await verifyRazorpayPayment({
+                  orderId: response.razorpay_order_id || orderData.orderId,
+                  paymentId: response.razorpay_payment_id,
+                  signature: response.razorpay_signature,
+                  localOrderId: orderPayload.id,
+                  amount: totalAmount
+                });
                 const finalPayload = {
                   ...orderPayload,
                   payment_method: 'Paid via Razorpay Online',
-                  payment_id: response.razorpay_payment_id
+                  payment_id: response.razorpay_payment_id,
+                  razorpay_order_id: response.razorpay_order_id || orderData.orderId,
+                  razorpay_signature: response.razorpay_signature
                 };
                 await saveOrderToDB(finalPayload);
               } catch (err) {
@@ -526,13 +556,25 @@ export default function Checkout() {
                 onClick={async () => {
                   try {
                     setIsSubmitting(true);
+                    const mockPaymentId = `pay_mock_${Date.now()}`;
+                    await verifyRazorpayPayment({
+                      orderId: mockPaymentMeta?.orderId,
+                      paymentId: mockPaymentId,
+                      signature: 'mock_signature',
+                      localOrderId: mockOrderPayload.id,
+                      amount: mockOrderPayload.total
+                    });
                     const finalPayload = {
                       ...mockOrderPayload,
                       payment_method: 'Paid via Razorpay Online (Simulated)',
-                      status: 'Processing'
+                      status: 'Processing',
+                      payment_id: mockPaymentId,
+                      razorpay_order_id: mockPaymentMeta?.orderId,
+                      razorpay_signature: 'mock_signature'
                     };
                     await saveOrderToDB(finalPayload);
                     setShowMockPaymentModal(false);
+                    setMockPaymentMeta(null);
                   } catch (err) {
                     alert(`Simulation error: ${err.message}`);
                   } finally {
@@ -550,6 +592,7 @@ export default function Checkout() {
                 onClick={() => {
                   alert('Payment was cancelled/declined by user in simulation mode.');
                   setShowMockPaymentModal(false);
+                  setMockPaymentMeta(null);
                   setIsSubmitting(false);
                 }}
                 disabled={isSubmitting}

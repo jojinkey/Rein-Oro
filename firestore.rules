@@ -1,0 +1,52 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function userDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function role() {
+      return signedIn() && userDoc().data.role != null ? userDoc().data.role : 'user';
+    }
+
+    function adminOnly() {
+      return signedIn() && (role() == 'admin' || role() == 'owner');
+    }
+
+    match /products/{productId} {
+      allow read: if true;
+      allow write: if adminOnly();
+    }
+
+    match /orders/{orderId} {
+      allow read: if adminOnly() || (signedIn() && resource.data.user_uid == request.auth.uid);
+      allow create: if signedIn() && request.resource.data.user_uid == request.auth.uid;
+      allow update, delete: if adminOnly();
+    }
+
+    match /users/{userId} {
+      allow create: if signedIn() && userId == request.auth.uid;
+      allow read, update: if adminOnly() || (signedIn() && userId == request.auth.uid);
+      allow delete: if adminOnly();
+    }
+
+    match /reviews/{reviewId} {
+      allow read: if resource.data.status == 'approved' || adminOnly();
+      allow create: if signedIn() && request.resource.data.user_uid == request.auth.uid;
+      allow update, delete: if adminOnly();
+    }
+
+    match /payments/{paymentId} {
+      allow read, write: if adminOnly();
+    }
+
+    match /crmNotes/{noteId} {
+      allow read, write: if adminOnly();
+    }
+  }
+}

@@ -1,2902 +1,5664 @@
-import React, { useState, useEffect, useContext } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { AuthContext, CMSContext } from '../App.jsx';
+import React, { useState, useEffect, useContext } from "react";
+import { useNavigate } from "react-router-dom";
+import { AuthContext, CMSContext } from "../App.jsx";
 
 const getSelectorLabel = (selector) => {
-  const labels = {
-    '#scene-1 .eyebrow': 'Home Page Hero Eyebrow Text',
-    '#scene-1 h1': 'Home Page Hero Title Text',
-    '#scene-1 p': 'Home Page Hero Paragraph Text',
-    '#scene-5 h2': 'Home Page Mid-Section Title Text',
-    '.gifting-title': 'Home Page Gifting Section Title',
-    '.gifting-body': 'Home Page Gifting Section Description',
-    '.gift-box-img': 'Home Page Gifting Section Image Path',
-    '.craft-img-1': 'Craft Section Image 1 (Slow Roasted)',
-    '.craft-img-2': 'Craft Section Image 2 (No Preservatives)',
-    '.craft-img-3': 'Craft Section Image 3 (Hygienic Pack)',
-    '.craft-img-4': 'Craft Section Image 4 (Finest Selection)',
-    '.about-hero-section h1': 'About Page Hero Title',
-    '.about-hero-section p': 'About Page Hero Subtitle',
-    '.about-hero-img': 'About Page Hero Image',
-    '.about-sourcing-title': 'About Page Sourcing Title',
-    '.about-sourcing-body': 'About Page Sourcing Description',
-    '.about-sourcing-img': 'About Page Sourcing Section Image',
-    '.about-craft-title': 'About Page Craftsmanship Title',
-    '.about-craft-body': 'About Page Craftsmanship Description',
-    '.about-values-title': 'About Page Core Values Title',
-    '.about-values-body': 'About Page Core Values Description',
-    '.about-values-img': 'About Page Core Values Image',
-    '.about-cta-title': 'About Page Bottom CTA Title',
-    '.about-cta-body': 'About Page Bottom CTA Description',
-    '.about-cta-img': 'About Page Bottom CTA Image',
-    '.contact-header h1': 'Contact Page Hero Title',
-    '.contact-header p': 'Contact Page Hero Subtitle',
-    '.contact-address': 'Contact Address Details',
-    '.contact-email-1': 'Concierge Desk Email',
-    '.contact-email-2': 'Concierge Support Email',
-    '.contact-phone-1': 'Concierge Phone Number',
-    '.contact-phone-2': 'Concierge Support Phone Number',
-    '.contact-hours': 'Bespoke Concierge Business Hours'
-  };
-  return labels[selector] || selector;
+ const labels = {
+  "#scene-1 .eyebrow": "Home Page Hero Eyebrow Text",
+  "#scene-1 h1": "Home Page Hero Title Text",
+  "#scene-1 p": "Home Page Hero Paragraph Text",
+  "#scene-5 h2": "Home Page Mid-Section Title Text",
+  ".gifting-title": "Home Page Gifting Section Title",
+  ".gifting-body": "Home Page Gifting Section Description",
+  ".gift-box-img": "Home Page Gifting Section Image Path",
+  ".craft-img-1": "Craft Section Image 1 (Slow Roasted)",
+  ".craft-img-2": "Craft Section Image 2 (No Preservatives)",
+  ".craft-img-3": "Craft Section Image 3 (Hygienic Pack)",
+  ".craft-img-4": "Craft Section Image 4 (Finest Selection)",
+  ".about-hero-section h1": "About Page Hero Title",
+  ".about-hero-section p": "About Page Hero Subtitle",
+  ".about-hero-img": "About Page Hero Image",
+  ".about-sourcing-title": "About Page Sourcing Title",
+  ".about-sourcing-body": "About Page Sourcing Description",
+  ".about-sourcing-img": "About Page Sourcing Section Image",
+  ".about-craft-title": "About Page Craftsmanship Title",
+  ".about-craft-body": "About Page Craftsmanship Description",
+  ".about-values-title": "About Page Core Values Title",
+  ".about-values-body": "About Page Core Values Description",
+  ".about-values-img": "About Page Core Values Image",
+  ".about-cta-title": "About Page Bottom CTA Title",
+  ".about-cta-body": "About Page Bottom CTA Description",
+  ".about-cta-img": "About Page Bottom CTA Image",
+  ".contact-header h1": "Contact Page Hero Title",
+  ".contact-header p": "Contact Page Hero Subtitle",
+  ".contact-address": "Contact Address Details",
+  ".contact-email-1": "Concierge Desk Email",
+  ".contact-email-2": "Concierge Support Email",
+  ".contact-phone-1": "Concierge Phone Number",
+  ".contact-phone-2": "Concierge Support Phone Number",
+  ".contact-hours": "Bespoke Concierge Business Hours",
+ };
+ return labels[selector] || selector;
 };
 
 // Inline SVG Icon Helpers for Luxury Aesthetic
 const IconDashboard = () => (
-  <svg className="admin-dash-menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: '16px', height: '16px' }}>
-    <rect x="3" y="3" width="7" height="9" />
-    <rect x="14" y="3" width="7" height="5" />
-    <rect x="14" y="12" width="7" height="9" />
-    <rect x="3" y="16" width="7" height="5" />
-  </svg>
+ <svg
+  className="admin-dash-menu-icon"
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  strokeWidth="2"
+  strokeLinecap="round"
+  strokeLinejoin="round"
+  style={{ width: "16px", height: "16px" }}
+ >
+  <rect x="3" y="3" width="7" height="9" />
+  <rect x="14" y="3" width="7" height="5" />
+  <rect x="14" y="12" width="7" height="9" />
+  <rect x="3" y="16" width="7" height="5" />
+ </svg>
 );
 const IconPages = () => (
-  <svg className="admin-dash-menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: '16px', height: '16px' }}>
-    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-    <polyline points="14 2 14 8 20 8" />
-    <line x1="16" y1="13" x2="8" y2="13" />
-    <line x1="16" y1="17" x2="8" y2="17" />
-    <line x1="10" y1="9" x2="8" y2="9" />
-  </svg>
+ <svg
+  className="admin-dash-menu-icon"
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  strokeWidth="2"
+  strokeLinecap="round"
+  strokeLinejoin="round"
+  style={{ width: "16px", height: "16px" }}
+ >
+  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+  <polyline points="14 2 14 8 20 8" />
+  <line x1="16" y1="13" x2="8" y2="13" />
+  <line x1="16" y1="17" x2="8" y2="17" />
+  <line x1="10" y1="9" x2="8" y2="9" />
+ </svg>
 );
 const IconProducts = () => (
-  <svg className="admin-dash-menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: '16px', height: '16px' }}>
-    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
-    <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
-    <line x1="12" y1="22.08" x2="12" y2="12" />
-  </svg>
+ <svg
+  className="admin-dash-menu-icon"
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  strokeWidth="2"
+  strokeLinecap="round"
+  strokeLinejoin="round"
+  style={{ width: "16px", height: "16px" }}
+ >
+  <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+  <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+  <line x1="12" y1="22.08" x2="12" y2="12" />
+ </svg>
 );
 const IconCategories = () => (
-  <svg className="admin-dash-menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: '16px', height: '16px' }}>
-    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
-  </svg>
+ <svg
+  className="admin-dash-menu-icon"
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  strokeWidth="2"
+  strokeLinecap="round"
+  strokeLinejoin="round"
+  style={{ width: "16px", height: "16px" }}
+ >
+  <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+ </svg>
 );
 const IconBanners = () => (
-  <svg className="admin-dash-menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: '16px', height: '16px' }}>
-    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-    <circle cx="8.5" cy="8.5" r="1.5" />
-    <polyline points="21 15 16 10 5 21" />
-  </svg>
+ <svg
+  className="admin-dash-menu-icon"
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  strokeWidth="2"
+  strokeLinecap="round"
+  strokeLinejoin="round"
+  style={{ width: "16px", height: "16px" }}
+ >
+  <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+  <circle cx="8.5" cy="8.5" r="1.5" />
+  <polyline points="21 15 16 10 5 21" />
+ </svg>
 );
 const IconMedia = () => (
-  <svg className="admin-dash-menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: '16px', height: '16px' }}>
-    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
-    <circle cx="12" cy="13" r="4" />
-  </svg>
+ <svg
+  className="admin-dash-menu-icon"
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  strokeWidth="2"
+  strokeLinecap="round"
+  strokeLinejoin="round"
+  style={{ width: "16px", height: "16px" }}
+ >
+  <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+  <circle cx="12" cy="13" r="4" />
+ </svg>
 );
 const IconTestimonials = () => (
-  <svg className="admin-dash-menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: '16px', height: '16px' }}>
-    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-  </svg>
+ <svg
+  className="admin-dash-menu-icon"
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  strokeWidth="2"
+  strokeLinecap="round"
+  strokeLinejoin="round"
+  style={{ width: "16px", height: "16px" }}
+ >
+  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+ </svg>
 );
 const IconBlog = () => (
-  <svg className="admin-dash-menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: '16px', height: '16px' }}>
-    <path d="M12 20h9" />
-    <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
-  </svg>
+ <svg
+  className="admin-dash-menu-icon"
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  strokeWidth="2"
+  strokeLinecap="round"
+  strokeLinejoin="round"
+  style={{ width: "16px", height: "16px" }}
+ >
+  <path d="M12 20h9" />
+  <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+ </svg>
 );
 const IconFAQ = () => (
-  <svg className="admin-dash-menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: '16px', height: '16px' }}>
-    <circle cx="12" cy="12" r="10" />
-    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
-    <line x1="12" y1="17" x2="12.01" y2="17" />
-  </svg>
+ <svg
+  className="admin-dash-menu-icon"
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  strokeWidth="2"
+  strokeLinecap="round"
+  strokeLinejoin="round"
+  style={{ width: "16px", height: "16px" }}
+ >
+  <circle cx="12" cy="12" r="10" />
+  <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+  <line x1="12" y1="17" x2="12.01" y2="17" />
+ </svg>
 );
 const IconOrders = () => (
-  <svg className="admin-dash-menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: '16px', height: '16px' }}>
-    <circle cx="9" cy="21" r="1" />
-    <circle cx="20" cy="21" r="1" />
-    <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
-  </svg>
+ <svg
+  className="admin-dash-menu-icon"
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  strokeWidth="2"
+  strokeLinecap="round"
+  strokeLinejoin="round"
+  style={{ width: "16px", height: "16px" }}
+ >
+  <circle cx="9" cy="21" r="1" />
+  <circle cx="20" cy="21" r="1" />
+  <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
+ </svg>
 );
 const IconCustomers = () => (
-  <svg className="admin-dash-menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: '16px', height: '16px' }}>
-    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-    <circle cx="9" cy="7" r="4" />
-    <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-  </svg>
+ <svg
+  className="admin-dash-menu-icon"
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  strokeWidth="2"
+  strokeLinecap="round"
+  strokeLinejoin="round"
+  style={{ width: "16px", height: "16px" }}
+ >
+  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+  <circle cx="9" cy="7" r="4" />
+  <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+  <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+ </svg>
 );
 const IconEnquiries = () => (
-  <svg className="admin-dash-menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: '16px', height: '16px' }}>
-    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-    <polyline points="22,6 12,13 2,6" />
-  </svg>
+ <svg
+  className="admin-dash-menu-icon"
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  strokeWidth="2"
+  strokeLinecap="round"
+  strokeLinejoin="round"
+  style={{ width: "16px", height: "16px" }}
+ >
+  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+  <polyline points="22,6 12,13 2,6" />
+ </svg>
 );
 const IconCoupons = () => (
-  <svg className="admin-dash-menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: '16px', height: '16px' }}>
-    <path d="M15 5H3a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2z" />
-    <path d="M21 7h-2v10h2a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z" />
-    <circle cx="6" cy="12" r="1" />
-    <circle cx="12" cy="12" r="1" />
-  </svg>
+ <svg
+  className="admin-dash-menu-icon"
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  strokeWidth="2"
+  strokeLinecap="round"
+  strokeLinejoin="round"
+  style={{ width: "16px", height: "16px" }}
+ >
+  <path d="M15 5H3a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2z" />
+  <path d="M21 7h-2v10h2a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z" />
+  <circle cx="6" cy="12" r="1" />
+  <circle cx="12" cy="12" r="1" />
+ </svg>
 );
 const IconNewsletter = () => (
-  <svg className="admin-dash-menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: '16px', height: '16px' }}>
-    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-    <line x1="22" y1="6" x2="12" y2="13" />
-    <line x1="2" y1="6" x2="12" y2="13" />
-  </svg>
+ <svg
+  className="admin-dash-menu-icon"
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  strokeWidth="2"
+  strokeLinecap="round"
+  strokeLinejoin="round"
+  style={{ width: "16px", height: "16px" }}
+ >
+  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+  <line x1="22" y1="6" x2="12" y2="13" />
+  <line x1="2" y1="6" x2="12" y2="13" />
+ </svg>
 );
 const IconSEO = () => (
-  <svg className="admin-dash-menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: '16px', height: '16px' }}>
-    <circle cx="11" cy="11" r="8" />
-    <line x1="21" y1="21" x2="16.65" y2="16.65" />
-  </svg>
+ <svg
+  className="admin-dash-menu-icon"
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  strokeWidth="2"
+  strokeLinecap="round"
+  strokeLinejoin="round"
+  style={{ width: "16px", height: "16px" }}
+ >
+  <circle cx="11" cy="11" r="8" />
+  <line x1="21" y1="21" x2="16.65" y2="16.65" />
+ </svg>
 );
 const IconSettings = () => (
-  <svg className="admin-dash-menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: '16px', height: '16px' }}>
-    <circle cx="12" cy="12" r="3" />
-    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-  </svg>
+ <svg
+  className="admin-dash-menu-icon"
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  strokeWidth="2"
+  strokeLinecap="round"
+  strokeLinejoin="round"
+  style={{ width: "16px", height: "16px" }}
+ >
+  <circle cx="12" cy="12" r="3" />
+  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+ </svg>
 );
 const IconPayment = () => (
-  <svg className="admin-dash-menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: '16px', height: '16px' }}>
-    <rect x="1" y="4" width="22" height="16" rx="2" ry="2" />
-    <line x1="1" y1="10" x2="23" y2="10" />
-  </svg>
+ <svg
+  className="admin-dash-menu-icon"
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  strokeWidth="2"
+  strokeLinecap="round"
+  strokeLinejoin="round"
+  style={{ width: "16px", height: "16px" }}
+ >
+  <rect x="1" y="4" width="22" height="16" rx="2" ry="2" />
+  <line x1="1" y1="10" x2="23" y2="10" />
+ </svg>
 );
 const IconShipping = () => (
-  <svg className="admin-dash-menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: '16px', height: '16px' }}>
-    <rect x="1" y="3" width="15" height="13" />
-    <polygon points="16 8 20 8 23 11 23 16 16 16 16 8" />
-    <circle cx="5.5" cy="18.5" r="2.5" />
-    <circle cx="18.5" cy="18.5" r="2.5" />
-  </svg>
+ <svg
+  className="admin-dash-menu-icon"
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  strokeWidth="2"
+  strokeLinecap="round"
+  strokeLinejoin="round"
+  style={{ width: "16px", height: "16px" }}
+ >
+  <rect x="1" y="3" width="15" height="13" />
+  <polygon points="16 8 20 8 23 11 23 16 16 16 16 8" />
+  <circle cx="5.5" cy="18.5" r="2.5" />
+  <circle cx="18.5" cy="18.5" r="2.5" />
+ </svg>
 );
 const IconUsers = () => (
-  <svg className="admin-dash-menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: '16px', height: '16px' }}>
-    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-    <circle cx="12" cy="7" r="4" />
-  </svg>
+ <svg
+  className="admin-dash-menu-icon"
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  strokeWidth="2"
+  strokeLinecap="round"
+  strokeLinejoin="round"
+  style={{ width: "16px", height: "16px" }}
+ >
+  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+  <circle cx="12" cy="7" r="4" />
+ </svg>
 );
 const IconViewSite = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: '14px', height: '14px' }}>
-    <circle cx="12" cy="12" r="10" />
-    <line x1="2" y1="12" x2="22" y2="12" />
-    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-  </svg>
+ <svg
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  strokeWidth="2"
+  strokeLinecap="round"
+  strokeLinejoin="round"
+  style={{ width: "14px", height: "14px" }}
+ >
+  <circle cx="12" cy="12" r="10" />
+  <line x1="2" y1="12" x2="22" y2="12" />
+  <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+ </svg>
 );
 const IconSearch = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: '14px', height: '14px' }}>
-    <circle cx="11" cy="11" r="8" />
-    <line x1="21" y1="21" x2="16.65" y2="16.65" />
-  </svg>
+ <svg
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  strokeWidth="2"
+  strokeLinecap="round"
+  strokeLinejoin="round"
+  style={{ width: "14px", height: "14px" }}
+ >
+  <circle cx="11" cy="11" r="8" />
+  <line x1="21" y1="21" x2="16.65" y2="16.65" />
+ </svg>
 );
 const IconBell = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: '18px', height: '18px' }}>
-    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-    <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-  </svg>
+ <svg
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  strokeWidth="2"
+  strokeLinecap="round"
+  strokeLinejoin="round"
+  style={{ width: "18px", height: "18px" }}
+ >
+  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+  <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+ </svg>
 );
 const IconHamburger = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: '18px', height: '18px' }}>
-    <line x1="3" y1="12" x2="21" y2="12" />
-    <line x1="3" y1="6" x2="21" y2="6" />
-    <line x1="3" y1="18" x2="21" y2="18" />
-  </svg>
+ <svg
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  strokeWidth="2"
+  strokeLinecap="round"
+  strokeLinejoin="round"
+  style={{ width: "18px", height: "18px" }}
+ >
+  <line x1="3" y1="12" x2="21" y2="12" />
+  <line x1="3" y1="6" x2="21" y2="6" />
+  <line x1="3" y1="18" x2="21" y2="18" />
+ </svg>
 );
 const IconTrendingUp = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: '12px', height: '12px' }}>
-    <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
-    <polyline points="17 6 23 6 23 12" />
-  </svg>
+ <svg
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  strokeWidth="2.5"
+  strokeLinecap="round"
+  strokeLinejoin="round"
+  style={{ width: "12px", height: "12px" }}
+ >
+  <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
+  <polyline points="17 6 23 6 23 12" />
+ </svg>
 );
 const IconShoppingBag = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: '16px', height: '16px' }}>
-    <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
-    <line x1="3" y1="6" x2="21" y2="6" />
-    <path d="M16 10a4 4 0 0 1-8 0" />
-  </svg>
+ <svg
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  strokeWidth="2"
+  strokeLinecap="round"
+  strokeLinejoin="round"
+  style={{ width: "16px", height: "16px" }}
+ >
+  <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
+  <line x1="3" y1="6" x2="21" y2="6" />
+  <path d="M16 10a4 4 0 0 1-8 0" />
+ </svg>
 );
 const IconDollar = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: '16px', height: '16px' }}>
-    <line x1="12" y1="1" x2="12" y2="23" />
-    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-  </svg>
+ <svg
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  strokeWidth="2"
+  strokeLinecap="round"
+  strokeLinejoin="round"
+  style={{ width: "16px", height: "16px" }}
+ >
+  <line x1="12" y1="1" x2="12" y2="23" />
+  <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+ </svg>
 );
 const IconUsersGroup = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: '16px', height: '16px' }}>
-    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-    <circle cx="9" cy="7" r="4" />
-  </svg>
+ <svg
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  strokeWidth="2"
+  strokeLinecap="round"
+  strokeLinejoin="round"
+  style={{ width: "16px", height: "16px" }}
+ >
+  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+  <circle cx="9" cy="7" r="4" />
+ </svg>
 );
 const IconGift = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: '16px', height: '16px' }}>
-    <polyline points="20 12 20 22 4 22 4 12" />
-    <rect x="2" y="7" width="20" height="5" />
-    <line x1="12" y1="22" x2="12" y2="7" />
-    <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z" />
-    <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z" />
-  </svg>
+ <svg
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  strokeWidth="2"
+  strokeLinecap="round"
+  strokeLinejoin="round"
+  style={{ width: "16px", height: "16px" }}
+ >
+  <polyline points="20 12 20 22 4 22 4 12" />
+  <rect x="2" y="7" width="20" height="5" />
+  <line x1="12" y1="22" x2="12" y2="7" />
+  <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z" />
+  <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z" />
+ </svg>
 );
 const IconCalendar = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: '12px', height: '12px' }}>
-    <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-    <line x1="16" y1="2" x2="16" y2="6" />
-    <line x1="8" y1="2" x2="8" y2="6" />
-    <line x1="3" y1="10" x2="21" y2="10" />
-  </svg>
+ <svg
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  strokeWidth="2"
+  strokeLinecap="round"
+  strokeLinejoin="round"
+  style={{ width: "12px", height: "12px" }}
+ >
+  <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+  <line x1="16" y1="2" x2="16" y2="6" />
+  <line x1="8" y1="2" x2="8" y2="6" />
+  <line x1="3" y1="10" x2="21" y2="10" />
+ </svg>
 );
 const IconChevronRight = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: '16px', height: '16px' }}>
-    <polyline points="9 18 15 12 9 6" />
-  </svg>
+ <svg
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  strokeWidth="2"
+  strokeLinecap="round"
+  strokeLinejoin="round"
+  style={{ width: "16px", height: "16px" }}
+ >
+  <polyline points="9 18 15 12 9 6" />
+ </svg>
 );
 const IconEdit = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: '14px', height: '14px' }}>
-    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-  </svg>
+ <svg
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  strokeWidth="2"
+  strokeLinecap="round"
+  strokeLinejoin="round"
+  style={{ width: "14px", height: "14px" }}
+ >
+  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+ </svg>
 );
 const IconDelete = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: '14px', height: '14px' }}>
-    <polyline points="3 6 5 6 21 6" />
-    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-    <line x1="10" y1="11" x2="10" y2="17" />
-    <line x1="14" y1="11" x2="14" y2="17" />
-  </svg>
+ <svg
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  strokeWidth="2"
+  strokeLinecap="round"
+  strokeLinejoin="round"
+  style={{ width: "14px", height: "14px" }}
+ >
+  <polyline points="3 6 5 6 21 6" />
+  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+  <line x1="10" y1="11" x2="10" y2="17" />
+  <line x1="14" y1="11" x2="14" y2="17" />
+ </svg>
 );
 const IconPlus = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: '14px', height: '14px' }}>
-    <line x1="12" y1="5" x2="12" y2="19" />
-    <line x1="5" y1="12" x2="19" y2="12" />
-  </svg>
+ <svg
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  strokeWidth="2"
+  strokeLinecap="round"
+  strokeLinejoin="round"
+  style={{ width: "14px", height: "14px" }}
+ >
+  <line x1="12" y1="5" x2="12" y2="19" />
+  <line x1="5" y1="12" x2="19" y2="12" />
+ </svg>
 );
 const IconEye = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: '14px', height: '14px' }}>
-    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-    <circle cx="12" cy="12" r="3" />
-  </svg>
+ <svg
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  strokeWidth="2"
+  strokeLinecap="round"
+  strokeLinejoin="round"
+  style={{ width: "14px", height: "14px" }}
+ >
+  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+  <circle cx="12" cy="12" r="3" />
+ </svg>
 );
 
 export default function Admin() {
-  const { user, login, logout } = useContext(AuthContext);
-  const { cmsContent, cmsStyles, fetchCMSData, getCMSValue } = useContext(CMSContext);
-  const navigate = useNavigate();
+ const { user, login, logout } = useContext(AuthContext);
+ const { cmsContent, cmsStyles, fetchCMSData, getCMSValue } =
+  useContext(CMSContext);
+ const navigate = useNavigate();
 
-  // Authentication gate states
-  const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
-  const [authEmail, setAuthEmail] = useState('');
-  const [authPassword, setAuthPassword] = useState('');
+ // Authentication gate states
+ const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
+ const [authEmail, setAuthEmail] = useState("");
+ const [authPassword, setAuthPassword] = useState("");
 
-  // CMS Panel States
-  const [activePanel, setActivePanel] = useState('overview');
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+ // CMS Panel States
+ const [activePanel, setActivePanel] = useState("overview");
+ const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-  const handlePanelSelect = (panelId) => {
-    setActivePanel(panelId);
-    setIsSidebarOpen(false);
-  };
-  const [products, setProducts] = useState([]);
-  const [orders, setOrders] = useState([]);
+ const handlePanelSelect = (panelId) => {
+  setActivePanel(panelId);
+  setIsSidebarOpen(false);
+ };
+ const [products, setProducts] = useState([]);
+ const [orders, setOrders] = useState([]);
 
-  // Product Modal State
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [modalMode, setModalMode] = useState('create'); // 'create' or 'edit'
-  const [productForm, setProductForm] = useState({
-    id: '',
-    name: '',
-    flavor: '',
-    title: '',
-    price: 0,
-    image: '',
-    description: '',
-    weight: '',
-    benefits: '',
-    benefits_image: 'images/makhana_bowl_love.png',
-    ingredients: [],
-    specs: {},
-    nutrition: {}
-  });
+ // Product Modal State
+ const [isModalOpen, setIsModalOpen] = useState(false);
+ const [modalMode, setModalMode] = useState("create"); // 'create' or 'edit'
+ const [productForm, setProductForm] = useState({
+  id: "",
+  name: "",
+  flavor: "",
+  title: "",
+  price: 0,
+  image: "",
+  description: "",
+  weight: "",
+  benefits: "",
+  benefits_image: "images/makhana_bowl_love.png",
+  ingredients: [],
+  specs: {},
+  nutrition: {},
+ });
 
-  // Styles Form State
-  const [stylesForm, setStylesForm] = useState({
-    colorBg: '#050505',
-    colorGold: '#c9a84c',
-    colorGoldHover: '#dfc476',
-    colorWhite: '#f5f5f7',
-    colorMuted: '#86868b',
-    fontHeading: 'Cormorant Garamond',
-    fontBody: 'Inter',
-    textSizeOffset: '100%',
-    customCSS: ''
-  });
+ // Styles Form State
+ const [stylesForm, setStylesForm] = useState({
+  colorBg: "#050505",
+  colorGold: "#c9a84c",
+  colorGoldHover: "#dfc476",
+  colorWhite: "#f5f5f7",
+  colorMuted: "#86868b",
+  fontHeading: "Cormorant Garamond",
+  fontBody: "Inter",
+  textSizeOffset: "100%",
+  customCSS: "",
+ });
 
-  // Content Page Form State
-  const [selectedPage, setSelectedPage] = useState('index.html');
-  const [contentForm, setContentForm] = useState({});
+ // Content Page Form State
+ const [selectedPage, setSelectedPage] = useState("index.html");
+ const [contentForm, setContentForm] = useState({});
 
-  // Extended DB states for panels
-  const [categories, setCategories] = useState([]);
-  const [banners, setBanners] = useState([]);
-  const [media, setMedia] = useState([]);
-  const [testimonials, setTestimonials] = useState([]);
-  const [blogs, setBlogs] = useState([]);
-  const [faqs, setFaqs] = useState([]);
-  const [enquiries, setEnquiries] = useState([]);
-  const [coupons, setCoupons] = useState([]);
-  const [newsletterList, setNewsletterList] = useState([]);
-  const [usersList, setUsersList] = useState([]);
+ // Extended DB states for panels
+ const [categories, setCategories] = useState([]);
+ const [banners, setBanners] = useState([]);
+ const [media, setMedia] = useState([]);
+ const [testimonials, setTestimonials] = useState([]);
+ const [blogs, setBlogs] = useState([]);
+ const [faqs, setFaqs] = useState([]);
+ const [enquiries, setEnquiries] = useState([]);
+ const [coupons, setCoupons] = useState([]);
+ const [newsletterList, setNewsletterList] = useState([]);
+ const [usersList, setUsersList] = useState([]);
 
-  // Active item for edit forms
-  const [editingCategory, setEditingCategory] = useState(null);
-  const [editingBanner, setEditingBanner] = useState(null);
-  const [editingTestimonial, setEditingTestimonial] = useState(null);
-  const [editingBlog, setEditingBlog] = useState(null);
-  const [editingFaq, setEditingFaq] = useState(null);
-  const [editingCoupon, setEditingCoupon] = useState(null);
-  
-  // Media creation form state
-  const [mediaForm, setMediaForm] = useState({ name: '', url: '' });
+ // Active item for edit forms
+ const [editingCategory, setEditingCategory] = useState(null);
+ const [editingBanner, setEditingBanner] = useState(null);
+ const [editingTestimonial, setEditingTestimonial] = useState(null);
+ const [editingBlog, setEditingBlog] = useState(null);
+ const [editingFaq, setEditingFaq] = useState(null);
+ const [editingCoupon, setEditingCoupon] = useState(null);
 
-  // Settings forms
-  const [seoSettings, setSeoSettings] = useState({ titleTemplate: '', metaDescription: '' });
-  const [paymentSettings, setPaymentSettings] = useState({});
-  const [shippingSettings, setShippingSettings] = useState({ freeShippingThreshold: '', shippingFee: '' });
-  const [gatewaySettings, setGatewaySettings] = useState({ razorpay_key_id: '', razorpay_key_secret: '' });
-  const [ownerDashboard, setOwnerDashboard] = useState(null);
-  const [firestoreStatus, setFirestoreStatus] = useState(null);
+ // Media creation form state
+ const [mediaForm, setMediaForm] = useState({ name: "", url: "" });
 
-  const fetchCategories = () => {
-    fetch('/api/categories').then(res => res.json()).then(data => setCategories(data)).catch(err => console.error(err));
-  };
-  const fetchBanners = () => {
-    fetch('/api/banners').then(res => res.json()).then(data => setBanners(data)).catch(err => console.error(err));
-  };
-  const fetchMedia = () => {
-    fetch('/api/media').then(res => res.json()).then(data => setMedia(data)).catch(err => console.error(err));
-  };
-  const fetchTestimonials = () => {
-    fetch('/api/testimonials').then(res => res.json()).then(data => setTestimonials(data)).catch(err => console.error(err));
-  };
-  const fetchBlogs = () => {
-    fetch('/api/blog').then(res => res.json()).then(data => setBlogs(data)).catch(err => console.error(err));
-  };
-  const fetchFaqs = () => {
-    fetch('/api/faqs').then(res => res.json()).then(data => setFaqs(data)).catch(err => console.error(err));
-  };
-  const fetchEnquiries = () => {
-    fetch('/api/enquiries').then(res => res.json()).then(data => setEnquiries(data)).catch(err => console.error(err));
-  };
-  const fetchCoupons = () => {
-    fetch('/api/coupons').then(res => res.json()).then(data => setCoupons(data)).catch(err => console.error(err));
-  };
-  const fetchNewsletter = () => {
-    fetch('/api/newsletter').then(res => res.json()).then(data => setNewsletterList(data)).catch(err => console.error(err));
-  };
-  const fetchUsers = () => {
-    fetch('/api/users').then(res => res.json()).then(data => setUsersList(data)).catch(err => console.error(err));
-  };
-  const fetchSeoSettings = () => {
-    fetch('/api/settings/seo').then(res => res.json()).then(data => setSeoSettings(data)).catch(err => console.error(err));
-  };
-  const fetchPaymentSettings = () => {
-    fetch('/api/settings/payment').then(res => res.json()).then(data => setPaymentSettings(data)).catch(err => console.error(err));
-  };
-  const fetchShippingSettings = () => {
-    fetch('/api/settings/shipping').then(res => res.json()).then(data => setShippingSettings(data)).catch(err => console.error(err));
-  };
-  const fetchGatewaySettings = () => {
-    fetch('/api/settings/gateway').then(res => res.json()).then(data => setGatewaySettings(data)).catch(err => console.error(err));
-  };
-  const fetchOwnerDashboard = () => {
-    fetch('/api/owner/dashboard').then(res => res.json()).then(data => {
-      setOwnerDashboard(data);
-      setFirestoreStatus(data.firestore || null);
-    }).catch(err => console.error(err));
-  };
-  const fetchFirestoreStatus = () => {
-    fetch('/api/firestore/status').then(res => res.json()).then(data => setFirestoreStatus(data)).catch(err => console.error(err));
-  };
+ // Settings forms
+ const [seoSettings, setSeoSettings] = useState({
+  titleTemplate: "",
+  metaDescription: "",
+ });
+ const [paymentSettings, setPaymentSettings] = useState({});
+ const [shippingSettings, setShippingSettings] = useState({
+  freeShippingThreshold: "",
+  shippingFee: "",
+ });
+ const [gatewaySettings, setGatewaySettings] = useState({
+  razorpay_key_id: "",
+  razorpay_key_secret: "",
+ });
+ const [ownerDashboard, setOwnerDashboard] = useState(null);
+ const [firestoreStatus, setFirestoreStatus] = useState(null);
 
-  // Check role and login status
-  useEffect(() => {
-    if (user && user.role === 'admin') {
-      setIsAdminLoggedIn(true);
-    } else {
-      setIsAdminLoggedIn(false);
-      navigate('/login');
-    }
-  }, [user, navigate]);
+ const fetchCategories = () => {
+  fetch("/api/categories")
+   .then((res) => res.json())
+   .then((data) => setCategories(data))
+   .catch((err) => console.error(err));
+ };
+ const fetchBanners = () => {
+  fetch("/api/banners")
+   .then((res) => res.json())
+   .then((data) => setBanners(data))
+   .catch((err) => console.error(err));
+ };
+ const fetchMedia = () => {
+  fetch("/api/media")
+   .then((res) => res.json())
+   .then((data) => setMedia(data))
+   .catch((err) => console.error(err));
+ };
+ const fetchTestimonials = () => {
+  fetch("/api/testimonials")
+   .then((res) => res.json())
+   .then((data) => setTestimonials(data))
+   .catch((err) => console.error(err));
+ };
+ const fetchBlogs = () => {
+  fetch("/api/blog")
+   .then((res) => res.json())
+   .then((data) => setBlogs(data))
+   .catch((err) => console.error(err));
+ };
+ const fetchFaqs = () => {
+  fetch("/api/faqs")
+   .then((res) => res.json())
+   .then((data) => setFaqs(data))
+   .catch((err) => console.error(err));
+ };
+ const fetchEnquiries = () => {
+  fetch("/api/enquiries")
+   .then((res) => res.json())
+   .then((data) => setEnquiries(data))
+   .catch((err) => console.error(err));
+ };
+ const fetchCoupons = () => {
+  fetch("/api/coupons")
+   .then((res) => res.json())
+   .then((data) => setCoupons(data))
+   .catch((err) => console.error(err));
+ };
+ const fetchNewsletter = () => {
+  fetch("/api/newsletter")
+   .then((res) => res.json())
+   .then((data) => setNewsletterList(data))
+   .catch((err) => console.error(err));
+ };
+ const fetchUsers = () => {
+  fetch("/api/users")
+   .then((res) => res.json())
+   .then((data) => setUsersList(data))
+   .catch((err) => console.error(err));
+ };
+ const fetchSeoSettings = () => {
+  fetch("/api/settings/seo")
+   .then((res) => res.json())
+   .then((data) => setSeoSettings(data))
+   .catch((err) => console.error(err));
+ };
+ const fetchPaymentSettings = () => {
+  fetch("/api/settings/payment")
+   .then((res) => res.json())
+   .then((data) => setPaymentSettings(data))
+   .catch((err) => console.error(err));
+ };
+ const fetchShippingSettings = () => {
+  fetch("/api/settings/shipping")
+   .then((res) => res.json())
+   .then((data) => setShippingSettings(data))
+   .catch((err) => console.error(err));
+ };
+ const fetchGatewaySettings = () => {
+  fetch("/api/settings/gateway")
+   .then((res) => res.json())
+   .then((data) => setGatewaySettings(data))
+   .catch((err) => console.error(err));
+ };
+ const fetchOwnerDashboard = () => {
+  fetch("/api/owner/dashboard")
+   .then((res) => res.json())
+   .then((data) => {
+    setOwnerDashboard(data);
+    setFirestoreStatus(data.firestore || null);
+   })
+   .catch((err) => console.error(err));
+ };
+ const fetchFirestoreStatus = () => {
+  fetch("/api/firestore/status")
+   .then((res) => res.json())
+   .then((data) => setFirestoreStatus(data))
+   .catch((err) => console.error(err));
+ };
 
-  // Fetch Dashboard statistics and lists
-  useEffect(() => {
-    if (!isAdminLoggedIn) return;
-
-    // Fetch products
-    fetch('/api/products')
-      .then(res => res.json())
-      .then(data => setProducts(data))
-      .catch(err => console.error(err));
-
-    // Fetch all orders
-    fetch('/api/orders')
-      .then(res => res.json())
-      .then(data => setOrders(data))
-      .catch(err => console.error(err));
-
-    fetchCategories();
-    fetchBanners();
-    fetchMedia();
-    fetchTestimonials();
-    fetchBlogs();
-    fetchFaqs();
-    fetchEnquiries();
-    fetchCoupons();
-    fetchNewsletter();
-    fetchUsers();
-    fetchSeoSettings();
-    fetchPaymentSettings();
-    fetchShippingSettings();
-    fetchGatewaySettings();
-    fetchOwnerDashboard();
-    fetchFirestoreStatus();
-
-    // Sync styles form
-    if (cmsStyles) {
-      setStylesForm(prev => ({
-        ...prev,
-        ...cmsStyles
-      }));
-    }
-  }, [isAdminLoggedIn, cmsStyles]);
-
-  // Setup Page Content form values
-  useEffect(() => {
-    if (selectedPage === 'index.html') {
-      setContentForm({
-        '#scene-1 .eyebrow': getCMSValue('index.html', '#scene-1 .eyebrow', 'Gourmet Selection'),
-        '#scene-1 h1': getCMSValue('index.html', '#scene-1 h1', 'The Gold Standard of Healthy Snacking.'),
-        '#scene-1 p': getCMSValue('index.html', '#scene-1 p', 'Purity Crowned In Gold.'),
-        '#scene-5 h2': getCMSValue('index.html', '#scene-5 h2', 'Purity Crowned in Gold.'),
-        '.gifting-title': getCMSValue('index.html', '.gifting-title', 'Royal Corporate Gifting'),
-        '.gifting-body': getCMSValue('index.html', '.gifting-body', 'Present your clients and partners with custom, gold-embossed gourmet collections. Curated hampers featuring premium dry fruits and slow-roasted makhanas designed to project luxury, taste, and prestige.'),
-        '.gift-box-img': getCMSValue('index.html', '.gift-box-img', 'images/gift_box.png'),
-        '.craft-img-1': getCMSValue('index.html', '.craft-img-1', 'images/slow_roasted.png'),
-        '.craft-img-2': getCMSValue('index.html', '.craft-img-2', 'images/no_preservatives.png'),
-        '.craft-img-3': getCMSValue('index.html', '.craft-img-3', 'images/hygienically_packed.png'),
-        '.craft-img-4': getCMSValue('index.html', '.craft-img-4', 'images/finest_selection.png')
-      });
-    } else if (selectedPage === 'about.html') {
-      setContentForm({
-        '.about-hero-section h1': getCMSValue('about.html', '.about-hero-section h1', 'Purity, Tradition. Timeless Taste.'),
-        '.about-hero-section p': getCMSValue('about.html', '.about-hero-section p', 'At the House of Rein Oro, we view healthy snacking not as a compromise, but as a crowning luxury. Our journey began with a singular focus: to elevate standard dry fruits and lotus seeds into premium, culinary works of art.'),
-        '.about-hero-img': getCMSValue('about.html', '.about-hero-img', 'images/finest_selection.png'),
-        '.about-sourcing-title': getCMSValue('about.html', '.about-sourcing-title', 'Our Sourcing Philosophy'),
-        '.about-sourcing-body': getCMSValue('about.html', '.about-sourcing-body', 'We source our raw lotus seeds from clean, organic wetlands, double-sorting them to verify uniform quality and maximum size. Our dry fruits—from California almonds to Iranian pistachios—are select harvests sourced directly from global vineyards and orchards.'),
-        '.about-sourcing-img': getCMSValue('about.html', '.about-sourcing-img', 'images/slow_roasted.png'),
-        '.about-craft-title': getCMSValue('about.html', '.about-craft-title', 'Craftsmanship & Quality'),
-        '.about-craft-body': getCMSValue('about.html', '.about-craft-body', 'Our signature lotus seeds are processed under clean temperature monitors and slow-roasted without oil. We season them with pure rock salts and organic spices to lock in nutritional wellness, ensuring each seed delivers a signature high-density crunch.'),
-        '.about-values-title': getCMSValue('about.html', '.about-values-title', 'Royal Core Values'),
-        '.about-values-body': getCMSValue('about.html', '.about-values-body', 'Purity is not a metric, it is our covenant. We believe in providing natural, health-focused alternatives to processed snacks while retaining absolute gourmet taste and presentation aesthetics.'),
-        '.about-values-img': getCMSValue('about.html', '.about-values-img', 'images/makhana_bowl_love.png'),
-        '.about-cta-title': getCMSValue('about.html', '.about-cta-title', 'Experience Gourmet Magnificence'),
-        '.about-cta-body': getCMSValue('about.html', '.about-cta-body', 'Treat yourself or surprise a partner with our signature gift assortments, packed inside gold-embossed chambers to preserve natural flavors.'),
-        '.about-cta-img': getCMSValue('about.html', '.about-cta-img', 'images/gift_box.png')
-      });
-    } else if (selectedPage === 'contact.html') {
-      setContentForm({
-        '.contact-header h1': getCMSValue('contact.html', '.contact-header h1', 'Contact Our House'),
-        '.contact-header p': getCMSValue('contact.html', '.contact-header p', 'Our concierge team is at your service for any inquiries, corporate commissions, or bespoke requests.'),
-        '.contact-address': getCMSValue('contact.html', '.contact-address', 'Rein Oro Foods Private Limited\n12-A Connaught Place, Block C\nNew Delhi, 110001, India'),
-        '.contact-email-1': getCMSValue('contact.html', '.contact-email-1', 'concierge@reinoro.com'),
-        '.contact-email-2': getCMSValue('contact.html', '.contact-email-2', 'support@reinoro.com'),
-        '.contact-phone-1': getCMSValue('contact.html', '.contact-phone-1', '+91 99999 88888'),
-        '.contact-phone-2': getCMSValue('contact.html', '.contact-phone-2', '+91 99999 77777'),
-        '.contact-hours': getCMSValue('contact.html', '.contact-hours', 'Monday - Saturday: 9:30 AM - 6:30 PM IST\nSunday: Closed')
-      });
-    }
-  }, [selectedPage, cmsContent]);
-
-  // --- Auth Handlers ---
-  const handleAdminGateSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: authEmail, password: authPassword })
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Access Denied');
-      }
-
-      if (data.user?.role !== 'admin') {
-        throw new Error('Access Denied. Admin privileges required.');
-      }
-
-      login(authEmail, 'admin');
-      setIsAdminLoggedIn(true);
-      alert('Administrative authentication successful.');
-    } catch (err) {
-      alert(err.message);
-    }
-  };
-
-  // --- Product CRUD Handlers ---
-  const handleOpenProductModal = (mode, prod = null) => {
-    setModalMode(mode);
-    if (mode === 'edit' && prod) {
-      setProductForm({
-        id: prod.id,
-        name: prod.name,
-        flavor: prod.flavor,
-        title: prod.title,
-        price: prod.price,
-        image: prod.image,
-        description: prod.description,
-        weight: prod.weight,
-        benefits: Array.isArray(prod.benefits) ? prod.benefits.join(', ') : '',
-        benefits_image: prod.benefits_image,
-        ingredients: Array.isArray(prod.ingredients) ? prod.ingredients : [],
-        specs: typeof prod.specs === 'object' && prod.specs !== null ? prod.specs : {},
-        nutrition: typeof prod.nutrition === 'object' && prod.nutrition !== null ? prod.nutrition : {}
-      });
-    } else {
-      setProductForm({
-        id: '',
-        name: '',
-        flavor: '',
-        title: '',
-        price: 0,
-        image: '',
-        description: '',
-        weight: '',
-        benefits: '',
-        benefits_image: 'images/makhana_bowl_love.png',
-        ingredients: [],
-        specs: {
-          'Brand': 'Rein Oro',
-          'Flavour': '',
-          'Net Weight': '',
-          'Diet Type': 'Vegetarian',
-          'Shelf Life': '6 Months from date of packaging',
-          'Country of Origin': 'India'
-        },
-        nutrition: {
-          'Calories': '',
-          'Protein': '',
-          'Total Carbohydrates': '',
-          'Dietary Fiber': '',
-          'Total Fat': '',
-          'Trans Fat': '0g',
-          'Sodium': ''
-        }
-      });
-    }
-    setIsModalOpen(true);
-  };
-
-  const handleProductSubmit = async (e) => {
-    e.preventDefault();
-    const payload = {
-      ...productForm,
-      price: parseInt(productForm.price),
-      benefits: productForm.benefits.split(',').map(b => b.trim()).filter(Boolean),
-      ingredients: productForm.ingredients,
-      specs: productForm.specs,
-      nutrition: productForm.nutrition
-    };
-
-    try {
-      const method = modalMode === 'create' ? 'POST' : 'PUT';
-      const endpoint = modalMode === 'create' ? '/api/products' : `/api/products/${productForm.id}`;
-      const res = await fetch(endpoint, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || 'Product operation failed');
-      }
-
-      alert(`Product ${modalMode === 'create' ? 'created' : 'updated'} successfully.`);
-      setIsModalOpen(false);
-      // Reload products list
-      const updatedRes = await fetch('/api/products');
-      const updatedData = await updatedRes.json();
-      setProducts(updatedData);
-    } catch (err) {
-      alert(`Error: ${err.message}`);
-    }
-  };
-
-  const handleDeleteProduct = async (id) => {
-    if (!confirm('Are you sure you want to permanently delete this product?')) return;
-    try {
-      const res = await fetch(`/api/products/${id}`, { method: 'DELETE' });
-      if (!res.ok) throw new Error('Deletion failed');
-
-      alert('Product deleted successfully.');
-      setProducts(prev => prev.filter(p => p.id !== id));
-    } catch (err) {
-      alert(err.message);
-    }
-  };
-
-  // --- Styles Editor Handler ---
-  const handleSaveStyles = async (e) => {
-    e.preventDefault();
-    try {
-      const res = await fetch('/api/cms/styles', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(stylesForm)
-      });
-      if (!res.ok) throw new Error('Styles saving failed');
-
-      alert('Styles and theme overrides saved successfully.');
-      fetchCMSData(); // Refresh App state styles
-    } catch (err) {
-      alert(err.message);
-    }
-  };
-
-  // --- Content Editor Handler ---
-  const handleSaveContent = async (selector, value) => {
-    try {
-      const res = await fetch('/api/cms/content', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          page_name: selectedPage,
-          selector,
-          content_value: value
-        })
-      });
-      if (!res.ok) throw new Error('Content saving failed');
-      
-      setContentForm(prev => ({ ...prev, [selector]: value }));
-      fetchCMSData(); // Refresh App context
-    } catch (err) {
-      alert(err.message);
-    }
-  };
-
-  // --- Category CRUD Handlers ---
-  const handleSaveCategory = async (e) => {
-    e.preventDefault();
-    const isEdit = !!editingCategory.id;
-    const endpoint = isEdit ? `/api/categories/${editingCategory.id}` : '/api/categories';
-    const method = isEdit ? 'PUT' : 'POST';
-    try {
-      const res = await fetch(endpoint, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(editingCategory)
-      });
-      if (!res.ok) throw new Error('Failed to save category');
-      alert(`Category ${isEdit ? 'updated' : 'created'} successfully.`);
-      setEditingCategory(null);
-      fetchCategories();
-    } catch (err) { alert(err.message); }
-  };
-
-  const handleDeleteCategory = async (id) => {
-    if (!confirm('Are you sure you want to delete this category?')) return;
-    try {
-      const res = await fetch(`/api/categories/${id}`, { method: 'DELETE' });
-      if (!res.ok) throw new Error('Deletion failed');
-      alert('Category deleted successfully.');
-      fetchCategories();
-    } catch (err) { alert(err.message); }
-  };
-
-  // --- Banner CRUD Handlers ---
-  const handleSaveBanner = async (e) => {
-    e.preventDefault();
-    const isEdit = !!editingBanner.id;
-    const endpoint = isEdit ? `/api/banners/${editingBanner.id}` : '/api/banners';
-    const method = isEdit ? 'PUT' : 'POST';
-    try {
-      const res = await fetch(endpoint, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(editingBanner)
-      });
-      if (!res.ok) throw new Error('Failed to save banner');
-      alert(`Banner ${isEdit ? 'updated' : 'created'} successfully.`);
-      setEditingBanner(null);
-      fetchBanners();
-    } catch (err) { alert(err.message); }
-  };
-
-  const handleDeleteBanner = async (id) => {
-    if (!confirm('Are you sure you want to delete this banner?')) return;
-    try {
-      const res = await fetch(`/api/banners/${id}`, { method: 'DELETE' });
-      if (!res.ok) throw new Error('Deletion failed');
-      alert('Banner deleted successfully.');
-      fetchBanners();
-    } catch (err) { alert(err.message); }
-  };
-
-  // --- Media Handlers ---
-  const handleSaveMedia = async (e) => {
-    e.preventDefault();
-    try {
-      const res = await fetch('/api/media', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(mediaForm)
-      });
-      if (!res.ok) throw new Error('Failed to save media item');
-      alert('Media item registered successfully.');
-      setMediaForm({ name: '', url: '' });
-      fetchMedia();
-    } catch (err) { alert(err.message); }
-  };
-
-  const handleDeleteMedia = async (id) => {
-    if (!confirm('Are you sure you want to delete this media item?')) return;
-    try {
-      const res = await fetch(`/api/media/${id}`, { method: 'DELETE' });
-      if (!res.ok) throw new Error('Deletion failed');
-      alert('Media item deleted successfully.');
-      fetchMedia();
-    } catch (err) { alert(err.message); }
-  };
-
-  // --- Testimonial CRUD Handlers ---
-  const handleSaveTestimonial = async (e) => {
-    e.preventDefault();
-    const isEdit = !!editingTestimonial.id;
-    const endpoint = isEdit ? `/api/testimonials/${editingTestimonial.id}` : '/api/testimonials';
-    const method = isEdit ? 'PUT' : 'POST';
-    try {
-      const res = await fetch(endpoint, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(editingTestimonial)
-      });
-      if (!res.ok) throw new Error('Failed to save testimonial');
-      alert(`Testimonial ${isEdit ? 'updated' : 'created'} successfully.`);
-      setEditingTestimonial(null);
-      fetchTestimonials();
-    } catch (err) { alert(err.message); }
-  };
-
-  const handleDeleteTestimonial = async (id) => {
-    if (!confirm('Are you sure you want to delete this testimonial?')) return;
-    try {
-      const res = await fetch(`/api/testimonials/${id}`, { method: 'DELETE' });
-      if (!res.ok) throw new Error('Deletion failed');
-      alert('Testimonial deleted successfully.');
-      fetchTestimonials();
-    } catch (err) { alert(err.message); }
-  };
-
-  // --- Blog CRUD Handlers ---
-  const handleSaveBlog = async (e) => {
-    e.preventDefault();
-    const isEdit = !!editingBlog.id;
-    const endpoint = isEdit ? `/api/blog/${editingBlog.id}` : '/api/blog';
-    const method = isEdit ? 'PUT' : 'POST';
-    try {
-      const res = await fetch(endpoint, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(editingBlog)
-      });
-      if (!res.ok) throw new Error('Failed to save blog post');
-      alert(`Blog post ${isEdit ? 'updated' : 'created'} successfully.`);
-      setEditingBlog(null);
-      fetchBlogs();
-    } catch (err) { alert(err.message); }
-  };
-
-  const handleDeleteBlog = async (id) => {
-    if (!confirm('Are you sure you want to delete this blog post?')) return;
-    try {
-      const res = await fetch(`/api/blog/${id}`, { method: 'DELETE' });
-      if (!res.ok) throw new Error('Deletion failed');
-      alert('Blog post deleted successfully.');
-      fetchBlogs();
-    } catch (err) { alert(err.message); }
-  };
-
-  // --- FAQ CRUD Handlers ---
-  const handleSaveFaq = async (e) => {
-    e.preventDefault();
-    const isEdit = !!editingFaq.id;
-    const endpoint = isEdit ? `/api/faqs/${editingFaq.id}` : '/api/faqs';
-    const method = isEdit ? 'PUT' : 'POST';
-    try {
-      const res = await fetch(endpoint, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(editingFaq)
-      });
-      if (!res.ok) throw new Error('Failed to save FAQ');
-      alert(`FAQ ${isEdit ? 'updated' : 'created'} successfully.`);
-      setEditingFaq(null);
-      fetchFaqs();
-    } catch (err) { alert(err.message); }
-  };
-
-  const handleDeleteFaq = async (id) => {
-    if (!confirm('Are you sure you want to delete this FAQ?')) return;
-    try {
-      const res = await fetch(`/api/faqs/${id}`, { method: 'DELETE' });
-      if (!res.ok) throw new Error('Deletion failed');
-      alert('FAQ deleted successfully.');
-      fetchFaqs();
-    } catch (err) { alert(err.message); }
-  };
-
-  // --- Coupon CRUD Handlers ---
-  const handleSaveCoupon = async (e) => {
-    e.preventDefault();
-    const isEdit = !!editingCoupon.originalCode;
-    const endpoint = isEdit ? `/api/coupons/${editingCoupon.originalCode}` : '/api/coupons';
-    const method = isEdit ? 'PUT' : 'POST';
-    try {
-      const res = await fetch(endpoint, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(editingCoupon)
-      });
-      if (!res.ok) throw new Error('Failed to save coupon');
-      alert(`Coupon ${isEdit ? 'updated' : 'created'} successfully.`);
-      setEditingCoupon(null);
-      fetchCoupons();
-    } catch (err) { alert(err.message); }
-  };
-
-  const handleDeleteCoupon = async (code) => {
-    if (!confirm(`Are you sure you want to delete coupon ${code}?`)) return;
-    try {
-      const res = await fetch(`/api/coupons/${code}`, { method: 'DELETE' });
-      if (!res.ok) throw new Error('Deletion failed');
-      alert('Coupon deleted successfully.');
-      fetchCoupons();
-    } catch (err) { alert(err.message); }
-  };
-
-  // --- Enquiries Handlers ---
-  const handleUpdateEnquiryStatus = async (id, status) => {
-    try {
-      const res = await fetch(`/api/enquiries/${id}/status`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status })
-      });
-      if (!res.ok) throw new Error('Status update failed');
-      alert(`Enquiry status updated to ${status}.`);
-      fetchEnquiries();
-    } catch (err) { alert(err.message); }
-  };
-
-  const handleDeleteEnquiry = async (id) => {
-    if (!confirm('Are you sure you want to delete this enquiry log?')) return;
-    try {
-      const res = await fetch(`/api/enquiries/${id}`, { method: 'DELETE' });
-      if (!res.ok) throw new Error('Deletion failed');
-      alert('Enquiry deleted successfully.');
-      fetchEnquiries();
-    } catch (err) { alert(err.message); }
-  };
-
-  // --- Newsletter Handlers ---
-  const handleDeleteNewsletter = async (id) => {
-    if (!confirm('Remove this subscriber email from the list?')) return;
-    try {
-      const res = await fetch(`/api/newsletter/${id}`, { method: 'DELETE' });
-      if (!res.ok) throw new Error('Deletion failed');
-      alert('Subscriber email removed successfully.');
-      fetchNewsletter();
-    } catch (err) { alert(err.message); }
-  };
-
-  // --- User Handlers ---
-  const handleUpdateUserRole = async (id, role) => {
-    try {
-      const res = await fetch(`/api/users/${id}/role`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role })
-      });
-      if (!res.ok) throw new Error('Role update failed');
-      alert(`User role updated to ${role}.`);
-      fetchUsers();
-    } catch (err) { alert(err.message); }
-  };
-
-  const handleDeleteUser = async (id) => {
-    if (!confirm('Permanently delete this user account?')) return;
-    try {
-      const res = await fetch(`/api/users/${id}`, { method: 'DELETE' });
-      if (!res.ok) throw new Error('Deletion failed');
-      alert('User account deleted successfully.');
-      fetchUsers();
-    } catch (err) { alert(err.message); }
-  };
-
-  // --- Settings Handlers ---
-  const handleSaveSeoSettings = async (e) => {
-    e.preventDefault();
-    try {
-      const res = await fetch('/api/settings/seo', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(seoSettings)
-      });
-      if (!res.ok) throw new Error('Failed to save SEO settings');
-      alert('SEO settings saved successfully.');
-      fetchSeoSettings();
-    } catch (err) { alert(err.message); }
-  };
-
-  const handleSavePaymentSettings = async (methodName, enabled) => {
-    try {
-      const updated = { ...paymentSettings, [methodName]: enabled };
-      const res = await fetch('/api/settings/payment', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updated)
-      });
-      if (!res.ok) throw new Error('Failed to save payment settings');
-      setPaymentSettings(updated);
-    } catch (err) { alert(err.message); }
-  };
-
-  const handleSaveShippingSettings = async (e) => {
-    e.preventDefault();
-    try {
-      const res = await fetch('/api/settings/shipping', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(shippingSettings)
-      });
-      if (!res.ok) throw new Error('Failed to save shipping settings');
-      alert('Shipping settings saved successfully.');
-      fetchShippingSettings();
-    } catch (err) { alert(err.message); }
-  };
-
-  const handleSaveGatewaySettings = async (e) => {
-    e.preventDefault();
-    try {
-      const res = await fetch('/api/settings/gateway', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(gatewaySettings)
-      });
-      if (!res.ok) throw new Error('Gateway settings save failed');
-      alert('Razorpay gateway keys updated successfully.');
-      fetchGatewaySettings();
-    } catch (err) { alert(err.message); }
-  };
-
-  // --- System Reset ---
-  const handleFactoryReset = async () => {
-    if (!confirm('Warning: This will clear all product database updates, styles, and page content edits, reverting Rein Oro back to default layouts. Proceed?')) return;
-    try {
-      const res = await fetch('/api/cms/reset', { method: 'POST' });
-      if (!res.ok) throw new Error('Reset failed');
-
-      alert('Factory reset completed successfully. Re-seeding tables...');
-      window.location.reload();
-    } catch (err) {
-      alert(err.message);
-    }
-  };
-
-  const getPanelTitle = (panel) => {
-    const titles = {
-      overview: 'Dashboard',
-      content: 'Page Content Editor',
-      products: 'Manage Catalog',
-      orders: 'Customer Orders Log',
-      styles: 'Theme Style Editor',
-      system: 'General Settings & System Controls'
-    };
-    return titles[panel] || (panel.charAt(0).toUpperCase() + panel.slice(1));
-  };
-
-  if (!isAdminLoggedIn) {
-    return null;
+ // Check role and login status
+ useEffect(() => {
+  if (user === null) {
+   setIsAdminLoggedIn(false);
+   return;
   }
-
-  return (
-    <div className="admin-dash-container">
-      
-      {/* Sidebar overlay backdrop on mobile */}
-      <div className={`admin-dash-sidebar-overlay ${isSidebarOpen ? 'show' : ''}`} onClick={() => setIsSidebarOpen(false)} />
-
-      {/* Sidebar Nav */}
-      <aside className={`admin-dash-sidebar ${isSidebarOpen ? 'open' : ''}`}>
-        <div className="admin-dash-logo-section">
-          <h1>REIN ORO</h1>
-          <p>Purity Crowned in Gold</p>
-        </div>
-
-        <div className="admin-dash-sidebar-menu">
-          {/* Group: Overview */}
-          <div className="admin-dash-menu-group">
-            <button 
-              className={`admin-dash-menu-item ${activePanel === 'overview' ? 'active' : ''}`}
-              onClick={() => handlePanelSelect('overview')}
-            >
-              <IconDashboard />
-              Dashboard
-            </button>
-          </div>
-
-          {/* Group: Content Management */}
-          <div className="admin-dash-menu-group">
-            <div className="admin-dash-group-title">Content Management</div>
-            {[
-              { id: 'content', label: 'Pages', icon: <IconPages /> },
-              { id: 'products', label: 'Products', icon: <IconProducts /> },
-              { id: 'categories', label: 'Categories', icon: <IconCategories /> },
-              { id: 'banners', label: 'Banners', icon: <IconBanners /> },
-              { id: 'media', label: 'Media Library', icon: <IconMedia /> },
-              { id: 'testimonials', label: 'Testimonials', icon: <IconTestimonials /> },
-              { id: 'blog', label: 'Blog', icon: <IconBlog /> },
-              { id: 'faqs', label: 'FAQs', icon: <IconFAQ /> }
-            ].map(item => (
-              <button
-                key={item.id}
-                className={`admin-dash-menu-item ${activePanel === item.id ? 'active' : ''}`}
-                onClick={() => handlePanelSelect(item.id)}
-              >
-                {item.icon}
-                {item.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Group: Orders & Customers */}
-          <div className="admin-dash-menu-group">
-            <div className="admin-dash-group-title">Orders & Customers</div>
-            {[
-              { id: 'orders', label: 'Orders', icon: <IconOrders /> },
-              { id: 'customers', label: 'Customers', icon: <IconCustomers /> },
-              { id: 'enquiries', label: 'Enquiries', icon: <IconEnquiries /> }
-            ].map(item => (
-              <button
-                key={item.id}
-                className={`admin-dash-menu-item ${activePanel === item.id ? 'active' : ''}`}
-                onClick={() => handlePanelSelect(item.id)}
-              >
-                {item.icon}
-                {item.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Group: Marketing */}
-          <div className="admin-dash-menu-group">
-            <div className="admin-dash-group-title">Marketing</div>
-            {[
-              { id: 'coupons', label: 'Coupons', icon: <IconCoupons /> },
-              { id: 'newsletter', label: 'Newsletter', icon: <IconNewsletter /> },
-              { id: 'seo', label: 'SEO Settings', icon: <IconSEO /> }
-            ].map(item => (
-              <button
-                key={item.id}
-                className={`admin-dash-menu-item ${activePanel === item.id ? 'active' : ''}`}
-                onClick={() => handlePanelSelect(item.id)}
-              >
-                {item.icon}
-                {item.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Group: Settings */}
-          <div className="admin-dash-menu-group">
-            <div className="admin-dash-group-title">Settings</div>
-            {[
-              { id: 'system', label: 'General Settings', icon: <IconSettings /> },
-              { id: 'styles', label: 'Theme Style Editor', icon: <IconSettings /> },
-              { id: 'payment', label: 'Payment Methods', icon: <IconPayment /> },
-              { id: 'shipping', label: 'Shipping Settings', icon: <IconShipping /> },
-              { id: 'users', label: 'Users & Roles', icon: <IconUsers /> }
-            ].map(item => (
-              <button
-                key={item.id}
-                className={`admin-dash-menu-item ${activePanel === item.id ? 'active' : ''}`}
-                onClick={() => handlePanelSelect(item.id)}
-              >
-                {item.icon}
-                {item.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Logout Trigger */}
-          <div className="admin-dash-menu-group" style={{ marginTop: '1rem', borderTop: '1px solid rgba(255,255,255,0.04)', paddingTop: '1rem' }}>
-            <button onClick={() => { logout(); navigate('/'); }} className="admin-dash-menu-item" style={{ color: 'rgba(255,80,80,0.8)' }}>
-              <svg className="admin-dash-menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: '16px', height: '16px' }}><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>
-              Logout Console
-            </button>
-          </div>
-        </div>
-
-        <div className="admin-dash-sidebar-footer">
-          <button onClick={() => navigate('/')} className="admin-dash-view-site-btn">
-            <IconViewSite />
-            View Website
-          </button>
-        </div>
-      </aside>
-
-      {/* Main Viewport */}
-      <main className="admin-dash-main">
-        {/* Header Bar */}
-        <header className="admin-dash-header">
-          <div className="admin-dash-header-left">
-            <button className="admin-dash-hamburger" onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
-              <IconHamburger />
-            </button>
-            <h2 className="admin-dash-header-title">{getPanelTitle(activePanel)}</h2>
-          </div>
-
-          <div className="admin-dash-header-right">
-            <div className="admin-dash-search-container">
-              <span className="admin-dash-search-icon"><IconSearch /></span>
-              <input type="text" className="admin-dash-search-input" placeholder="Search anything..." />
-            </div>
-
-            <button className="admin-dash-bell-btn">
-              <IconBell />
-              <span className="admin-dash-bell-badge">5</span>
-            </button>
-
-            <div className="admin-dash-profile">
-              <img src="images/cashews_roasted.png" alt="Admin Profile" className="admin-dash-avatar" onError={(e) => e.target.src="https://via.placeholder.com/32/1a1a1a/c9a84c?text=A"} />
-              <div className="admin-dash-profile-info">
-                <span className="admin-dash-profile-name">Admin User</span>
-                <span className="admin-dash-profile-role">Super Admin</span>
-              </div>
-            </div>
-          </div>
-        </header>
-
-        {/* Dashboard Panels */}
-        <div className="admin-dash-content">
-          
-          {activePanel === 'overview' && (
-            <>
-              {/* Date Filter & KPI summary row */}
-              <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '0.5rem' }}>
-                <div className="admin-dash-date-picker">
-                  <IconCalendar />
-                  <span>May 12, 2026 - Jun 10, 2026</span>
-                </div>
-              </div>
-
-              <div className="admin-dash-kpi-grid">
-                {/* Orders */}
-                <div className="admin-dash-kpi-card">
-                  <div className="admin-dash-kpi-header">
-                    <span className="admin-dash-kpi-title">Total Orders</span>
-                    <div className="admin-dash-kpi-icon-wrapper">
-                      <IconShoppingBag />
-                    </div>
-                  </div>
-                  <div className="admin-dash-kpi-body">
-                    <div className="admin-dash-kpi-value-row">
-                      <h4 className="admin-dash-kpi-value">{orders.length > 0 ? orders.length : '1,248'}</h4>
-                      <span className="admin-dash-kpi-trend positive">
-                        <IconTrendingUp />
-                        18.5%
-                      </span>
-                    </div>
-                    <p className="admin-dash-kpi-comparison">vs Apr 12 - May 11, 2026</p>
-                  </div>
-                </div>
-
-                {/* Revenue */}
-                <div className="admin-dash-kpi-card">
-                  <div className="admin-dash-kpi-header">
-                    <span className="admin-dash-kpi-title">Total Revenue</span>
-                    <div className="admin-dash-kpi-icon-wrapper">
-                      <IconDollar />
-                    </div>
-                  </div>
-                  <div className="admin-dash-kpi-body">
-                    <div className="admin-dash-kpi-value-row">
-                      <h4 className="admin-dash-kpi-value">
-                        {orders.length > 0 ? `₹${orders.reduce((sum, o) => sum + o.total, 0).toLocaleString('en-IN')}` : '₹24,85,760'}
-                      </h4>
-                      <span className="admin-dash-kpi-trend positive">
-                        <IconTrendingUp />
-                        22.7%
-                      </span>
-                    </div>
-                    <p className="admin-dash-kpi-comparison">vs Apr 12 - May 11, 2026</p>
-                  </div>
-                </div>
-
-                {/* Customers */}
-                <div className="admin-dash-kpi-card">
-                  <div className="admin-dash-kpi-header">
-                    <span className="admin-dash-kpi-title">Total Customers</span>
-                    <div className="admin-dash-kpi-icon-wrapper">
-                      <IconUsersGroup />
-                    </div>
-                  </div>
-                  <div className="admin-dash-kpi-body">
-                    <div className="admin-dash-kpi-value-row">
-                      <h4 className="admin-dash-kpi-value">{ownerDashboard?.kpis?.customers ?? usersList.length ?? '2,350'}</h4>
-                      <span className="admin-dash-kpi-trend positive">
-                        <IconTrendingUp />
-                        16.3%
-                      </span>
-                    </div>
-                    <p className="admin-dash-kpi-comparison">vs Apr 12 - May 11, 2026</p>
-                  </div>
-                </div>
-
-                {/* Products */}
-                <div className="admin-dash-kpi-card">
-                  <div className="admin-dash-kpi-header">
-                    <span className="admin-dash-kpi-title">Total Products</span>
-                    <div className="admin-dash-kpi-icon-wrapper">
-                      <IconGift />
-                    </div>
-                  </div>
-                  <div className="admin-dash-kpi-body">
-                    <div className="admin-dash-kpi-value-row">
-                      <h4 className="admin-dash-kpi-value">{products.length > 0 ? products.length : '186'}</h4>
-                      <span className="admin-dash-kpi-trend positive">
-                        <IconTrendingUp />
-                        8.2%
-                      </span>
-                    </div>
-                    <p className="admin-dash-kpi-comparison">vs Apr 12 - May 11, 2026</p>
-                  </div>
-                </div>
-
-                {/* Active Coupons */}
-                <div className="admin-dash-kpi-card active-coupon-card" style={{ padding: '1.2rem 1rem' }}>
-                  <div className="admin-dash-kpi-header">
-                    <span className="admin-dash-kpi-title" style={{ fontSize: '0.6rem' }}>Active Coupons</span>
-                    <div className="admin-dash-kpi-icon-wrapper" style={{ width: '28px', height: '28px' }}>
-                      <IconCoupons />
-                    </div>
-                  </div>
-                  <div className="admin-dash-kpi-body" style={{ marginTop: '0.5rem' }}>
-                    <div className="admin-dash-kpi-value-row" style={{ gap: '0.3rem' }}>
-                      <h4 className="admin-dash-kpi-value" style={{ fontSize: '1.4rem' }}>{ownerDashboard?.kpis?.reviews ?? 12}</h4>
-                      <span className="admin-dash-kpi-trend positive" style={{ fontSize: '0.65rem' }}>
-                        +2
-                      </span>
-                    </div>
-                    <p className="admin-dash-kpi-comparison" style={{ fontSize: '0.6rem', marginTop: '0.2rem' }}>Product reviews stored</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Chart Widgets Row */}
-              <div className="admin-dash-widgets-grid">
-                {/* Sales spline curve */}
-                <div className="admin-dash-widget-box" style={{ gridColumn: 'span 2' }}>
-                  <div className="admin-dash-widget-header">
-                    <h3 className="admin-dash-widget-title">Sales Overview</h3>
-                    <div className="admin-dash-widget-header-actions">
-                      <div className="admin-dash-chart-tabs">
-                        <button className="admin-dash-chart-tab active">Revenue</button>
-                        <button className="admin-dash-chart-tab">Orders</button>
-                      </div>
-                      <select className="admin-dash-select-filter">
-                        <option>Last 30 Days</option>
-                        <option>Last 6 Months</option>
-                        <option>Last Year</option>
-                      </select>
-                    </div>
-                  </div>
-                  <div className="admin-dash-chart-container">
-                    <svg viewBox="0 0 500 200" width="100%" height="200" style={{ overflow: 'visible' }}>
-                      <defs>
-                        <linearGradient id="chartGlow" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="var(--color-gold)" stopOpacity="0.35" />
-                          <stop offset="100%" stopColor="var(--color-gold)" stopOpacity="0.0" />
-                        </linearGradient>
-                        <linearGradient id="lineGrad" x1="0" y1="0" x2="1" y2="0">
-                          <stop offset="0%" stopColor="var(--color-gold)" />
-                          <stop offset="100%" stopColor="#dfc476" />
-                        </linearGradient>
-                      </defs>
-                      <line x1="0" y1="40" x2="500" y2="40" stroke="rgba(255,255,255,0.02)" />
-                      <line x1="0" y1="80" x2="500" y2="80" stroke="rgba(255,255,255,0.02)" />
-                      <line x1="0" y1="120" x2="500" y2="120" stroke="rgba(255,255,255,0.02)" />
-                      <line x1="0" y1="160" x2="500" y2="160" stroke="rgba(255,255,255,0.02)" />
-                      
-                      <path
-                        d="M 20,160 L 20,130 C 60,110 80,140 120,130 C 160,120 180,70 220,95 C 260,120 280,105 320,80 C 360,55 380,130 420,110 C 460,90 480,50 480,50 L 480,160 Z"
-                        fill="url(#chartGlow)"
-                      />
-                      
-                      <path
-                        d="M 20,130 C 60,110 80,140 120,130 C 160,120 180,70 220,95 C 260,120 280,105 320,80 C 360,55 380,130 420,110 C 460,90 480,50 480,50"
-                        fill="none"
-                        stroke="url(#lineGrad)"
-                        strokeWidth="3"
-                        strokeLinecap="round"
-                      />
-                      
-                      <circle cx="20" cy="130" r="4" fill="var(--color-gold)" stroke="#050505" strokeWidth="2" />
-                      <circle cx="120" cy="130" r="4" fill="var(--color-gold)" stroke="#050505" strokeWidth="2" />
-                      <circle cx="220" cy="95" r="4" fill="var(--color-gold)" stroke="#050505" strokeWidth="2" />
-                      <circle cx="320" cy="80" r="4" fill="var(--color-gold)" stroke="#050505" strokeWidth="2" />
-                      <circle cx="420" cy="110" r="4" fill="var(--color-gold)" stroke="#050505" strokeWidth="2" />
-                      <circle cx="480" cy="50" r="5" fill="var(--color-white)" stroke="var(--color-gold)" strokeWidth="2" style={{ filter: 'drop-shadow(0 0 5px var(--color-gold))' }} />
-
-                      <text x="20" y="185" fill="var(--color-muted)" fontSize="9" textAnchor="middle">May 12</text>
-                      <text x="120" y="185" fill="var(--color-muted)" fontSize="9" textAnchor="middle">May 20</text>
-                      <text x="220" y="185" fill="var(--color-muted)" fontSize="9" textAnchor="middle">May 28</text>
-                      <text x="320" y="185" fill="var(--color-muted)" fontSize="9" textAnchor="middle">Jun 01</text>
-                      <text x="420" y="185" fill="var(--color-muted)" fontSize="9" textAnchor="middle">Jun 05</text>
-                      <text x="480" y="185" fill="var(--color-muted)" fontSize="9" textAnchor="middle">Jun 10</text>
-                    </svg>
-                  </div>
-                </div>
-
-                {/* Top Selling list */}
-                <div className="admin-dash-widget-box">
-                  <div className="admin-dash-widget-header">
-                    <h3 className="admin-dash-widget-title">Top Selling Products</h3>
-                    <button className="btn btn-outline" style={{ height: '24px', fontSize: '0.65rem', padding: '0 0.5rem' }} onClick={() => setActivePanel('products')}>View All</button>
-                  </div>
-                  <div className="admin-dash-product-list">
-                    {products.slice(0, 5).map((prod, index) => {
-                      const mockSales = [256, 189, 145, 132, 98];
-                      const mockRevenues = ['₹2,56,000', '₹1,89,000', '₹1,45,000', '₹1,32,000', '₹98,000'];
-                      return (
-                        <div className="admin-dash-product-item" key={prod.id}>
-                          <div className="admin-dash-prod-left">
-                            <div className="admin-dash-prod-img-wrapper">
-                              <img src={prod.image} alt={prod.title} />
-                            </div>
-                            <div className="admin-dash-prod-info">
-                              <span className="admin-dash-prod-name">{prod.name}</span>
-                              <span className="admin-dash-prod-flavor">{prod.flavor}</span>
-                            </div>
-                          </div>
-                          <div className="admin-dash-prod-stats">
-                            <span className="admin-dash-prod-orders">{mockSales[index] || 80} orders</span>
-                            <span className="admin-dash-prod-revenue">{mockRevenues[index] || '₹75,000'}</span>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-
-              {/* Bottom Row Layout */}
-              <div className="admin-dash-widgets-grid">
-                {/* Content Pages list */}
-                <div className="admin-dash-widget-box" style={{ gridColumn: 'span 2' }}>
-                  <div className="admin-dash-widget-header" style={{ marginBottom: '1rem' }}>
-                    <h3 className="admin-dash-widget-title">Content Pages</h3>
-                    <button className="btn btn-primary" style={{ height: '28px', padding: '0 0.8rem', fontSize: '0.68rem' }} onClick={() => setActivePanel('content')}>+ Add New Page</button>
-                  </div>
-
-                  <div style={{ overflowX: 'auto' }}>
-                    <table className="admin-dash-table">
-                      <thead>
-                        <tr>
-                          <th>Page Title</th>
-                          <th>Type</th>
-                          <th>Status</th>
-                          <th>Last Updated</th>
-                          <th>Updated By</th>
-                          <th style={{ textAlign: 'right' }}>Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {[
-                          { title: 'Home Page', file: 'index.html', type: 'Landing Page', date: 'Jun 10, 2026', user: 'Admin User' },
-                          { title: 'About Us', file: 'about.html', type: 'Static Page', date: 'Jun 09, 2026', user: 'Admin User' },
-                          { title: 'Contact Our House', file: 'contact.html', type: 'Static Page', date: 'Jun 08, 2026', user: 'Admin User' }
-                        ].map(pg => (
-                          <tr key={pg.file}>
-                            <td className="highlight">{pg.title}</td>
-                            <td>{pg.type}</td>
-                            <td><span className="admin-dash-status-badge published">Published</span></td>
-                            <td>{pg.date}</td>
-                            <td>{pg.user}</td>
-                            <td style={{ textAlign: 'right' }}>
-                              <div className="admin-dash-action-btn-row">
-                                <button 
-                                  className="admin-dash-action-btn"
-                                  onClick={() => {
-                                    setSelectedPage(pg.file);
-                                    setActivePanel('content');
-                                  }}
-                                  title="Edit Content"
-                                >
-                                  <IconEdit />
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-
-                {/* Donut visitors chart */}
-                <div className="admin-dash-widget-box">
-                  <div className="admin-dash-widget-header">
-                    <h3 className="admin-dash-widget-title">Website Visitors</h3>
-                    <select className="admin-dash-select-filter">
-                      <option>Last 30 Days</option>
-                      <option>Last Week</option>
-                    </select>
-                  </div>
-                  
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1 }}>
-                    <svg viewBox="0 0 160 160" width="130" height="130" style={{ overflow: 'visible' }}>
-                      <defs>
-                        <linearGradient id="donutGold" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="var(--color-gold)" />
-                          <stop offset="100%" stopColor="#8d6e24" />
-                        </linearGradient>
-                        <linearGradient id="donutWhite" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#f5f5f7" />
-                          <stop offset="100%" stopColor="#86868b" />
-                        </linearGradient>
-                      </defs>
-                      <circle cx="80" cy="80" r="55" fill="transparent" stroke="rgba(255,255,255,0.03)" strokeWidth="14" />
-                      
-                      <circle cx="80" cy="80" r="55" fill="transparent" 
-                        stroke="url(#donutGold)" 
-                        strokeWidth="15" 
-                        strokeDasharray="128 345" 
-                        strokeDashoffset="86"
-                        strokeLinecap="round" 
-                      />
-                      <circle cx="80" cy="80" r="55" fill="transparent" 
-                        stroke="url(#donutWhite)" 
-                        strokeWidth="13" 
-                        strokeDasharray="117 345" 
-                        strokeDashoffset="-42"
-                        strokeLinecap="round" 
-                      />
-                      <circle cx="80" cy="80" r="55" fill="transparent" 
-                        stroke="rgba(255,255,255,0.12)" 
-                        strokeWidth="11" 
-                        strokeDasharray="65 345" 
-                        strokeDashoffset="-159"
-                        strokeLinecap="round" 
-                      />
-                      <circle cx="80" cy="80" r="55" fill="transparent" 
-                        stroke="rgba(201,168,76,0.2)" 
-                        strokeWidth="9" 
-                        strokeDasharray="35 345" 
-                        strokeDashoffset="-224"
-                        strokeLinecap="round" 
-                      />
-                      <text x="80" y="76" fill="var(--color-white)" fontSize="16" fontWeight="bold" textAnchor="middle">12,580</text>
-                      <text x="80" y="92" fill="var(--color-muted)" fontSize="8" letterSpacing="0.05em" textAnchor="middle">TOTAL VISITORS</text>
-                    </svg>
-                    
-                    <div className="admin-dash-donut-legend" style={{ width: '100%', marginTop: '1.5rem' }}>
-                      {[
-                        { label: 'Direct', val: '4,650', pct: '37%', color: 'var(--color-gold)' },
-                        { label: 'Organic Search', val: '4,220', pct: '34%', color: 'var(--color-white)' },
-                        { label: 'Social Media', val: '2,350', pct: '19%', color: 'rgba(255,255,255,0.3)' },
-                        { label: 'Referral', val: '1,360', pct: '10%', color: 'rgba(201,168,76,0.3)' }
-                      ].map(leg => (
-                        <div className="admin-dash-legend-item" key={leg.label}>
-                          <div className="admin-dash-legend-label">
-                            <span className="admin-dash-legend-dot" style={{ backgroundColor: leg.color }} />
-                            {leg.label}
-                          </div>
-                          <div className="admin-dash-legend-value">
-                            {leg.val} <span className="admin-dash-legend-percent">({leg.pct})</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Timeline activity log */}
-              <div className="admin-dash-widgets-grid" style={{ gridTemplateColumns: '1fr' }}>
-                <div className="admin-dash-widget-box">
-                  <div className="admin-dash-widget-header">
-                    <h3 className="admin-dash-widget-title">Recent Activity</h3>
-                  </div>
-                  <div className="admin-dash-activity-list">
-                    {[
-                      { text: 'New order #ORD1258 received from customer (Saffron Makhana)', time: '10 Jun, 2026 11:25 AM', type: 'success' },
-                      { text: 'Page "About Us" updated by Admin User', time: '10 Jun, 2026 11:10 AM', type: 'info' },
-                      { text: 'New customer John Doe registered', time: '10 Jun, 2026 10:45 AM', type: 'success' },
-                      { text: 'Banner "Summer Sale" published', time: '10 Jun, 2026 09:30 AM', type: 'warning' },
-                      { text: 'Product "Premium Pistachios" updated by Admin User', time: '10 Jun, 2026 09:15 AM', type: 'info' }
-                    ].map((act, index) => (
-                      <div className="admin-dash-activity-item" key={index}>
-                        <div className={`admin-dash-activity-icon-wrapper ${act.type === 'success' ? 'success' : act.type === 'warning' ? 'warning' : ''}`}>
-                          {act.type === 'success' ? '✓' : act.type === 'warning' ? '!' : 'i'}
-                        </div>
-                        <div className="admin-dash-activity-details">
-                          <span className="admin-dash-activity-text">{act.text}</span>
-                          <span className="admin-dash-activity-time">{act.time}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </>
-          )}
-
-          {activePanel === 'products' && (
-            <div className="admin-dash-table-card">
-              <div className="admin-dash-table-toolbar">
-                <h3 className="admin-dash-widget-title" style={{ fontSize: '1.2rem', fontFamily: 'var(--font-heading)' }}>Product Inventory Catalog</h3>
-                <div className="admin-dash-table-actions">
-                  <button className="btn btn-primary" onClick={() => handleOpenProductModal('create')} style={{ height: '32px', padding: '0 1rem', fontSize: '0.72rem' }}>
-                    <IconPlus /> Add Product
-                  </button>
-                </div>
-              </div>
-
-              <div style={{ overflowX: 'auto' }}>
-                <table className="admin-dash-table">
-                  <thead>
-                    <tr>
-                      <th>Thumbnail</th>
-                      <th>Title</th>
-                      <th>Flavor</th>
-                      <th>Price</th>
-                      <th>Weight</th>
-                      <th style={{ textAlign: 'right' }}>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {products.map(p => (
-                      <tr key={p.id}>
-                        <td>
-                          <div style={{ width: '40px', height: '40px', backgroundColor: 'rgba(255,255,255,0.02)', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                            <img src={p.image} alt={p.title} style={{ maxWidth: '85%', maxHeight: '85%', objectFit: 'contain' }} />
-                          </div>
-                        </td>
-                        <td className="highlight">{p.title}</td>
-                        <td>{p.flavor}</td>
-                        <td style={{ color: 'var(--color-gold)', fontWeight: 600 }}>₹{p.price}</td>
-                        <td>{p.weight}</td>
-                        <td style={{ textAlign: 'right' }}>
-                          <div className="admin-dash-action-btn-row">
-                            <button 
-                              onClick={() => handleOpenProductModal('edit', p)}
-                              className="admin-dash-action-btn"
-                              title="Edit Product"
-                            >
-                              <IconEdit />
-                            </button>
-                            <button 
-                              onClick={() => handleDeleteProduct(p.id)}
-                              className="admin-dash-action-btn delete"
-                              title="Delete Product"
-                            >
-                              <IconDelete />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {activePanel === 'content' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <h3 className="admin-dash-widget-title" style={{ fontSize: '1.25rem', fontFamily: 'var(--font-heading)' }}>Select Page Layout to Customize</h3>
-                <select 
-                  value={selectedPage} 
-                  onChange={(e) => setSelectedPage(e.target.value)}
-                  className="admin-dash-select-filter"
-                  style={{ height: '36px', padding: '0 1rem', fontSize: '0.82rem' }}
-                >
-                  <option value="index.html">Home Page (index.html)</option>
-                  <option value="about.html">About Page (about.html)</option>
-                  <option value="contact.html">Contact Page (contact.html)</option>
-                </select>
-              </div>
-
-              {/* Dynamic CMS Page Form */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', border: '1px solid rgba(255,255,255,0.03)', borderRadius: '8px', padding: '2rem', backgroundColor: '#0a0a0a' }}>
-                {Object.entries(contentForm).map(([selector, value]) => (
-                  <div key={selector} style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.1rem' }}>
-                        <span style={{ fontSize: '0.85rem', color: 'var(--color-white)', fontWeight: 500 }}>{getSelectorLabel(selector)}</span>
-                        <span style={{ fontSize: '0.65rem', color: 'var(--color-muted)', fontFamily: 'monospace' }}>{selector}</span>
-                      </div>
-                      <button 
-                        onClick={() => handleSaveContent(selector, contentForm[selector])}
-                        style={{
-                          background: 'transparent',
-                          border: 'none',
-                          color: 'var(--color-gold)',
-                          cursor: 'pointer',
-                          fontSize: '0.78rem',
-                          fontWeight: 600,
-                          textDecoration: 'underline'
-                        }}
-                      >
-                        Update Node
-                      </button>
-                    </div>
-                    {selector.includes('img') || (typeof value === 'string' && (value.includes('images/') || value.endsWith('.png') || value.endsWith('.jpg') || value.endsWith('.jpeg'))) ? (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                        <span style={{ fontSize: '0.72rem', color: 'var(--color-gold)' }}>
-                          Image URL (Use Imgur, Cloudinary, or image hosting)
-                        </span>
-                        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                          <input 
-                            type="text" 
-                            className="contact-form-input" 
-                            value={value} 
-                            onChange={(e) => setContentForm(prev => ({ ...prev, [selector]: e.target.value }))}
-                            placeholder="https://example.com/image.jpg"
-                            style={{ flex: 1 }}
-                          />
-                          {value && (
-                            <div style={{ width: '48px', height: '48px', backgroundColor: 'rgba(255,255,255,0.02)', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.08)' }}>
-                              <img src={value} alt="Preview" style={{ maxWidth: '90%', maxHeight: '90%', objectFit: 'contain' }} onError={(e) => e.target.style.opacity = '0.3'} />
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ) : (
-                      <textarea 
-                        className="contact-form-textarea" 
-                        rows={selector.includes('body') || selector.includes('p') || selector.includes('h1') || selector.includes('h2') ? 3 : 1}
-                        value={value} 
-                        onChange={(e) => setContentForm(prev => ({ ...prev, [selector]: e.target.value }))}
-                        style={{ minHeight: 'auto' }}
-                      />
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {activePanel === 'styles' && (
-            <form onSubmit={handleSaveStyles} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-              <div style={{ border: '1px solid rgba(255,255,255,0.03)', borderRadius: '8px', padding: '2rem', backgroundColor: '#0a0a0a', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                <h3 style={{ fontSize: '1.1rem', fontFamily: 'var(--font-heading)', color: 'var(--color-white)', marginBottom: '0.5rem' }}>Global Theme Palette</h3>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
-                  <div className="contact-form-group">
-                    <label className="contact-form-label">Background Color (--color-bg)</label>
-                    <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                      <input type="color" value={stylesForm.colorBg} onChange={(e) => setStylesForm(prev => ({ ...prev, colorBg: e.target.value }))} style={{ border: 'none', background: 'transparent', width: '40px', height: '40px', cursor: 'pointer' }} />
-                      <span style={{ fontSize: '0.85rem', fontFamily: 'monospace', color: 'var(--color-muted)' }}>{stylesForm.colorBg}</span>
-                    </div>
-                  </div>
-
-                  <div className="contact-form-group">
-                    <label className="contact-form-label">Gold Accent Color (--color-gold)</label>
-                    <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                      <input type="color" value={stylesForm.colorGold} onChange={(e) => setStylesForm(prev => ({ ...prev, colorGold: e.target.value }))} style={{ border: 'none', background: 'transparent', width: '40px', height: '40px', cursor: 'pointer' }} />
-                      <span style={{ fontSize: '0.85rem', fontFamily: 'monospace', color: 'var(--color-muted)' }}>{stylesForm.colorGold}</span>
-                    </div>
-                  </div>
-
-                  <div className="contact-form-group">
-                    <label className="contact-form-label">Gold Hover Accent (--color-gold-hover)</label>
-                    <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                      <input type="color" value={stylesForm.colorGoldHover} onChange={(e) => setStylesForm(prev => ({ ...prev, colorGoldHover: e.target.value }))} style={{ border: 'none', background: 'transparent', width: '40px', height: '40px', cursor: 'pointer' }} />
-                      <span style={{ fontSize: '0.85rem', fontFamily: 'monospace', color: 'var(--color-muted)' }}>{stylesForm.colorGoldHover}</span>
-                    </div>
-                  </div>
-
-                  <div className="contact-form-group">
-                    <label className="contact-form-label">Primary Text Color (--color-white)</label>
-                    <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                      <input type="color" value={stylesForm.colorWhite} onChange={(e) => setStylesForm(prev => ({ ...prev, colorWhite: e.target.value }))} style={{ border: 'none', background: 'transparent', width: '40px', height: '40px', cursor: 'pointer' }} />
-                      <span style={{ fontSize: '0.85rem', fontFamily: 'monospace', color: 'var(--color-muted)' }}>{stylesForm.colorWhite}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <hr style={{ border: 'none', borderTop: '1px solid rgba(255,255,255,0.05)', margin: '1rem 0' }} />
-
-                <h3 style={{ fontSize: '1.1rem', fontFamily: 'var(--font-heading)', color: 'var(--color-white)', marginBottom: '0.5rem' }}>Typography & Text Styling</h3>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1.5rem' }}>
-                  <div className="contact-form-group">
-                    <label className="contact-form-label">Heading Font Family</label>
-                    <select
-                      value={stylesForm.fontHeading || 'Cormorant Garamond'}
-                      onChange={(e) => setStylesForm(prev => ({ ...prev, fontHeading: e.target.value }))}
-                      style={{
-                        background: '#0a0a0a',
-                        color: 'var(--color-white)',
-                        border: '1px solid rgba(255,255,255,0.08)',
-                        padding: '0.6rem 1rem',
-                        fontSize: '0.85rem',
-                        outline: 'none',
-                        borderRadius: '4px',
-                        width: '100%'
-                      }}
-                    >
-                      <option value="Cormorant Garamond">Cormorant Garamond (Serif Default)</option>
-                      <option value="Playfair Display">Playfair Display (Elegant Serif)</option>
-                      <option value="Cinzel">Cinzel (Classical Serif)</option>
-                      <option value="Lora">Lora (Contemporary Serif)</option>
-                      <option value="Georgia">Georgia (Standard Serif)</option>
-                      <option value="Montserrat">Montserrat (Modern Sans)</option>
-                      <option value="Outfit">Outfit (Luxury Minimalist)</option>
-                    </select>
-                  </div>
-
-                  <div className="contact-form-group">
-                    <label className="contact-form-label">Body Font Family</label>
-                    <select
-                      value={stylesForm.fontBody || 'Inter'}
-                      onChange={(e) => setStylesForm(prev => ({ ...prev, fontBody: e.target.value }))}
-                      style={{
-                        background: '#0a0a0a',
-                        color: 'var(--color-white)',
-                        border: '1px solid rgba(255,255,255,0.08)',
-                        padding: '0.6rem 1rem',
-                        fontSize: '0.85rem',
-                        outline: 'none',
-                        borderRadius: '4px',
-                        width: '100%'
-                      }}
-                    >
-                      <option value="Inter">Inter (Clean Sans Default)</option>
-                      <option value="Montserrat">Montserrat (Geometric Sans)</option>
-                      <option value="Outfit">Outfit (Luxury Minimalist)</option>
-                      <option value="Roboto">Roboto (Neo-Grotesque)</option>
-                      <option value="Open Sans">Open Sans (Neutral Sans)</option>
-                      <option value="Lato">Lato (Warm Sans)</option>
-                    </select>
-                  </div>
-
-                  <div className="contact-form-group">
-                    <label className="contact-form-label">Base Text Size Scale</label>
-                    <select
-                      value={stylesForm.textSizeOffset || '100%'}
-                      onChange={(e) => setStylesForm(prev => ({ ...prev, textSizeOffset: e.target.value }))}
-                      style={{
-                        background: '#0a0a0a',
-                        color: 'var(--color-white)',
-                        border: '1px solid rgba(255,255,255,0.08)',
-                        padding: '0.6rem 1rem',
-                        fontSize: '0.85rem',
-                        outline: 'none',
-                        borderRadius: '4px',
-                        width: '100%'
-                      }}
-                    >
-                      <option value="95%">95% (Compact)</option>
-                      <option value="100%">100% (Default Size)</option>
-                      <option value="105%">105% (Slightly Larger)</option>
-                      <option value="110%">110% (Medium Scale)</option>
-                      <option value="115%">115% (Large Scale)</option>
-                      <option value="120%">120% (Extra Large)</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="contact-form-group" style={{ marginTop: '1.5rem' }}>
-                  <label className="contact-form-label">Custom CSS Overrides</label>
-                  <textarea 
-                    className="contact-form-textarea" 
-                    placeholder="/* Write custom CSS styles here... e.g. .brand-logo-img { filter: drop-shadow(0 0 5px rgba(255,255,255,0.2)) } */" 
-                    value={stylesForm.customCSS} 
-                    onChange={(e) => setStylesForm(prev => ({ ...prev, customCSS: e.target.value }))}
-                    style={{ minHeight: '140px', fontFamily: 'monospace', fontSize: '0.82rem' }}
-                  />
-                </div>
-
-                <button type="submit" className="btn btn-primary" style={{ height: '44px', marginTop: '1rem', alignSelf: 'flex-start' }}>SAVE THEME STYLES</button>
-              </div>
-            </form>
-          )}
-
-          {activePanel === 'orders' && (
-            <div className="admin-dash-table-card">
-              <div className="admin-dash-table-toolbar">
-                <h3 className="admin-dash-widget-title" style={{ fontSize: '1.2rem', fontFamily: 'var(--font-heading)' }}>Customer Orders Log</h3>
-                <div className="admin-dash-table-search">
-                  <span className="admin-dash-table-search-icon"><IconSearch /></span>
-                  <input type="text" className="admin-dash-table-search-input" placeholder="Search orders..." />
-                </div>
-              </div>
-              
-              <div style={{ overflowX: 'auto' }}>
-                <table className="admin-dash-table">
-                  <thead>
-                    <tr>
-                      <th>Order ID</th>
-                      <th>Customer Email</th>
-                      <th>Date</th>
-                      <th>Payment Method</th>
-                      <th>Subtotal</th>
-                      <th>Total Paid</th>
-                      <th>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {orders.length === 0 ? (
-                      <tr>
-                        <td colSpan="7" style={{ textAlign: 'center', padding: '3rem', color: 'var(--color-muted)' }}>
-                          No orders registered in system.
-                        </td>
-                      </tr>
-                    ) : (
-                      orders.map(o => (
-                        <tr key={o.id}>
-                          <td className="highlight" style={{ fontFamily: 'monospace' }}>#{o.id}</td>
-                          <td>{o.user_email}</td>
-                          <td>{o.date}</td>
-                          <td>{o.payment_method}</td>
-                          <td>₹{o.subtotal}</td>
-                          <td style={{ color: 'var(--color-gold)', fontWeight: 600 }}>₹{o.total}</td>
-                          <td>
-                            <span className={`admin-dash-status-badge ${o.status === 'Delivered' ? 'published' : 'pending'}`}>
-                              {o.status || 'Processing'}
-                            </span>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {activePanel === 'system' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-              <div style={{ border: '1px solid rgba(255,255,255,0.03)', borderRadius: '8px', padding: '2.5rem', backgroundColor: '#0a0a0a', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-                
-                <div>
-                  <h3 style={{ fontSize: '1.05rem', color: 'var(--color-white)', marginBottom: '0.5rem' }}>Factory Reset DB</h3>
-                  <p style={{ fontSize: '0.85rem', color: 'var(--color-muted)', marginBottom: '1.2rem', lineHeight: 1.5 }}>
-                    Clears all modifications to page content, product inventories, and style overrides, restoring the original Rein Oro aesthetic layouts from baseline seeds.
-                  </p>
-                  <button className="btn" onClick={handleFactoryReset} style={{ border: '1px solid rgba(255,80,80,0.5)', color: 'rgba(255,80,80,0.9)' }}>FACTORY RESET DB</button>
-                </div>
-
-                <hr style={{ border: 'none', borderTop: '1px solid rgba(255,255,255,0.05)' }} />
-
-                <div>
-                  <h3 style={{ fontSize: '1.05rem', color: 'var(--color-white)', marginBottom: '0.5rem' }}>Backup Database Settings</h3>
-                  <p style={{ fontSize: '0.85rem', color: 'var(--color-muted)', marginBottom: '1.2rem', lineHeight: 1.5 }}>
-                    Download the current active CMS settings (products database, page text overrides, theme colors) as a JSON configuration backup file.
-                  </p>
-                  <button 
-                    className="btn btn-outline" 
-                    onClick={() => {
-                      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({ cmsContent, cmsStyles, products }));
-                      const downloadAnchor = document.createElement('a');
-                      downloadAnchor.setAttribute("href",     dataStr);
-                      downloadAnchor.setAttribute("download", "rein_oro_backup.json");
-                      document.body.appendChild(downloadAnchor);
-                      downloadAnchor.click();
-                      downloadAnchor.remove();
-                    }}
-                  >
-                    EXPORT BACKUP
-                  </button>
-                </div>
-
-              </div>
-            </div>
-          )}
-
-          {activePanel === 'categories' && (
-            <div className="admin-dash-table-card">
-              <div className="admin-dash-table-toolbar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                <h3 className="admin-dash-widget-title" style={{ fontSize: '1.2rem', fontFamily: 'var(--font-heading)' }}>Product Categories</h3>
-                {!editingCategory && (
-                  <button onClick={() => setEditingCategory({ name: '', description: '', image: '' })} className="btn btn-primary" style={{ padding: '8px 16px', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <IconPlus /> Add Category
-                  </button>
-                )}
-              </div>
-
-              {editingCategory ? (
-                <form onSubmit={handleSaveCategory} style={{ border: '1px solid rgba(255,255,255,0.05)', padding: '2rem', borderRadius: '8px', backgroundColor: 'rgba(255,255,255,0.01)', display: 'flex', flexDirection: 'column', gap: '1.2rem', marginBottom: '2rem' }}>
-                  <h4 style={{ color: 'var(--color-white)', fontFamily: 'var(--font-heading)', fontSize: '1.1rem' }}>{editingCategory.id ? 'Edit Category' : 'Create Category'}</h4>
-                  <div className="contact-form-group">
-                    <label className="contact-form-label">Category Name</label>
-                    <input type="text" className="contact-form-input" required value={editingCategory.name} onChange={(e) => setEditingCategory(prev => ({ ...prev, name: e.target.value }))} placeholder="e.g. Exotic Nuts" />
-                  </div>
-                  <div className="contact-form-group">
-                    <label className="contact-form-label">Description</label>
-                    <textarea className="contact-form-textarea" value={editingCategory.description || ''} onChange={(e) => setEditingCategory(prev => ({ ...prev, description: e.target.value }))} placeholder="Brief summary of the category..." style={{ minHeight: '80px' }} />
-                  </div>
-                  <div className="contact-form-group">
-                    <label className="contact-form-label">Image URL</label>
-                    <input type="text" className="contact-form-input" value={editingCategory.image || ''} onChange={(e) => setEditingCategory(prev => ({ ...prev, image: e.target.value }))} placeholder="https://example.com/category.png" />
-                  </div>
-                  <div style={{ display: 'flex', gap: '1rem' }}>
-                    <button type="submit" className="btn btn-primary" style={{ height: '36px', fontSize: '0.8rem' }}>Save Category</button>
-                    <button type="button" onClick={() => setEditingCategory(null)} className="btn btn-outline" style={{ height: '36px', fontSize: '0.8rem' }}>Cancel</button>
-                  </div>
-                </form>
-              ) : (
-                <div style={{ overflowX: 'auto' }}>
-                  <table className="admin-dash-table">
-                    <thead>
-                      <tr>
-                        <th>Image</th>
-                        <th>Name</th>
-                        <th>Description</th>
-                        <th style={{ textAlign: 'right' }}>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {categories.map(cat => (
-                        <tr key={cat.id}>
-                          <td>
-                            <img src={cat.image || 'https://via.placeholder.com/48'} alt={cat.name} style={{ width: '40px', height: '40px', objectFit: 'contain', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.06)' }} />
-                          </td>
-                          <td style={{ fontWeight: 600, color: 'var(--color-white)' }}>{cat.name}</td>
-                          <td style={{ color: 'var(--color-muted)', maxWidth: '300px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cat.description}</td>
-                          <td style={{ textAlign: 'right' }}>
-                            <div style={{ display: 'inline-flex', gap: '0.5rem' }}>
-                              <button onClick={() => setEditingCategory(cat)} className="admin-dash-action-btn edit" title="Edit"><IconEdit /></button>
-                              <button onClick={() => handleDeleteCategory(cat.id)} className="admin-dash-action-btn delete" title="Delete"><IconDelete /></button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          )}
-
-          {activePanel === 'banners' && (
-            <div className="admin-dash-table-card">
-              <div className="admin-dash-table-toolbar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                <h3 className="admin-dash-widget-title" style={{ fontSize: '1.2rem', fontFamily: 'var(--font-heading)' }}>Store Banners</h3>
-                {!editingBanner && (
-                  <button onClick={() => setEditingBanner({ title: '', subtitle: '', image: '', link: '' })} className="btn btn-primary" style={{ padding: '8px 16px', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <IconPlus /> Add Banner
-                  </button>
-                )}
-              </div>
-
-              {editingBanner ? (
-                <form onSubmit={handleSaveBanner} style={{ border: '1px solid rgba(255,255,255,0.05)', padding: '2rem', borderRadius: '8px', backgroundColor: 'rgba(255,255,255,0.01)', display: 'flex', flexDirection: 'column', gap: '1.2rem', marginBottom: '2rem' }}>
-                  <h4 style={{ color: 'var(--color-white)', fontFamily: 'var(--font-heading)', fontSize: '1.1rem' }}>{editingBanner.id ? 'Edit Banner' : 'Create Banner'}</h4>
-                  <div className="contact-form-group">
-                    <label className="contact-form-label">Banner Title</label>
-                    <input type="text" className="contact-form-input" required value={editingBanner.title || ''} onChange={(e) => setEditingBanner(prev => ({ ...prev, title: e.target.value }))} placeholder="e.g. Royal Gifting Box Collection" />
-                  </div>
-                  <div className="contact-form-group">
-                    <label className="contact-form-label">Subtitle</label>
-                    <input type="text" className="contact-form-input" value={editingBanner.subtitle || ''} onChange={(e) => setEditingBanner(prev => ({ ...prev, subtitle: e.target.value }))} placeholder="e.g. Exclusive gold embossed luxury selection..." />
-                  </div>
-                  <div className="contact-form-group">
-                    <label className="contact-form-label">Image URL</label>
-                    <input type="text" className="contact-form-input" required value={editingBanner.image || ''} onChange={(e) => setEditingBanner(prev => ({ ...prev, image: e.target.value }))} placeholder="https://example.com/banner.jpg" />
-                  </div>
-                  <div className="contact-form-group">
-                    <label className="contact-form-label">Redirection Link</label>
-                    <input type="text" className="contact-form-input" value={editingBanner.link || ''} onChange={(e) => setEditingBanner(prev => ({ ...prev, link: e.target.value }))} placeholder="e.g. /shop or /contact" />
-                  </div>
-                  <div style={{ display: 'flex', gap: '1rem' }}>
-                    <button type="submit" className="btn btn-primary" style={{ height: '36px', fontSize: '0.8rem' }}>Save Banner</button>
-                    <button type="button" onClick={() => setEditingBanner(null)} className="btn btn-outline" style={{ height: '36px', fontSize: '0.8rem' }}>Cancel</button>
-                  </div>
-                </form>
-              ) : (
-                <div style={{ overflowX: 'auto' }}>
-                  <table className="admin-dash-table">
-                    <thead>
-                      <tr>
-                        <th>Preview</th>
-                        <th>Title</th>
-                        <th>Subtitle</th>
-                        <th>Link</th>
-                        <th style={{ textAlign: 'right' }}>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {banners.map(banner => (
-                        <tr key={banner.id}>
-                          <td>
-                            <img src={banner.image || 'https://via.placeholder.com/120x60'} alt={banner.title} style={{ width: '100px', height: '50px', objectFit: 'cover', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.06)' }} />
-                          </td>
-                          <td style={{ fontWeight: 600, color: 'var(--color-white)' }}>{banner.title}</td>
-                          <td style={{ color: 'var(--color-muted)', maxWidth: '250px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{banner.subtitle}</td>
-                          <td style={{ fontFamily: 'monospace', fontSize: '0.75rem' }}>{banner.link}</td>
-                          <td style={{ textAlign: 'right' }}>
-                            <div style={{ display: 'inline-flex', gap: '0.5rem' }}>
-                              <button onClick={() => setEditingBanner(banner)} className="admin-dash-action-btn edit" title="Edit"><IconEdit /></button>
-                              <button onClick={() => handleDeleteBanner(banner.id)} className="admin-dash-action-btn delete" title="Delete"><IconDelete /></button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          )}
-
-          {activePanel === 'media' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-              <div className="admin-dash-table-card" style={{ padding: '2rem' }}>
-                <h3 className="admin-dash-widget-title" style={{ fontSize: '1.2rem', fontFamily: 'var(--font-heading)', marginBottom: '1.2rem' }}>Upload / Register Hosted Asset</h3>
-                <form onSubmit={handleSaveMedia} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: '1.2rem', alignItems: 'end' }}>
-                  <div className="contact-form-group">
-                    <label className="contact-form-label">Asset Name / Description</label>
-                    <input type="text" className="contact-form-input" required value={mediaForm.name} onChange={(e) => setMediaForm(prev => ({ ...prev, name: e.target.value }))} placeholder="e.g. Himalayan Salt Packet" />
-                  </div>
-                  <div className="contact-form-group">
-                    <label className="contact-form-label">Asset Image URL</label>
-                    <input type="text" className="contact-form-input" required value={mediaForm.url} onChange={(e) => setMediaForm(prev => ({ ...prev, url: e.target.value }))} placeholder="Paste direct hosted link here..." />
-                  </div>
-                  <button type="submit" className="btn btn-primary" style={{ height: '40px', padding: '0 24px', fontSize: '0.85rem' }}>Add Asset</button>
-                </form>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '1.5rem' }}>
-                {media.map(m => (
-                  <div key={m.id} style={{ border: '1px solid rgba(255,255,255,0.05)', borderRadius: '8px', padding: '1.2rem', backgroundColor: '#0a0a0a', display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
-                    <div style={{ width: '100%', height: '140px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#050505', borderRadius: '4px', overflow: 'hidden' }}>
-                      <img src={m.url} alt={m.name} style={{ maxWidth: '90%', maxHeight: '90%', objectFit: 'contain' }} onError={(e) => e.target.src='https://via.placeholder.com/150'} />
-                    </div>
-                    <div style={{ fontSize: '0.8rem', color: 'var(--color-white)', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.name}</div>
-                    <div style={{ display: 'flex', gap: '0.6rem' }}>
-                      <button
-                        onClick={() => {
-                          navigator.clipboard.writeText(m.url);
-                          alert('Image URL copied to clipboard.');
-                        }}
-                        className="btn btn-outline"
-                        style={{ height: '32px', flex: 1, fontSize: '0.75rem', padding: 0 }}
-                      >
-                        Copy URL
-                      </button>
-                      <button
-                        onClick={() => handleDeleteMedia(m.id)}
-                        className="btn"
-                        style={{ height: '32px', flex: 1, fontSize: '0.75rem', padding: 0, border: '1px solid rgba(255,80,80,0.3)', color: 'rgba(255,80,80,0.8)' }}
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {activePanel === 'testimonials' && (
-            <div className="admin-dash-table-card">
-              <div className="admin-dash-table-toolbar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                <h3 className="admin-dash-widget-title" style={{ fontSize: '1.2rem', fontFamily: 'var(--font-heading)' }}>Customer Testimonials</h3>
-                {!editingTestimonial && (
-                  <button onClick={() => setEditingTestimonial({ name: '', quote: '', rating: 5, avatar: '' })} className="btn btn-primary" style={{ padding: '8px 16px', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <IconPlus /> Add Testimonial
-                  </button>
-                )}
-              </div>
-
-              {editingTestimonial ? (
-                <form onSubmit={handleSaveTestimonial} style={{ border: '1px solid rgba(255,255,255,0.05)', padding: '2rem', borderRadius: '8px', backgroundColor: 'rgba(255,255,255,0.01)', display: 'flex', flexDirection: 'column', gap: '1.2rem', marginBottom: '2rem' }}>
-                  <h4 style={{ color: 'var(--color-white)', fontFamily: 'var(--font-heading)', fontSize: '1.1rem' }}>{editingTestimonial.id ? 'Edit Testimonial' : 'Create Testimonial'}</h4>
-                  <div className="contact-form-group">
-                    <label className="contact-form-label">Client Name</label>
-                    <input type="text" className="contact-form-input" required value={editingTestimonial.name || ''} onChange={(e) => setEditingTestimonial(prev => ({ ...prev, name: e.target.value }))} placeholder="e.g. Vikram Malhotra" />
-                  </div>
-                  <div className="contact-form-group">
-                    <label className="contact-form-label">Quote Content</label>
-                    <textarea className="contact-form-textarea" required value={editingTestimonial.quote || ''} onChange={(e) => setEditingTestimonial(prev => ({ ...prev, quote: e.target.value }))} placeholder="Their experience with Rein Oro..." style={{ minHeight: '80px' }} />
-                  </div>
-                  <div className="contact-form-group">
-                    <label className="contact-form-label">Rating (1 to 5 Stars)</label>
-                    <select className="contact-form-input" value={editingTestimonial.rating || 5} onChange={(e) => setEditingTestimonial(prev => ({ ...prev, rating: parseInt(e.target.value) }))} style={{ backgroundColor: '#050505', color: '#fff' }}>
-                      <option value="5">5 Stars</option>
-                      <option value="4">4 Stars</option>
-                      <option value="3">3 Stars</option>
-                      <option value="2">2 Stars</option>
-                      <option value="1">1 Star</option>
-                    </select>
-                  </div>
-                  <div className="contact-form-group">
-                    <label className="contact-form-label">Avatar Image URL (Optional)</label>
-                    <input type="text" className="contact-form-input" value={editingTestimonial.avatar || ''} onChange={(e) => setEditingTestimonial(prev => ({ ...prev, avatar: e.target.value }))} placeholder="https://example.com/avatar.jpg" />
-                  </div>
-                  <div style={{ display: 'flex', gap: '1rem' }}>
-                    <button type="submit" className="btn btn-primary" style={{ height: '36px', fontSize: '0.8rem' }}>Save Testimonial</button>
-                    <button type="button" onClick={() => setEditingTestimonial(null)} className="btn btn-outline" style={{ height: '36px', fontSize: '0.8rem' }}>Cancel</button>
-                  </div>
-                </form>
-              ) : (
-                <div style={{ overflowX: 'auto' }}>
-                  <table className="admin-dash-table">
-                    <thead>
-                      <tr>
-                        <th>Client</th>
-                        <th>Quote</th>
-                        <th>Rating</th>
-                        <th style={{ textAlign: 'right' }}>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {testimonials.map(t => (
-                        <tr key={t.id}>
-                          <td style={{ fontWeight: 600, color: 'var(--color-white)' }}>{t.name}</td>
-                          <td style={{ color: 'var(--color-muted)', fontStyle: 'italic', maxWidth: '350px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>"{t.quote}"</td>
-                          <td style={{ color: 'var(--color-gold)' }}>{'★'.repeat(t.rating)}{'☆'.repeat(5 - t.rating)}</td>
-                          <td style={{ textAlign: 'right' }}>
-                            <div style={{ display: 'inline-flex', gap: '0.5rem' }}>
-                              <button onClick={() => setEditingTestimonial(t)} className="admin-dash-action-btn edit" title="Edit"><IconEdit /></button>
-                              <button onClick={() => handleDeleteTestimonial(t.id)} className="admin-dash-action-btn delete" title="Delete"><IconDelete /></button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          )}
-
-          {activePanel === 'blog' && (
-            <div className="admin-dash-table-card">
-              <div className="admin-dash-table-toolbar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                <h3 className="admin-dash-widget-title" style={{ fontSize: '1.2rem', fontFamily: 'var(--font-heading)' }}>Blog Editorial Posts</h3>
-                {!editingBlog && (
-                  <button onClick={() => setEditingBlog({ title: '', content: '', image: '' })} className="btn btn-primary" style={{ padding: '8px 16px', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <IconPlus /> Add Post
-                  </button>
-                )}
-              </div>
-
-              {editingBlog ? (
-                <form onSubmit={handleSaveBlog} style={{ border: '1px solid rgba(255,255,255,0.05)', padding: '2rem', borderRadius: '8px', backgroundColor: 'rgba(255,255,255,0.01)', display: 'flex', flexDirection: 'column', gap: '1.2rem', marginBottom: '2rem' }}>
-                  <h4 style={{ color: 'var(--color-white)', fontFamily: 'var(--font-heading)', fontSize: '1.1rem' }}>{editingBlog.id ? 'Edit Blog Post' : 'Create Blog Post'}</h4>
-                  <div className="contact-form-group">
-                    <label className="contact-form-label">Article Title</label>
-                    <input type="text" className="contact-form-input" required value={editingBlog.title || ''} onChange={(e) => setEditingBlog(prev => ({ ...prev, title: e.target.value }))} placeholder="e.g. Sourcing Organic Wetland Lotus Seeds" />
-                  </div>
-                  <div className="contact-form-group">
-                    <label className="contact-form-label">Main Content</label>
-                    <textarea className="contact-form-textarea" required value={editingBlog.content || ''} onChange={(e) => setEditingBlog(prev => ({ ...prev, content: e.target.value }))} placeholder="Write details here..." style={{ minHeight: '180px' }} />
-                  </div>
-                  <div className="contact-form-group">
-                    <label className="contact-form-label">Image URL</label>
-                    <input type="text" className="contact-form-input" value={editingBlog.image || ''} onChange={(e) => setEditingBlog(prev => ({ ...prev, image: e.target.value }))} placeholder="https://example.com/blog_image.jpg" />
-                  </div>
-                  <div style={{ display: 'flex', gap: '1rem' }}>
-                    <button type="submit" className="btn btn-primary" style={{ height: '36px', fontSize: '0.8rem' }}>Publish Post</button>
-                    <button type="button" onClick={() => setEditingBlog(null)} className="btn btn-outline" style={{ height: '36px', fontSize: '0.8rem' }}>Cancel</button>
-                  </div>
-                </form>
-              ) : (
-                <div style={{ overflowX: 'auto' }}>
-                  <table className="admin-dash-table">
-                    <thead>
-                      <tr>
-                        <th>Thumbnail</th>
-                        <th>Title</th>
-                        <th>Content Preview</th>
-                        <th>Published Date</th>
-                        <th style={{ textAlign: 'right' }}>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {blogs.map(post => (
-                        <tr key={post.id}>
-                          <td>
-                            <img src={post.image || 'https://via.placeholder.com/80x50'} alt={post.title} style={{ width: '60px', height: '40px', objectFit: 'cover', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.06)' }} />
-                          </td>
-                          <td style={{ fontWeight: 600, color: 'var(--color-white)' }}>{post.title}</td>
-                          <td style={{ color: 'var(--color-muted)', maxWidth: '250px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{post.content}</td>
-                          <td style={{ color: 'var(--color-muted)', fontSize: '0.8rem' }}>{post.date}</td>
-                          <td style={{ textAlign: 'right' }}>
-                            <div style={{ display: 'inline-flex', gap: '0.5rem' }}>
-                              <button onClick={() => setEditingBlog(post)} className="admin-dash-action-btn edit" title="Edit"><IconEdit /></button>
-                              <button onClick={() => handleDeleteBlog(post.id)} className="admin-dash-action-btn delete" title="Delete"><IconDelete /></button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          )}
-
-          {activePanel === 'faqs' && (
-            <div className="admin-dash-table-card">
-              <div className="admin-dash-table-toolbar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                <h3 className="admin-dash-widget-title" style={{ fontSize: '1.2rem', fontFamily: 'var(--font-heading)' }}>Frequently Asked Questions</h3>
-                {!editingFaq && (
-                  <button onClick={() => setEditingFaq({ question: '', answer: '' })} className="btn btn-primary" style={{ padding: '8px 16px', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <IconPlus /> Add FAQ
-                  </button>
-                )}
-              </div>
-
-              {editingFaq ? (
-                <form onSubmit={handleSaveFaq} style={{ border: '1px solid rgba(255,255,255,0.05)', padding: '2rem', borderRadius: '8px', backgroundColor: 'rgba(255,255,255,0.01)', display: 'flex', flexDirection: 'column', gap: '1.2rem', marginBottom: '2rem' }}>
-                  <h4 style={{ color: 'var(--color-white)', fontFamily: 'var(--font-heading)', fontSize: '1.1rem' }}>{editingFaq.id ? 'Edit FAQ' : 'Create FAQ'}</h4>
-                  <div className="contact-form-group">
-                    <label className="contact-form-label">Question</label>
-                    <input type="text" className="contact-form-input" required value={editingFaq.question || ''} onChange={(e) => setEditingFaq(prev => ({ ...prev, question: e.target.value }))} placeholder="e.g. Do you ship internationally?" />
-                  </div>
-                  <div className="contact-form-group">
-                    <label className="contact-form-label">Answer</label>
-                    <textarea className="contact-form-textarea" required value={editingFaq.answer || ''} onChange={(e) => setEditingFaq(prev => ({ ...prev, answer: e.target.value }))} placeholder="Write answer here..." style={{ minHeight: '100px' }} />
-                  </div>
-                  <div style={{ display: 'flex', gap: '1rem' }}>
-                    <button type="submit" className="btn btn-primary" style={{ height: '36px', fontSize: '0.8rem' }}>Save FAQ</button>
-                    <button type="button" onClick={() => setEditingFaq(null)} className="btn btn-outline" style={{ height: '36px', fontSize: '0.8rem' }}>Cancel</button>
-                  </div>
-                </form>
-              ) : (
-                <div style={{ overflowX: 'auto' }}>
-                  <table className="admin-dash-table">
-                    <thead>
-                      <tr>
-                        <th>Question</th>
-                        <th>Answer</th>
-                        <th style={{ textAlign: 'right' }}>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {faqs.map(faq => (
-                        <tr key={faq.id}>
-                          <td style={{ fontWeight: 600, color: 'var(--color-white)' }}>{faq.question}</td>
-                          <td style={{ color: 'var(--color-muted)', maxWidth: '400px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{faq.answer}</td>
-                          <td style={{ textAlign: 'right' }}>
-                            <div style={{ display: 'inline-flex', gap: '0.5rem' }}>
-                              <button onClick={() => setEditingFaq(faq)} className="admin-dash-action-btn edit" title="Edit"><IconEdit /></button>
-                              <button onClick={() => handleDeleteFaq(faq.id)} className="admin-dash-action-btn delete" title="Delete"><IconDelete /></button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          )}
-
-          {activePanel === 'customers' && (
-            <div className="admin-dash-table-card">
-              <div className="admin-dash-table-toolbar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                <h3 className="admin-dash-widget-title" style={{ fontSize: '1.2rem', fontFamily: 'var(--font-heading)' }}>Registered Customers Directory</h3>
-              </div>
-
-              <div style={{ overflowX: 'auto' }}>
-                <table className="admin-dash-table">
-                  <thead>
-                    <tr>
-                      <th>Customer Email</th>
-                      <th>Account Role</th>
-                      <th>Registered On</th>
-                      <th>Orders Placed</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {usersList.map(u => {
-                      const orderCount = orders.filter(o => o.user_email === u.email).length;
-                      return (
-                        <tr key={u.id}>
-                          <td style={{ fontWeight: 600, color: 'var(--color-white)' }}>{u.email}</td>
-                          <td>
-                            <span className={`admin-dash-status-badge ${u.role === 'admin' ? 'published' : 'pending'}`}>
-                              {u.role}
-                            </span>
-                          </td>
-                          <td style={{ color: 'var(--color-muted)', fontSize: '0.8rem' }}>{u.member_since}</td>
-                          <td style={{ fontWeight: 'bold', color: 'var(--color-gold)' }}>{orderCount} order(s)</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {activePanel === 'enquiries' && (
-            <div className="admin-dash-table-card">
-              <div className="admin-dash-table-toolbar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                <h3 className="admin-dash-widget-title" style={{ fontSize: '1.2rem', fontFamily: 'var(--font-heading)' }}>Contact & Concierge Enquiries</h3>
-              </div>
-
-              <div style={{ overflowX: 'auto' }}>
-                <table className="admin-dash-table">
-                  <thead>
-                    <tr>
-                      <th>Name / Email</th>
-                      <th>Subject</th>
-                      <th>Message Details</th>
-                      <th>Received Date</th>
-                      <th>Status Flag</th>
-                      <th style={{ textAlign: 'right' }}>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {enquiries.map(enq => (
-                      <tr key={enq.id}>
-                        <td>
-                          <div style={{ fontWeight: 600, color: 'var(--color-white)' }}>{enq.name}</div>
-                          <div style={{ fontSize: '0.75rem', color: 'var(--color-muted)' }}>{enq.email}</div>
-                        </td>
-                        <td style={{ fontWeight: 500, color: 'var(--color-gold)' }}>{enq.subject}</td>
-                        <td style={{ fontSize: '0.8rem', color: 'var(--color-muted)', maxWidth: '300px', whiteSpace: 'pre-line' }}>{enq.message}</td>
-                        <td style={{ fontSize: '0.75rem', color: 'var(--color-muted)' }}>{enq.date}</td>
-                        <td>
-                          <select
-                            value={enq.status || 'New'}
-                            onChange={(e) => handleUpdateEnquiryStatus(enq.id, e.target.value)}
-                            style={{ backgroundColor: '#050505', color: enq.status === 'Resolved' ? '#10b981' : '#c9a84c', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '4px', fontSize: '0.75rem', padding: '2px 4px' }}
-                          >
-                            <option value="New">New</option>
-                            <option value="In Progress">In Progress</option>
-                            <option value="Resolved">Resolved</option>
-                          </select>
-                        </td>
-                        <td style={{ textAlign: 'right' }}>
-                          <button onClick={() => handleDeleteEnquiry(enq.id)} className="admin-dash-action-btn delete" title="Delete Log"><IconDelete /></button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {activePanel === 'coupons' && (
-            <div className="admin-dash-table-card">
-              <div className="admin-dash-table-toolbar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                <h3 className="admin-dash-widget-title" style={{ fontSize: '1.2rem', fontFamily: 'var(--font-heading)' }}>Marketing Discount Coupons</h3>
-                {!editingCoupon && (
-                  <button onClick={() => setEditingCoupon({ code: '', discount_rate: 0.10, active: 1 })} className="btn btn-primary" style={{ padding: '8px 16px', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <IconPlus /> Add Coupon
-                  </button>
-                )}
-              </div>
-
-              {editingCoupon ? (
-                <form onSubmit={handleSaveCoupon} style={{ border: '1px solid rgba(255,255,255,0.05)', padding: '2rem', borderRadius: '8px', backgroundColor: 'rgba(255,255,255,0.01)', display: 'flex', flexDirection: 'column', gap: '1.2rem', marginBottom: '2rem' }}>
-                  <h4 style={{ color: 'var(--color-white)', fontFamily: 'var(--font-heading)', fontSize: '1.1rem' }}>{editingCoupon.originalCode ? 'Edit Coupon' : 'Create Coupon'}</h4>
-                  <div className="contact-form-group">
-                    <label className="contact-form-label">Coupon Code (Uppercase)</label>
-                    <input type="text" className="contact-form-input" required disabled={!!editingCoupon.originalCode} value={editingCoupon.code || ''} onChange={(e) => setEditingCoupon(prev => ({ ...prev, code: e.target.value.toUpperCase() }))} placeholder="e.g. WELCOME20" />
-                  </div>
-                  <div className="contact-form-group">
-                    <label className="contact-form-label">Discount Rate (e.g. 0.15 for 15% discount)</label>
-                    <input type="number" step="0.01" min="0" max="1" className="contact-form-input" required value={editingCoupon.discount_rate} onChange={(e) => setEditingCoupon(prev => ({ ...prev, discount_rate: parseFloat(e.target.value) }))} />
-                  </div>
-                  <label className="checkbox-label" style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', fontSize: '0.85rem', color: 'var(--color-white)', cursor: 'pointer' }}>
-                    <input type="checkbox" checked={!!editingCoupon.active} onChange={(e) => setEditingCoupon(prev => ({ ...prev, active: e.target.checked ? 1 : 0 }))} style={{ accentColor: 'var(--color-gold)' }} />
-                    Coupon is currently active and can be used on checkout
-                  </label>
-                  <div style={{ display: 'flex', gap: '1rem' }}>
-                    <button type="submit" className="btn btn-primary" style={{ height: '36px', fontSize: '0.8rem' }}>Save Coupon</button>
-                    <button type="button" onClick={() => setEditingCoupon(null)} className="btn btn-outline" style={{ height: '36px', fontSize: '0.8rem' }}>Cancel</button>
-                  </div>
-                </form>
-              ) : (
-                <div style={{ overflowX: 'auto' }}>
-                  <table className="admin-dash-table">
-                    <thead>
-                      <tr>
-                        <th>Code</th>
-                        <th>Discount Rate</th>
-                        <th>Percent Off</th>
-                        <th>Status</th>
-                        <th style={{ textAlign: 'right' }}>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {coupons.map(cp => (
-                        <tr key={cp.code}>
-                          <td style={{ fontWeight: 700, color: 'var(--color-gold)', fontFamily: 'monospace' }}>{cp.code}</td>
-                          <td>{cp.discount_rate}</td>
-                          <td style={{ fontWeight: 600 }}>{Math.round(cp.discount_rate * 100)}% OFF</td>
-                          <td>
-                            <span className={`admin-dash-status-badge ${cp.active ? 'published' : 'pending'}`}>
-                              {cp.active ? 'Active' : 'Inactive'}
-                            </span>
-                          </td>
-                          <td style={{ textAlign: 'right' }}>
-                            <div style={{ display: 'inline-flex', gap: '0.5rem' }}>
-                              <button onClick={() => setEditingCoupon({ ...cp, originalCode: cp.code })} className="admin-dash-action-btn edit" title="Edit"><IconEdit /></button>
-                              <button onClick={() => handleDeleteCoupon(cp.code)} className="admin-dash-action-btn delete" title="Delete"><IconDelete /></button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          )}
-
-          {activePanel === 'newsletter' && (
-            <div className="admin-dash-table-card">
-              <div className="admin-dash-table-toolbar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                <h3 className="admin-dash-widget-title" style={{ fontSize: '1.2rem', fontFamily: 'var(--font-heading)' }}>Newsletter Subscribers ({newsletterList.length})</h3>
-                <button
-                  onClick={() => {
-                    const emails = newsletterList.map(n => n.email).join('\n');
-                    navigator.clipboard.writeText(emails);
-                    alert('All subscriber emails copied to clipboard (newline separated).');
-                  }}
-                  className="btn btn-outline"
-                  style={{ height: '36px', fontSize: '0.8rem' }}
-                >
-                  Export / Copy Emails list
-                </button>
-              </div>
-
-              <div style={{ overflowX: 'auto' }}>
-                <table className="admin-dash-table">
-                  <thead>
-                    <tr>
-                      <th>Subscriber Email Address</th>
-                      <th>Subscribed On</th>
-                      <th style={{ textAlign: 'right' }}>Remove</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {newsletterList.map(news => (
-                      <tr key={news.id}>
-                        <td style={{ fontWeight: 600, color: 'var(--color-white)' }}>{news.email}</td>
-                        <td style={{ color: 'var(--color-muted)', fontSize: '0.8rem' }}>{news.subscribed_at}</td>
-                        <td style={{ textAlign: 'right' }}>
-                          <button onClick={() => handleDeleteNewsletter(news.id)} className="admin-dash-action-btn delete" title="Unsubscribe"><IconDelete /></button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {activePanel === 'seo' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-              <form onSubmit={handleSaveSeoSettings} style={{ border: '1px solid rgba(255,255,255,0.03)', borderRadius: '8px', padding: '2.5rem', backgroundColor: '#0a0a0a', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                <h3 style={{ fontSize: '1.2rem', fontFamily: 'var(--font-heading)', color: 'var(--color-white)', marginBottom: '0.5rem' }}>SEO Settings Override</h3>
-                
-                <div className="contact-form-group">
-                  <label className="contact-form-label">Global Page Title Template</label>
-                  <input type="text" className="contact-form-input" required value={seoSettings.titleTemplate || ''} onChange={(e) => setSeoSettings(prev => ({ ...prev, titleTemplate: e.target.value }))} placeholder="e.g. Rein Oro - Purity Crowned in Gold" />
-                </div>
-
-                <div className="contact-form-group">
-                  <label className="contact-form-label">Global Meta Description</label>
-                  <textarea className="contact-form-textarea" required value={seoSettings.metaDescription || ''} onChange={(e) => setSeoSettings(prev => ({ ...prev, metaDescription: e.target.value }))} placeholder="Description for search engines..." style={{ minHeight: '100px' }} />
-                </div>
-
-                <button type="submit" className="btn btn-primary" style={{ height: '40px', alignSelf: 'flex-start' }}>Save SEO Settings</button>
-              </form>
-            </div>
-          )}
-
-          {activePanel === 'payment' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-              <div style={{ border: '1px solid rgba(255,255,255,0.03)', borderRadius: '8px', padding: '2.5rem', backgroundColor: '#0a0a0a', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                <h3 style={{ fontSize: '1.2rem', fontFamily: 'var(--font-heading)', color: 'var(--color-white)' }}>Checkout Payment Options</h3>
-                <p style={{ fontSize: '0.85rem', color: 'var(--color-muted)', marginBottom: '1rem' }}>Configure payment processors and gateways displayed at buyer checkout.</p>
-                <div style={{ border: '1px solid rgba(201,168,76,0.16)', borderRadius: '6px', padding: '1rem', backgroundColor: 'rgba(201,168,76,0.04)', fontSize: '0.8rem', color: 'var(--color-muted)' }}>
-                  <strong style={{ color: 'var(--color-white)' }}>Firestore:</strong> {firestoreStatus?.mode || 'sqlite-local'} - {firestoreStatus?.message || 'Checking sync status...'}
-                </div>
-                
-                {['Cash on Delivery (COD)', 'UPI / NetBanking', 'Credit / Debit Card', 'Razorpay (Online Payment)'].map(methodName => (
-                  <label key={methodName} className="checkbox-label" style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', padding: '1rem', border: '1px solid rgba(255,255,255,0.04)', borderRadius: '6px', cursor: 'pointer', backgroundColor: 'rgba(255,255,255,0.01)' }}>
-                    <input
-                      type="checkbox"
-                      checked={paymentSettings[methodName] === 1 || paymentSettings[methodName] === true}
-                      onChange={(e) => handleSavePaymentSettings(methodName, e.target.checked)}
-                      style={{ accentColor: 'var(--color-gold)', transform: 'scale(1.15)' }}
-                    />
-                    <div>
-                      <span style={{ fontSize: '0.9rem', color: 'var(--color-white)', fontWeight: 600 }}>{methodName}</span>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--color-muted)' }}>Status: {paymentSettings[methodName] ? 'Enabled' : 'Disabled'}</div>
-                    </div>
-                  </label>
-                ))}
-              </div>
-
-              <form onSubmit={handleSaveGatewaySettings} style={{ border: '1px solid rgba(255,255,255,0.03)', borderRadius: '8px', padding: '2.5rem', backgroundColor: '#0a0a0a', display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
-                <h3 style={{ fontSize: '1.2rem', fontFamily: 'var(--font-heading)', color: 'var(--color-white)', marginBottom: '0.5rem' }}>Razorpay Payment Gateway API Keys</h3>
-                <p style={{ fontSize: '0.85rem', color: 'var(--color-muted)', marginBottom: '1rem', lineHeight: 1.5 }}>
-                  Configure your Razorpay Key ID and Secret to enable real online checkouts. Leave as default placeholders to run in Sandbox Simulation mode.
-                </p>
-                
-                <div className="contact-form-group">
-                  <label className="contact-form-label">Razorpay Key ID</label>
-                  <input
-                    type="text"
-                    className="contact-form-input"
-                    required
-                    value={gatewaySettings.razorpay_key_id || ''}
-                    onChange={(e) => setGatewaySettings(prev => ({ ...prev, razorpay_key_id: e.target.value }))}
-                    placeholder="rzp_test_xxxxxx"
-                  />
-                </div>
-
-                <div className="contact-form-group">
-                  <label className="contact-form-label">Razorpay Key Secret</label>
-                  <input
-                    type="password"
-                    className="contact-form-input"
-                    required
-                    value={gatewaySettings.razorpay_key_secret || ''}
-                    onChange={(e) => setGatewaySettings(prev => ({ ...prev, razorpay_key_secret: e.target.value }))}
-                    placeholder="xxxxxxxx"
-                  />
-                </div>
-
-                <button type="submit" className="btn btn-primary" style={{ height: '40px', alignSelf: 'flex-start' }}>Save Razorpay Keys</button>
-              </form>
-            </div>
-          )}
-
-          {activePanel === 'shipping' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-              <form onSubmit={handleSaveShippingSettings} style={{ border: '1px solid rgba(255,255,255,0.03)', borderRadius: '8px', padding: '2.5rem', backgroundColor: '#0a0a0a', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                <h3 style={{ fontSize: '1.2rem', fontFamily: 'var(--font-heading)', color: 'var(--color-white)', marginBottom: '0.5rem' }}>Shipping Cost & Rules</h3>
-                
-                <div className="contact-form-group">
-                  <label className="contact-form-label">Free Shipping Threshold Amount (INR ₹)</label>
-                  <input type="number" className="contact-form-input" required value={shippingSettings.freeShippingThreshold || ''} onChange={(e) => setShippingSettings(prev => ({ ...prev, freeShippingThreshold: e.target.value }))} />
-                </div>
-
-                <div className="contact-form-group">
-                  <label className="contact-form-label">Standard Shipping Fee Amount (INR ₹)</label>
-                  <input type="number" className="contact-form-input" required value={shippingSettings.shippingFee || ''} onChange={(e) => setShippingSettings(prev => ({ ...prev, shippingFee: e.target.value }))} />
-                </div>
-
-                <button type="submit" className="btn btn-primary" style={{ height: '40px', alignSelf: 'flex-start' }}>Save Shipping Rules</button>
-              </form>
-            </div>
-          )}
-
-          {activePanel === 'users' && (
-            <div className="admin-dash-table-card">
-              <div className="admin-dash-table-toolbar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                <h3 className="admin-dash-widget-title" style={{ fontSize: '1.2rem', fontFamily: 'var(--font-heading)' }}>Administrative Users & Roles Management</h3>
-              </div>
-
-              <div style={{ overflowX: 'auto' }}>
-                <table className="admin-dash-table">
-                  <thead>
-                    <tr>
-                      <th>Account Email</th>
-                      <th>Registered Date</th>
-                      <th>Current Role</th>
-                      <th style={{ textAlign: 'right' }}>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {usersList.map(u => (
-                      <tr key={u.id}>
-                        <td style={{ fontWeight: 600, color: 'var(--color-white)' }}>{u.email}</td>
-                        <td style={{ color: 'var(--color-muted)', fontSize: '0.8rem' }}>{u.member_since}</td>
-                        <td>
-                          <select
-                            value={u.role || 'user'}
-                            onChange={(e) => handleUpdateUserRole(u.id, e.target.value)}
-                            style={{ backgroundColor: '#050505', color: '#fff', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '4px', fontSize: '0.8rem', padding: '2px 6px' }}
-                          >
-                            <option value="user">User</option>
-                            <option value="admin">Admin</option>
-                          </select>
-                        </td>
-                        <td style={{ textAlign: 'right' }}>
-                          <button onClick={() => handleDeleteUser(u.id)} className="admin-dash-action-btn delete" title="Delete Account" disabled={u.email === 'admin@reinoro.com'} style={{ opacity: u.email === 'admin@reinoro.com' ? 0.3 : 1 }}><IconDelete /></button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-        </div>
-      </main>
-
-      {/* Product Create/Edit Modal popup */}
-      {isModalOpen && (
-        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.85)', zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
-          <div style={{ border: '1px solid var(--color-gold-border)', borderRadius: '12px', width: '100%', maxWidth: '640px', padding: '2.5rem', backgroundColor: '#090909', position: 'relative', maxHeight: '90vh', overflowY: 'auto' }}>
-            <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '1.6rem', color: 'var(--color-white)', fontWeight: 300, marginBottom: '1.5rem' }}>
-              {modalMode === 'create' ? 'Create Gourmet Offering' : 'Edit Product Details'}
-            </h3>
-
-            <form onSubmit={handleProductSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
-              
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.2rem' }}>
-                <div className="contact-form-group">
-                  <label className="contact-form-label">Product ID (Unique)</label>
-                  <input type="text" className="contact-form-input" required disabled={modalMode === 'edit'} value={productForm.id} onChange={(e) => setProductForm(prev => ({ ...prev, id: e.target.value }))} placeholder="e.g. makhana_saffron" />
-                </div>
-                <div className="contact-form-group">
-                  <label className="contact-form-label">Product Category Name</label>
-                  <input type="text" className="contact-form-input" required value={productForm.name} onChange={(e) => setProductForm(prev => ({ ...prev, name: e.target.value }))} placeholder="e.g. Makhana or Nuts" />
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.2rem' }}>
-                <div className="contact-form-group">
-                  <label className="contact-form-label">Product Flavor Tag</label>
-                  <input type="text" className="contact-form-input" required value={productForm.flavor} onChange={(e) => setProductForm(prev => ({ ...prev, flavor: e.target.value }))} placeholder="e.g. Saffron Infused" />
-                </div>
-                <div className="contact-form-group">
-                  <label className="contact-form-label">Detailed Page Title</label>
-                  <input type="text" className="contact-form-input" required value={productForm.title} onChange={(e) => setProductForm(prev => ({ ...prev, title: e.target.value }))} placeholder="e.g. Makhana Royal Saffron" />
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.2rem' }}>
-                <div className="contact-form-group">
-                  <label className="contact-form-label">Price (INR ₹)</label>
-                  <input type="number" className="contact-form-input" required value={productForm.price} onChange={(e) => setProductForm(prev => ({ ...prev, price: e.target.value }))} />
-                </div>
-                <div className="contact-form-group">
-                  <label className="contact-form-label">Net Weight</label>
-                  <input type="text" className="contact-form-input" required value={productForm.weight} onChange={(e) => setProductForm(prev => ({ ...prev, weight: e.target.value }))} placeholder="e.g. 100g" />
-                </div>
-              </div>
-
-              <div className="contact-form-group" style={{ gridColumn: 'span 2' }}>
-                <label className="contact-form-label">
-                  Product Image URL 
-                  <span style={{ color: 'var(--color-gold)', fontSize: '0.72rem', textTransform: 'none', marginLeft: '0.5rem' }}>
-                    (Use Imgur, Cloudinary, or image hosting)
-                  </span>
-                </label>
-                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                  <input 
-                    type="text" 
-                    className="contact-form-input" 
-                    required
-                    value={productForm.image} 
-                    onChange={(e) => setProductForm(prev => ({ ...prev, image: e.target.value }))} 
-                    placeholder="https://example.com/image.jpg"
-                    style={{ flex: 1 }}
-                  />
-                  {productForm.image && (
-                    <div style={{ width: '48px', height: '48px', backgroundColor: 'rgba(255,255,255,0.02)', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.08)' }}>
-                      <img src={productForm.image} alt="Preview" style={{ maxWidth: '90%', maxHeight: '90%', objectFit: 'contain' }} onError={(e) => e.target.style.opacity = '0.3'} />
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="contact-form-group" style={{ gridColumn: 'span 2' }}>
-                <label className="contact-form-label">
-                  Benefits Section Image URL 
-                  <span style={{ color: 'var(--color-gold)', fontSize: '0.72rem', textTransform: 'none', marginLeft: '0.5rem' }}>
-                    (Use Imgur, Cloudinary, or image hosting)
-                  </span>
-                </label>
-                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                  <input 
-                    type="text" 
-                    className="contact-form-input" 
-                    required
-                    value={productForm.benefits_image} 
-                    onChange={(e) => setProductForm(prev => ({ ...prev, benefits_image: e.target.value }))} 
-                    placeholder="https://example.com/image.jpg"
-                    style={{ flex: 1 }}
-                  />
-                  {productForm.benefits_image && (
-                    <div style={{ width: '48px', height: '48px', backgroundColor: 'rgba(255,255,255,0.02)', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.08)' }}>
-                      <img src={productForm.benefits_image} alt="Preview" style={{ maxWidth: '90%', maxHeight: '90%', objectFit: 'contain' }} onError={(e) => e.target.style.opacity = '0.3'} />
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="contact-form-group">
-                <label className="contact-form-label">Description Summary</label>
-                <textarea className="contact-form-textarea" required value={productForm.description} onChange={(e) => setProductForm(prev => ({ ...prev, description: e.target.value }))} style={{ minHeight: '80px' }} />
-              </div>
-
-              <div className="contact-form-group">
-                <label className="contact-form-label">Benefits Checklist (Comma separated list)</label>
-                <input type="text" className="contact-form-input" value={productForm.benefits} onChange={(e) => setProductForm(prev => ({ ...prev, benefits: e.target.value }))} placeholder="Roasted Not Fried, Zero Trans Fat, Crunchy" />
-              </div>
-
-              {/* Ingredients UI */}
-              <div className="contact-form-group" style={{ gridColumn: 'span 2' }}>
-                <label className="contact-form-label" style={{ fontSize: '0.95rem', color: 'var(--color-white)' }}>Key Ingredients</label>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem', border: '1px solid rgba(255,255,255,0.03)', padding: '1rem', borderRadius: '8px', backgroundColor: 'rgba(0,0,0,0.2)' }}>
-                  {productForm.ingredients && productForm.ingredients.map((ing, index) => (
-                    <div key={index} style={{ display: 'flex', gap: '0.8rem', alignItems: 'center' }}>
-                      <input
-                        type="text"
-                        className="contact-form-input"
-                        placeholder="Ingredient Name (e.g. Makhana)"
-                        value={ing.name || ''}
-                        onChange={(e) => {
-                          const newIngs = [...productForm.ingredients];
-                          newIngs[index].name = e.target.value;
-                          
-                          // Auto-map name to image if possible!
-                          const knownMap = {
-                            'makhana': 'images/ingredient_makhana.png',
-                            'cheese powder': 'images/ingredient_cheese.png',
-                            'onion powder': 'images/ingredient_onion.png',
-                            'rock salt': 'images/ingredient_salt.png',
-                            'salt': 'images/ingredient_salt.png',
-                            'pink himalayan salt': 'images/ingredient_salt.png',
-                            'spices & herbs': 'images/ingredient_spices.png',
-                            'olive oil': 'images/ingredient_spices.png',
-                            'cold pressed oil': 'images/ingredient_spices.png',
-                            'premium almonds': 'images/almonds_california.png',
-                            'creamy cashews': 'images/cashews_roasted.png',
-                            'iranian pistachios': 'images/pistachios_roasted.png',
-                            'green raisins': 'images/raisins_premium.png'
-                          };
-                          const key = e.target.value.toLowerCase().trim();
-                          if (knownMap[key]) {
-                            newIngs[index].img = knownMap[key];
-                          }
-                          setProductForm(prev => ({ ...prev, ingredients: newIngs }));
-                        }}
-                        style={{ flex: 1 }}
-                      />
-                      <input
-                        type="text"
-                        className="contact-form-input"
-                        placeholder="Image URL (e.g. https://example.com/image.png)"
-                        value={ing.img || ''}
-                        onChange={(e) => {
-                          const newIngs = [...productForm.ingredients];
-                          newIngs[index].img = e.target.value;
-                          setProductForm(prev => ({ ...prev, ingredients: newIngs }));
-                        }}
-                        style={{ flex: 1 }}
-                      />
-                      {ing.img && (
-                        <div style={{ width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '4px', backgroundColor: 'rgba(255,255,255,0.02)' }}>
-                          <img src={ing.img} alt="" style={{ maxWidth: '90%', maxHeight: '90%', objectFit: 'contain' }} onError={(e) => e.target.style.display = 'none'} />
-                        </div>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const newIngs = productForm.ingredients.filter((_, i) => i !== index);
-                          setProductForm(prev => ({ ...prev, ingredients: newIngs }));
-                        }}
-                        style={{ background: 'rgba(255,80,80,0.15)', color: 'rgba(255,80,80,0.9)', border: 'none', borderRadius: '4px', width: '32px', height: '32px', cursor: 'pointer', fontSize: '1.2rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                      >
-                        &times;
-                      </button>
-                    </div>
-                  ))}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setProductForm(prev => ({
-                        ...prev,
-                        ingredients: [...(prev.ingredients || []), { name: '', img: '' }]
-                      }));
-                    }}
-                    className="btn btn-outline"
-                    style={{ height: '32px', fontSize: '0.75rem', alignSelf: 'flex-start' }}
-                  >
-                    + Add Ingredient Item
-                  </button>
-                </div>
-              </div>
-
-              {/* Specifications UI */}
-              <div className="contact-form-group" style={{ gridColumn: 'span 2' }}>
-                <label className="contact-form-label" style={{ fontSize: '0.95rem', color: 'var(--color-white)' }}>Product Specifications</label>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', border: '1px solid rgba(255,255,255,0.03)', padding: '1rem', borderRadius: '8px', backgroundColor: 'rgba(0,0,0,0.2)' }}>
-                  {['Brand', 'Flavour', 'Net Weight', 'Diet Type', 'Shelf Life', 'Country of Origin'].map(specName => (
-                    <div key={specName} className="contact-form-group">
-                      <label className="contact-form-label" style={{ fontSize: '0.7rem', color: 'var(--color-muted)' }}>{specName}</label>
-                      <input
-                        type="text"
-                        className="contact-form-input"
-                        value={productForm.specs && productForm.specs[specName] !== undefined ? productForm.specs[specName] : ''}
-                        onChange={(e) => {
-                          setProductForm(prev => ({
-                            ...prev,
-                            specs: {
-                              ...(prev.specs || {}),
-                              [specName]: e.target.value
-                            }
-                          }));
-                        }}
-                        placeholder={`e.g. ${specName === 'Brand' ? 'Rein Oro' : specName === 'Flavour' ? 'Cheese & Onion' : ''}`}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Nutrition UI */}
-              <div className="contact-form-group" style={{ gridColumn: 'span 2' }}>
-                <label className="contact-form-label" style={{ fontSize: '0.95rem', color: 'var(--color-white)' }}>Nutritional Information (per 100g/serving)</label>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', border: '1px solid rgba(255,255,255,0.03)', padding: '1rem', borderRadius: '8px', backgroundColor: 'rgba(0,0,0,0.2)' }}>
-                  {['Calories', 'Protein', 'Total Carbohydrates', 'Dietary Fiber', 'Total Fat', 'Trans Fat', 'Sodium'].map(nutName => (
-                    <div key={nutName} className="contact-form-group">
-                      <label className="contact-form-label" style={{ fontSize: '0.7rem', color: 'var(--color-muted)' }}>{nutName}</label>
-                      <input
-                        type="text"
-                        className="contact-form-input"
-                        value={productForm.nutrition && productForm.nutrition[nutName] !== undefined ? productForm.nutrition[nutName] : ''}
-                        onChange={(e) => {
-                          setProductForm(prev => ({
-                            ...prev,
-                            nutrition: {
-                              ...(prev.nutrition || {}),
-                              [nutName]: e.target.value
-                            }
-                          }));
-                        }}
-                        placeholder={`e.g. ${nutName === 'Calories' ? '380 Kcal' : nutName === 'Protein' ? '9.5g' : '0g'}`}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', gap: '1.5rem', marginTop: '1rem' }}>
-                <button type="submit" className="btn btn-primary" style={{ flex: 1, height: '40px' }}>SAVE CHANGES</button>
-                <button type="button" className="btn btn-outline" onClick={() => setIsModalOpen(false)} style={{ flex: 1, height: '40px' }}>CANCEL</button>
-              </div>
-
-            </form>
-          </div>
-        </div>
-      )}
-
+  if (user.role === "admin") {
+   setIsAdminLoggedIn(true);
+   return;
+  }
+  setIsAdminLoggedIn(false);
+  navigate("/login");
+ }, [user, navigate]);
+
+ // Fetch Dashboard statistics and lists
+ useEffect(() => {
+  if (!isAdminLoggedIn) return;
+
+  // Fetch products
+  fetch("/api/products")
+   .then((res) => res.json())
+   .then((data) => setProducts(data))
+   .catch((err) => console.error(err));
+
+  // Fetch all orders
+  fetch("/api/orders")
+   .then((res) => res.json())
+   .then((data) => setOrders(data))
+   .catch((err) => console.error(err));
+
+  fetchCategories();
+  fetchBanners();
+  fetchMedia();
+  fetchTestimonials();
+  fetchBlogs();
+  fetchFaqs();
+  fetchEnquiries();
+  fetchCoupons();
+  fetchNewsletter();
+  fetchUsers();
+  fetchSeoSettings();
+  fetchPaymentSettings();
+  fetchShippingSettings();
+  fetchGatewaySettings();
+  fetchOwnerDashboard();
+  fetchFirestoreStatus();
+
+  // Sync styles form
+  if (cmsStyles) {
+   setStylesForm((prev) => ({
+    ...prev,
+    ...cmsStyles,
+   }));
+  }
+ }, [isAdminLoggedIn, cmsStyles]);
+
+ // Setup Page Content form values
+ useEffect(() => {
+  if (selectedPage === "index.html") {
+   setContentForm({
+    "#scene-1 .eyebrow": getCMSValue(
+     "index.html",
+     "#scene-1 .eyebrow",
+     "Gourmet Selection",
+    ),
+    "#scene-1 h1": getCMSValue(
+     "index.html",
+     "#scene-1 h1",
+     "The Gold Standard of Healthy Snacking.",
+    ),
+    "#scene-1 p": getCMSValue(
+     "index.html",
+     "#scene-1 p",
+     "Purity Crowned In Gold.",
+    ),
+    "#scene-5 h2": getCMSValue(
+     "index.html",
+     "#scene-5 h2",
+     "Purity Crowned in Gold.",
+    ),
+    ".gifting-title": getCMSValue(
+     "index.html",
+     ".gifting-title",
+     "Royal Corporate Gifting",
+    ),
+    ".gifting-body": getCMSValue(
+     "index.html",
+     ".gifting-body",
+     "Present your clients and partners with custom, gold-embossed gourmet collections. Curated hampers featuring premium dry fruits and slow-roasted makhanas designed to project luxury, taste, and prestige.",
+    ),
+    ".gift-box-img": getCMSValue(
+     "index.html",
+     ".gift-box-img",
+     "images/gift_box.png",
+    ),
+    ".craft-img-1": getCMSValue(
+     "index.html",
+     ".craft-img-1",
+     "images/slow_roasted.png",
+    ),
+    ".craft-img-2": getCMSValue(
+     "index.html",
+     ".craft-img-2",
+     "images/no_preservatives.png",
+    ),
+    ".craft-img-3": getCMSValue(
+     "index.html",
+     ".craft-img-3",
+     "images/hygienically_packed.png",
+    ),
+    ".craft-img-4": getCMSValue(
+     "index.html",
+     ".craft-img-4",
+     "images/finest_selection.png",
+    ),
+   });
+  } else if (selectedPage === "about.html") {
+   setContentForm({
+    ".about-hero-section h1": getCMSValue(
+     "about.html",
+     ".about-hero-section h1",
+     "Purity, Tradition. Timeless Taste.",
+    ),
+    ".about-hero-section p": getCMSValue(
+     "about.html",
+     ".about-hero-section p",
+     "At the House of Rein Oro, we view healthy snacking not as a compromise, but as a crowning luxury. Our journey began with a singular focus: to elevate standard dry fruits and lotus seeds into premium, culinary works of art.",
+    ),
+    ".about-hero-img": getCMSValue(
+     "about.html",
+     ".about-hero-img",
+     "images/finest_selection.png",
+    ),
+    ".about-sourcing-title": getCMSValue(
+     "about.html",
+     ".about-sourcing-title",
+     "Our Sourcing Philosophy",
+    ),
+    ".about-sourcing-body": getCMSValue(
+     "about.html",
+     ".about-sourcing-body",
+     "We source our raw lotus seeds from clean, organic wetlands, double-sorting them to verify uniform quality and maximum size. Our dry fruits—from California almonds to Iranian pistachios—are select harvests sourced directly from global vineyards and orchards.",
+    ),
+    ".about-sourcing-img": getCMSValue(
+     "about.html",
+     ".about-sourcing-img",
+     "images/slow_roasted.png",
+    ),
+    ".about-craft-title": getCMSValue(
+     "about.html",
+     ".about-craft-title",
+     "Craftsmanship & Quality",
+    ),
+    ".about-craft-body": getCMSValue(
+     "about.html",
+     ".about-craft-body",
+     "Our signature lotus seeds are processed under clean temperature monitors and slow-roasted without oil. We season them with pure rock salts and organic spices to lock in nutritional wellness, ensuring each seed delivers a signature high-density crunch.",
+    ),
+    ".about-values-title": getCMSValue(
+     "about.html",
+     ".about-values-title",
+     "Royal Core Values",
+    ),
+    ".about-values-body": getCMSValue(
+     "about.html",
+     ".about-values-body",
+     "Purity is not a metric, it is our covenant. We believe in providing natural, health-focused alternatives to processed snacks while retaining absolute gourmet taste and presentation aesthetics.",
+    ),
+    ".about-values-img": getCMSValue(
+     "about.html",
+     ".about-values-img",
+     "images/makhana_bowl_love.png",
+    ),
+    ".about-cta-title": getCMSValue(
+     "about.html",
+     ".about-cta-title",
+     "Experience Gourmet Magnificence",
+    ),
+    ".about-cta-body": getCMSValue(
+     "about.html",
+     ".about-cta-body",
+     "Treat yourself or surprise a partner with our signature gift assortments, packed inside gold-embossed chambers to preserve natural flavors.",
+    ),
+    ".about-cta-img": getCMSValue(
+     "about.html",
+     ".about-cta-img",
+     "images/gift_box.png",
+    ),
+   });
+  } else if (selectedPage === "contact.html") {
+   setContentForm({
+    ".contact-header h1": getCMSValue(
+     "contact.html",
+     ".contact-header h1",
+     "Contact Our House",
+    ),
+    ".contact-header p": getCMSValue(
+     "contact.html",
+     ".contact-header p",
+     "Our concierge team is at your service for any inquiries, corporate commissions, or bespoke requests.",
+    ),
+    ".contact-address": getCMSValue(
+     "contact.html",
+     ".contact-address",
+     "Rein Oro Foods Private Limited\n12-A Connaught Place, Block C\nNew Delhi, 110001, India",
+    ),
+    ".contact-email-1": getCMSValue(
+     "contact.html",
+     ".contact-email-1",
+     "concierge@reinoro.com",
+    ),
+    ".contact-email-2": getCMSValue(
+     "contact.html",
+     ".contact-email-2",
+     "support@reinoro.com",
+    ),
+    ".contact-phone-1": getCMSValue(
+     "contact.html",
+     ".contact-phone-1",
+     "+91 99999 88888",
+    ),
+    ".contact-phone-2": getCMSValue(
+     "contact.html",
+     ".contact-phone-2",
+     "+91 99999 77777",
+    ),
+    ".contact-hours": getCMSValue(
+     "contact.html",
+     ".contact-hours",
+     "Monday - Saturday: 9:30 AM - 6:30 PM IST\nSunday: Closed",
+    ),
+   });
+  }
+ }, [selectedPage, cmsContent]);
+
+ // --- Auth Handlers ---
+ const handleAdminGateSubmit = async (e) => {
+  e.preventDefault();
+  try {
+   const res = await fetch("/api/auth/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email: authEmail, password: authPassword }),
+   });
+   const data = await res.json();
+   if (!res.ok) {
+    throw new Error(data.error || "Access Denied");
+   }
+
+   if (data.user?.role !== "admin") {
+    throw new Error("Access Denied. Admin privileges required.");
+   }
+
+   login(authEmail, "admin");
+   setIsAdminLoggedIn(true);
+   alert("Administrative authentication successful.");
+  } catch (err) {
+   alert(err.message);
+  }
+ };
+
+ // --- Product CRUD Handlers ---
+ const handleOpenProductModal = (mode, prod = null) => {
+  setModalMode(mode);
+  if (mode === "edit" && prod) {
+   setProductForm({
+    id: prod.id,
+    name: prod.name,
+    flavor: prod.flavor,
+    title: prod.title,
+    price: prod.price,
+    image: prod.image,
+    description: prod.description,
+    weight: prod.weight,
+    benefits: Array.isArray(prod.benefits) ? prod.benefits.join(", ") : "",
+    benefits_image: prod.benefits_image,
+    ingredients: Array.isArray(prod.ingredients) ? prod.ingredients : [],
+    specs:
+     typeof prod.specs === "object" && prod.specs !== null ? prod.specs : {},
+    nutrition:
+     typeof prod.nutrition === "object" && prod.nutrition !== null
+      ? prod.nutrition
+      : {},
+   });
+  } else {
+   setProductForm({
+    id: "",
+    name: "",
+    flavor: "",
+    title: "",
+    price: 0,
+    image: "",
+    description: "",
+    weight: "",
+    benefits: "",
+    benefits_image: "images/makhana_bowl_love.png",
+    ingredients: [],
+    specs: {
+     Brand: "Rein Oro",
+     Flavour: "",
+     "Net Weight": "",
+     "Diet Type": "Vegetarian",
+     "Shelf Life": "6 Months from date of packaging",
+     "Country of Origin": "India",
+    },
+    nutrition: {
+     Calories: "",
+     Protein: "",
+     "Total Carbohydrates": "",
+     "Dietary Fiber": "",
+     "Total Fat": "",
+     "Trans Fat": "0g",
+     Sodium: "",
+    },
+   });
+  }
+  setIsModalOpen(true);
+ };
+
+ const handleProductSubmit = async (e) => {
+  e.preventDefault();
+  const payload = {
+   ...productForm,
+   price: parseInt(productForm.price),
+   benefits: productForm.benefits
+    .split(",")
+    .map((b) => b.trim())
+    .filter(Boolean),
+   ingredients: productForm.ingredients,
+   specs: productForm.specs,
+   nutrition: productForm.nutrition,
+  };
+
+  try {
+   const method = modalMode === "create" ? "POST" : "PUT";
+   const endpoint =
+    modalMode === "create"
+     ? "/api/products"
+     : `/api/products/${productForm.id}`;
+   const res = await fetch(endpoint, {
+    method,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+   });
+
+   if (!res.ok) {
+    const data = await res.json();
+    throw new Error(data.error || "Product operation failed");
+   }
+
+   alert(
+    `Product ${modalMode === "create" ? "created" : "updated"} successfully.`,
+   );
+   setIsModalOpen(false);
+   // Reload products list
+   const updatedRes = await fetch("/api/products");
+   const updatedData = await updatedRes.json();
+   setProducts(updatedData);
+  } catch (err) {
+   alert(`Error: ${err.message}`);
+  }
+ };
+
+ const handleDeleteProduct = async (id) => {
+  if (!confirm("Are you sure you want to permanently delete this product?"))
+   return;
+  try {
+   const res = await fetch(`/api/products/${id}`, { method: "DELETE" });
+   if (!res.ok) throw new Error("Deletion failed");
+
+   alert("Product deleted successfully.");
+   setProducts((prev) => prev.filter((p) => p.id !== id));
+  } catch (err) {
+   alert(err.message);
+  }
+ };
+
+ // --- Styles Editor Handler ---
+ const handleSaveStyles = async (e) => {
+  e.preventDefault();
+  try {
+   const res = await fetch("/api/cms/styles", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(stylesForm),
+   });
+   if (!res.ok) throw new Error("Styles saving failed");
+
+   alert("Styles and theme overrides saved successfully.");
+   fetchCMSData(); // Refresh App state styles
+  } catch (err) {
+   alert(err.message);
+  }
+ };
+
+ // --- Content Editor Handler ---
+ const handleSaveContent = async (selector, value) => {
+  try {
+   const res = await fetch("/api/cms/content", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+     page_name: selectedPage,
+     selector,
+     content_value: value,
+    }),
+   });
+   if (!res.ok) throw new Error("Content saving failed");
+
+   setContentForm((prev) => ({ ...prev, [selector]: value }));
+   fetchCMSData(); // Refresh App context
+  } catch (err) {
+   alert(err.message);
+  }
+ };
+
+ // --- Category CRUD Handlers ---
+ const handleSaveCategory = async (e) => {
+  e.preventDefault();
+  const isEdit = !!editingCategory.id;
+  const endpoint = isEdit
+   ? `/api/categories/${editingCategory.id}`
+   : "/api/categories";
+  const method = isEdit ? "PUT" : "POST";
+  try {
+   const res = await fetch(endpoint, {
+    method,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(editingCategory),
+   });
+   if (!res.ok) throw new Error("Failed to save category");
+   alert(`Category ${isEdit ? "updated" : "created"} successfully.`);
+   setEditingCategory(null);
+   fetchCategories();
+  } catch (err) {
+   alert(err.message);
+  }
+ };
+
+ const handleDeleteCategory = async (id) => {
+  if (!confirm("Are you sure you want to delete this category?")) return;
+  try {
+   const res = await fetch(`/api/categories/${id}`, { method: "DELETE" });
+   if (!res.ok) throw new Error("Deletion failed");
+   alert("Category deleted successfully.");
+   fetchCategories();
+  } catch (err) {
+   alert(err.message);
+  }
+ };
+
+ // --- Banner CRUD Handlers ---
+ const handleSaveBanner = async (e) => {
+  e.preventDefault();
+  const isEdit = !!editingBanner.id;
+  const endpoint = isEdit ? `/api/banners/${editingBanner.id}` : "/api/banners";
+  const method = isEdit ? "PUT" : "POST";
+  try {
+   const res = await fetch(endpoint, {
+    method,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(editingBanner),
+   });
+   if (!res.ok) throw new Error("Failed to save banner");
+   alert(`Banner ${isEdit ? "updated" : "created"} successfully.`);
+   setEditingBanner(null);
+   fetchBanners();
+  } catch (err) {
+   alert(err.message);
+  }
+ };
+
+ const handleDeleteBanner = async (id) => {
+  if (!confirm("Are you sure you want to delete this banner?")) return;
+  try {
+   const res = await fetch(`/api/banners/${id}`, { method: "DELETE" });
+   if (!res.ok) throw new Error("Deletion failed");
+   alert("Banner deleted successfully.");
+   fetchBanners();
+  } catch (err) {
+   alert(err.message);
+  }
+ };
+
+ // --- Media Handlers ---
+ const handleSaveMedia = async (e) => {
+  e.preventDefault();
+  try {
+   const res = await fetch("/api/media", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(mediaForm),
+   });
+   if (!res.ok) throw new Error("Failed to save media item");
+   alert("Media item registered successfully.");
+   setMediaForm({ name: "", url: "" });
+   fetchMedia();
+  } catch (err) {
+   alert(err.message);
+  }
+ };
+
+ const handleDeleteMedia = async (id) => {
+  if (!confirm("Are you sure you want to delete this media item?")) return;
+  try {
+   const res = await fetch(`/api/media/${id}`, { method: "DELETE" });
+   if (!res.ok) throw new Error("Deletion failed");
+   alert("Media item deleted successfully.");
+   fetchMedia();
+  } catch (err) {
+   alert(err.message);
+  }
+ };
+
+ // --- Testimonial CRUD Handlers ---
+ const handleSaveTestimonial = async (e) => {
+  e.preventDefault();
+  const isEdit = !!editingTestimonial.id;
+  const endpoint = isEdit
+   ? `/api/testimonials/${editingTestimonial.id}`
+   : "/api/testimonials";
+  const method = isEdit ? "PUT" : "POST";
+  try {
+   const res = await fetch(endpoint, {
+    method,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(editingTestimonial),
+   });
+   if (!res.ok) throw new Error("Failed to save testimonial");
+   alert(`Testimonial ${isEdit ? "updated" : "created"} successfully.`);
+   setEditingTestimonial(null);
+   fetchTestimonials();
+  } catch (err) {
+   alert(err.message);
+  }
+ };
+
+ const handleDeleteTestimonial = async (id) => {
+  if (!confirm("Are you sure you want to delete this testimonial?")) return;
+  try {
+   const res = await fetch(`/api/testimonials/${id}`, { method: "DELETE" });
+   if (!res.ok) throw new Error("Deletion failed");
+   alert("Testimonial deleted successfully.");
+   fetchTestimonials();
+  } catch (err) {
+   alert(err.message);
+  }
+ };
+
+ // --- Blog CRUD Handlers ---
+ const handleSaveBlog = async (e) => {
+  e.preventDefault();
+  const isEdit = !!editingBlog.id;
+  const endpoint = isEdit ? `/api/blog/${editingBlog.id}` : "/api/blog";
+  const method = isEdit ? "PUT" : "POST";
+  try {
+   const res = await fetch(endpoint, {
+    method,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(editingBlog),
+   });
+   if (!res.ok) throw new Error("Failed to save blog post");
+   alert(`Blog post ${isEdit ? "updated" : "created"} successfully.`);
+   setEditingBlog(null);
+   fetchBlogs();
+  } catch (err) {
+   alert(err.message);
+  }
+ };
+
+ const handleDeleteBlog = async (id) => {
+  if (!confirm("Are you sure you want to delete this blog post?")) return;
+  try {
+   const res = await fetch(`/api/blog/${id}`, { method: "DELETE" });
+   if (!res.ok) throw new Error("Deletion failed");
+   alert("Blog post deleted successfully.");
+   fetchBlogs();
+  } catch (err) {
+   alert(err.message);
+  }
+ };
+
+ // --- FAQ CRUD Handlers ---
+ const handleSaveFaq = async (e) => {
+  e.preventDefault();
+  const isEdit = !!editingFaq.id;
+  const endpoint = isEdit ? `/api/faqs/${editingFaq.id}` : "/api/faqs";
+  const method = isEdit ? "PUT" : "POST";
+  try {
+   const res = await fetch(endpoint, {
+    method,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(editingFaq),
+   });
+   if (!res.ok) throw new Error("Failed to save FAQ");
+   alert(`FAQ ${isEdit ? "updated" : "created"} successfully.`);
+   setEditingFaq(null);
+   fetchFaqs();
+  } catch (err) {
+   alert(err.message);
+  }
+ };
+
+ const handleDeleteFaq = async (id) => {
+  if (!confirm("Are you sure you want to delete this FAQ?")) return;
+  try {
+   const res = await fetch(`/api/faqs/${id}`, { method: "DELETE" });
+   if (!res.ok) throw new Error("Deletion failed");
+   alert("FAQ deleted successfully.");
+   fetchFaqs();
+  } catch (err) {
+   alert(err.message);
+  }
+ };
+
+ // --- Coupon CRUD Handlers ---
+ const handleSaveCoupon = async (e) => {
+  e.preventDefault();
+  const isEdit = !!editingCoupon.originalCode;
+  const endpoint = isEdit
+   ? `/api/coupons/${editingCoupon.originalCode}`
+   : "/api/coupons";
+  const method = isEdit ? "PUT" : "POST";
+  try {
+   const res = await fetch(endpoint, {
+    method,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(editingCoupon),
+   });
+   if (!res.ok) throw new Error("Failed to save coupon");
+   alert(`Coupon ${isEdit ? "updated" : "created"} successfully.`);
+   setEditingCoupon(null);
+   fetchCoupons();
+  } catch (err) {
+   alert(err.message);
+  }
+ };
+
+ const handleDeleteCoupon = async (code) => {
+  if (!confirm(`Are you sure you want to delete coupon ${code}?`)) return;
+  try {
+   const res = await fetch(`/api/coupons/${code}`, { method: "DELETE" });
+   if (!res.ok) throw new Error("Deletion failed");
+   alert("Coupon deleted successfully.");
+   fetchCoupons();
+  } catch (err) {
+   alert(err.message);
+  }
+ };
+
+ // --- Enquiries Handlers ---
+ const handleUpdateEnquiryStatus = async (id, status) => {
+  try {
+   const res = await fetch(`/api/enquiries/${id}/status`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ status }),
+   });
+   if (!res.ok) throw new Error("Status update failed");
+   alert(`Enquiry status updated to ${status}.`);
+   fetchEnquiries();
+  } catch (err) {
+   alert(err.message);
+  }
+ };
+
+ const handleDeleteEnquiry = async (id) => {
+  if (!confirm("Are you sure you want to delete this enquiry log?")) return;
+  try {
+   const res = await fetch(`/api/enquiries/${id}`, { method: "DELETE" });
+   if (!res.ok) throw new Error("Deletion failed");
+   alert("Enquiry deleted successfully.");
+   fetchEnquiries();
+  } catch (err) {
+   alert(err.message);
+  }
+ };
+
+ // --- Newsletter Handlers ---
+ const handleDeleteNewsletter = async (id) => {
+  if (!confirm("Remove this subscriber email from the list?")) return;
+  try {
+   const res = await fetch(`/api/newsletter/${id}`, { method: "DELETE" });
+   if (!res.ok) throw new Error("Deletion failed");
+   alert("Subscriber email removed successfully.");
+   fetchNewsletter();
+  } catch (err) {
+   alert(err.message);
+  }
+ };
+
+ // --- User Handlers ---
+ const handleUpdateUserRole = async (id, role) => {
+  try {
+   const res = await fetch(`/api/users/${id}/role`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ role }),
+   });
+   if (!res.ok) throw new Error("Role update failed");
+   alert(`User role updated to ${role}.`);
+   fetchUsers();
+  } catch (err) {
+   alert(err.message);
+  }
+ };
+
+ const handleDeleteUser = async (id) => {
+  if (!confirm("Permanently delete this user account?")) return;
+  try {
+   const res = await fetch(`/api/users/${id}`, { method: "DELETE" });
+   if (!res.ok) throw new Error("Deletion failed");
+   alert("User account deleted successfully.");
+   fetchUsers();
+  } catch (err) {
+   alert(err.message);
+  }
+ };
+
+ // --- Settings Handlers ---
+ const handleSaveSeoSettings = async (e) => {
+  e.preventDefault();
+  try {
+   const res = await fetch("/api/settings/seo", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(seoSettings),
+   });
+   if (!res.ok) throw new Error("Failed to save SEO settings");
+   alert("SEO settings saved successfully.");
+   fetchSeoSettings();
+  } catch (err) {
+   alert(err.message);
+  }
+ };
+
+ const handleSavePaymentSettings = async (methodName, enabled) => {
+  try {
+   const updated = { ...paymentSettings, [methodName]: enabled };
+   const res = await fetch("/api/settings/payment", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(updated),
+   });
+   if (!res.ok) throw new Error("Failed to save payment settings");
+   setPaymentSettings(updated);
+  } catch (err) {
+   alert(err.message);
+  }
+ };
+
+ const handleSaveShippingSettings = async (e) => {
+  e.preventDefault();
+  try {
+   const res = await fetch("/api/settings/shipping", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(shippingSettings),
+   });
+   if (!res.ok) throw new Error("Failed to save shipping settings");
+   alert("Shipping settings saved successfully.");
+   fetchShippingSettings();
+  } catch (err) {
+   alert(err.message);
+  }
+ };
+
+ const handleSaveGatewaySettings = async (e) => {
+  e.preventDefault();
+  try {
+   const res = await fetch("/api/settings/gateway", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(gatewaySettings),
+   });
+   if (!res.ok) throw new Error("Gateway settings save failed");
+   alert("Razorpay gateway keys updated successfully.");
+   fetchGatewaySettings();
+  } catch (err) {
+   alert(err.message);
+  }
+ };
+
+ // --- System Reset ---
+ const handleFactoryReset = async () => {
+  if (
+   !confirm(
+    "Warning: This will clear all product database updates, styles, and page content edits, reverting Rein Oro back to default layouts. Proceed?",
+   )
+  )
+   return;
+  try {
+   const res = await fetch("/api/cms/reset", { method: "POST" });
+   if (!res.ok) throw new Error("Reset failed");
+
+   alert("Factory reset completed successfully. Re-seeding tables...");
+   window.location.reload();
+  } catch (err) {
+   alert(err.message);
+  }
+ };
+
+ const getPanelTitle = (panel) => {
+  const titles = {
+   overview: "Dashboard",
+   content: "Page Content Editor",
+   products: "Manage Catalog",
+   orders: "Customer Orders Log",
+   styles: "Theme Style Editor",
+   system: "General Settings & System Controls",
+  };
+  return titles[panel] || panel.charAt(0).toUpperCase() + panel.slice(1);
+ };
+
+ if (!isAdminLoggedIn) {
+  return null;
+ }
+
+ return (
+  <div className="admin-dash-container">
+   {/* Sidebar overlay backdrop on mobile */}
+   <div
+    className={`admin-dash-sidebar-overlay ${isSidebarOpen ? "show" : ""}`}
+    onClick={() => setIsSidebarOpen(false)}
+   />
+
+   {/* Sidebar Nav */}
+   <aside className={`admin-dash-sidebar ${isSidebarOpen ? "open" : ""}`}>
+    <div className="admin-dash-logo-section">
+     <h1>REIN ORO</h1>
+     <p>Purity Crowned in Gold</p>
     </div>
-  );
+
+    <div className="admin-dash-sidebar-menu">
+     {/* Group: Overview */}
+     <div className="admin-dash-menu-group">
+      <button
+       className={`admin-dash-menu-item ${activePanel === "overview" ? "active" : ""}`}
+       onClick={() => handlePanelSelect("overview")}
+      >
+       <IconDashboard />
+       Dashboard
+      </button>
+     </div>
+
+     {/* Group: Content Management */}
+     <div className="admin-dash-menu-group">
+      <div className="admin-dash-group-title">Content Management</div>
+      {[
+       { id: "content", label: "Pages", icon: <IconPages /> },
+       { id: "products", label: "Products", icon: <IconProducts /> },
+       { id: "categories", label: "Categories", icon: <IconCategories /> },
+       { id: "banners", label: "Banners", icon: <IconBanners /> },
+       { id: "media", label: "Media Library", icon: <IconMedia /> },
+       {
+        id: "testimonials",
+        label: "Testimonials",
+        icon: <IconTestimonials />,
+       },
+       { id: "blog", label: "Blog", icon: <IconBlog /> },
+       { id: "faqs", label: "FAQs", icon: <IconFAQ /> },
+      ].map((item) => (
+       <button
+        key={item.id}
+        className={`admin-dash-menu-item ${activePanel === item.id ? "active" : ""}`}
+        onClick={() => handlePanelSelect(item.id)}
+       >
+        {item.icon}
+        {item.label}
+       </button>
+      ))}
+     </div>
+
+     {/* Group: Orders & Customers */}
+     <div className="admin-dash-menu-group">
+      <div className="admin-dash-group-title">Orders & Customers</div>
+      {[
+       { id: "orders", label: "Orders", icon: <IconOrders /> },
+       { id: "customers", label: "Customers", icon: <IconCustomers /> },
+       { id: "enquiries", label: "Enquiries", icon: <IconEnquiries /> },
+      ].map((item) => (
+       <button
+        key={item.id}
+        className={`admin-dash-menu-item ${activePanel === item.id ? "active" : ""}`}
+        onClick={() => handlePanelSelect(item.id)}
+       >
+        {item.icon}
+        {item.label}
+       </button>
+      ))}
+     </div>
+
+     {/* Group: Marketing */}
+     <div className="admin-dash-menu-group">
+      <div className="admin-dash-group-title">Marketing</div>
+      {[
+       { id: "coupons", label: "Coupons", icon: <IconCoupons /> },
+       { id: "newsletter", label: "Newsletter", icon: <IconNewsletter /> },
+       { id: "seo", label: "SEO Settings", icon: <IconSEO /> },
+      ].map((item) => (
+       <button
+        key={item.id}
+        className={`admin-dash-menu-item ${activePanel === item.id ? "active" : ""}`}
+        onClick={() => handlePanelSelect(item.id)}
+       >
+        {item.icon}
+        {item.label}
+       </button>
+      ))}
+     </div>
+
+     {/* Group: Settings */}
+     <div className="admin-dash-menu-group">
+      <div className="admin-dash-group-title">Settings</div>
+      {[
+       { id: "system", label: "General Settings", icon: <IconSettings /> },
+       { id: "styles", label: "Theme Style Editor", icon: <IconSettings /> },
+       { id: "payment", label: "Payment Methods", icon: <IconPayment /> },
+       { id: "shipping", label: "Shipping Settings", icon: <IconShipping /> },
+       { id: "users", label: "Users & Roles", icon: <IconUsers /> },
+      ].map((item) => (
+       <button
+        key={item.id}
+        className={`admin-dash-menu-item ${activePanel === item.id ? "active" : ""}`}
+        onClick={() => handlePanelSelect(item.id)}
+       >
+        {item.icon}
+        {item.label}
+       </button>
+      ))}
+     </div>
+
+     {/* Logout Trigger */}
+     <div
+      className="admin-dash-menu-group"
+      style={{
+       marginTop: "1rem",
+       borderTop: "1px solid rgba(255,255,255,0.04)",
+       paddingTop: "1rem",
+      }}
+     >
+      <button
+       onClick={() => {
+        logout();
+        navigate("/");
+       }}
+       className="admin-dash-menu-item"
+       style={{ color: "rgba(255,80,80,0.8)" }}
+      >
+       <svg
+        className="admin-dash-menu-icon"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        style={{ width: "16px", height: "16px" }}
+       >
+        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+        <polyline points="16 17 21 12 16 7" />
+        <line x1="21" y1="12" x2="9" y2="12" />
+       </svg>
+       Logout Console
+      </button>
+     </div>
+    </div>
+
+    <div className="admin-dash-sidebar-footer">
+     <button onClick={() => navigate("/")} className="admin-dash-view-site-btn">
+      <IconViewSite />
+      View Website
+     </button>
+    </div>
+   </aside>
+
+   {/* Main Viewport */}
+   <main className="admin-dash-main">
+    {/* Header Bar */}
+    <header className="admin-dash-header">
+     <div className="admin-dash-header-left">
+      <button
+       className="admin-dash-hamburger"
+       onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+      >
+       <IconHamburger />
+      </button>
+      <h2 className="admin-dash-header-title">{getPanelTitle(activePanel)}</h2>
+     </div>
+
+     <div className="admin-dash-header-right">
+      <div className="admin-dash-search-container">
+       <span className="admin-dash-search-icon">
+        <IconSearch />
+       </span>
+       <input
+        type="text"
+        className="admin-dash-search-input"
+        placeholder="Search anything..."
+       />
+      </div>
+
+      <button className="admin-dash-bell-btn">
+       <IconBell />
+       <span className="admin-dash-bell-badge">5</span>
+      </button>
+
+      <div className="admin-dash-profile">
+       <img
+        src="images/cashews_roasted.png"
+        alt="Admin Profile"
+        className="admin-dash-avatar"
+        onError={(e) =>
+         (e.target.src = "https://via.placeholder.com/32/1a1a1a/c9a84c?text=A")
+        }
+       />
+       <div className="admin-dash-profile-info">
+        <span className="admin-dash-profile-name">Admin User</span>
+        <span className="admin-dash-profile-role">Super Admin</span>
+       </div>
+      </div>
+     </div>
+    </header>
+
+    {/* Dashboard Panels */}
+    <div className="admin-dash-content">
+     {activePanel === "overview" && (
+      <>
+       {/* Date Filter & KPI summary row */}
+       <div
+        style={{
+         display: "flex",
+         justifyContent: "flex-end",
+         marginBottom: "0.5rem",
+        }}
+       >
+        <div className="admin-dash-date-picker">
+         <IconCalendar />
+         <span>May 12, 2026 - Jun 10, 2026</span>
+        </div>
+       </div>
+
+       <div className="admin-dash-kpi-grid">
+        {/* Orders */}
+        <div className="admin-dash-kpi-card">
+         <div className="admin-dash-kpi-header">
+          <span className="admin-dash-kpi-title">Total Orders</span>
+          <div className="admin-dash-kpi-icon-wrapper">
+           <IconShoppingBag />
+          </div>
+         </div>
+         <div className="admin-dash-kpi-body">
+          <div className="admin-dash-kpi-value-row">
+           <h4 className="admin-dash-kpi-value">
+            {orders.length > 0 ? orders.length : "1,248"}
+           </h4>
+           <span className="admin-dash-kpi-trend positive">
+            <IconTrendingUp />
+            18.5%
+           </span>
+          </div>
+          <p className="admin-dash-kpi-comparison">vs Apr 12 - May 11, 2026</p>
+         </div>
+        </div>
+
+        {/* Revenue */}
+        <div className="admin-dash-kpi-card">
+         <div className="admin-dash-kpi-header">
+          <span className="admin-dash-kpi-title">Total Revenue</span>
+          <div className="admin-dash-kpi-icon-wrapper">
+           <IconDollar />
+          </div>
+         </div>
+         <div className="admin-dash-kpi-body">
+          <div className="admin-dash-kpi-value-row">
+           <h4 className="admin-dash-kpi-value">
+            {orders.length > 0
+             ? `₹${orders.reduce((sum, o) => sum + o.total, 0).toLocaleString("en-IN")}`
+             : "₹24,85,760"}
+           </h4>
+           <span className="admin-dash-kpi-trend positive">
+            <IconTrendingUp />
+            22.7%
+           </span>
+          </div>
+          <p className="admin-dash-kpi-comparison">vs Apr 12 - May 11, 2026</p>
+         </div>
+        </div>
+
+        {/* Customers */}
+        <div className="admin-dash-kpi-card">
+         <div className="admin-dash-kpi-header">
+          <span className="admin-dash-kpi-title">Total Customers</span>
+          <div className="admin-dash-kpi-icon-wrapper">
+           <IconUsersGroup />
+          </div>
+         </div>
+         <div className="admin-dash-kpi-body">
+          <div className="admin-dash-kpi-value-row">
+           <h4 className="admin-dash-kpi-value">
+            {ownerDashboard?.kpis?.customers ?? usersList.length ?? "2,350"}
+           </h4>
+           <span className="admin-dash-kpi-trend positive">
+            <IconTrendingUp />
+            16.3%
+           </span>
+          </div>
+          <p className="admin-dash-kpi-comparison">vs Apr 12 - May 11, 2026</p>
+         </div>
+        </div>
+
+        {/* Products */}
+        <div className="admin-dash-kpi-card">
+         <div className="admin-dash-kpi-header">
+          <span className="admin-dash-kpi-title">Total Products</span>
+          <div className="admin-dash-kpi-icon-wrapper">
+           <IconGift />
+          </div>
+         </div>
+         <div className="admin-dash-kpi-body">
+          <div className="admin-dash-kpi-value-row">
+           <h4 className="admin-dash-kpi-value">
+            {products.length > 0 ? products.length : "186"}
+           </h4>
+           <span className="admin-dash-kpi-trend positive">
+            <IconTrendingUp />
+            8.2%
+           </span>
+          </div>
+          <p className="admin-dash-kpi-comparison">vs Apr 12 - May 11, 2026</p>
+         </div>
+        </div>
+
+        {/* Active Coupons */}
+        <div
+         className="admin-dash-kpi-card active-coupon-card"
+         style={{ padding: "1.2rem 1rem" }}
+        >
+         <div className="admin-dash-kpi-header">
+          <span className="admin-dash-kpi-title" style={{ fontSize: "0.6rem" }}>
+           Active Coupons
+          </span>
+          <div
+           className="admin-dash-kpi-icon-wrapper"
+           style={{ width: "28px", height: "28px" }}
+          >
+           <IconCoupons />
+          </div>
+         </div>
+         <div className="admin-dash-kpi-body" style={{ marginTop: "0.5rem" }}>
+          <div className="admin-dash-kpi-value-row" style={{ gap: "0.3rem" }}>
+           <h4 className="admin-dash-kpi-value" style={{ fontSize: "1.4rem" }}>
+            {ownerDashboard?.kpis?.reviews ?? 12}
+           </h4>
+           <span
+            className="admin-dash-kpi-trend positive"
+            style={{ fontSize: "0.65rem" }}
+           >
+            +2
+           </span>
+          </div>
+          <p
+           className="admin-dash-kpi-comparison"
+           style={{ fontSize: "0.6rem", marginTop: "0.2rem" }}
+          >
+           Product reviews stored
+          </p>
+         </div>
+        </div>
+       </div>
+
+       {/* Chart Widgets Row */}
+       <div className="admin-dash-widgets-grid">
+        {/* Sales spline curve */}
+        <div className="admin-dash-widget-box" style={{ gridColumn: "span 2" }}>
+         <div className="admin-dash-widget-header">
+          <h3 className="admin-dash-widget-title">Sales Overview</h3>
+          <div className="admin-dash-widget-header-actions">
+           <div className="admin-dash-chart-tabs">
+            <button className="admin-dash-chart-tab active">Revenue</button>
+            <button className="admin-dash-chart-tab">Orders</button>
+           </div>
+           <select className="admin-dash-select-filter">
+            <option>Last 30 Days</option>
+            <option>Last 6 Months</option>
+            <option>Last Year</option>
+           </select>
+          </div>
+         </div>
+         <div className="admin-dash-chart-container">
+          <svg
+           viewBox="0 0 500 200"
+           width="100%"
+           height="200"
+           style={{ overflow: "visible" }}
+          >
+           <defs>
+            <linearGradient id="chartGlow" x1="0" y1="0" x2="0" y2="1">
+             <stop
+              offset="0%"
+              stopColor="var(--color-gold)"
+              stopOpacity="0.35"
+             />
+             <stop
+              offset="100%"
+              stopColor="var(--color-gold)"
+              stopOpacity="0.0"
+             />
+            </linearGradient>
+            <linearGradient id="lineGrad" x1="0" y1="0" x2="1" y2="0">
+             <stop offset="0%" stopColor="var(--color-gold)" />
+             <stop offset="100%" stopColor="#dfc476" />
+            </linearGradient>
+           </defs>
+           <line
+            x1="0"
+            y1="40"
+            x2="500"
+            y2="40"
+            stroke="rgba(255,255,255,0.02)"
+           />
+           <line
+            x1="0"
+            y1="80"
+            x2="500"
+            y2="80"
+            stroke="rgba(255,255,255,0.02)"
+           />
+           <line
+            x1="0"
+            y1="120"
+            x2="500"
+            y2="120"
+            stroke="rgba(255,255,255,0.02)"
+           />
+           <line
+            x1="0"
+            y1="160"
+            x2="500"
+            y2="160"
+            stroke="rgba(255,255,255,0.02)"
+           />
+
+           <path
+            d="M 20,160 L 20,130 C 60,110 80,140 120,130 C 160,120 180,70 220,95 C 260,120 280,105 320,80 C 360,55 380,130 420,110 C 460,90 480,50 480,50 L 480,160 Z"
+            fill="url(#chartGlow)"
+           />
+
+           <path
+            d="M 20,130 C 60,110 80,140 120,130 C 160,120 180,70 220,95 C 260,120 280,105 320,80 C 360,55 380,130 420,110 C 460,90 480,50 480,50"
+            fill="none"
+            stroke="url(#lineGrad)"
+            strokeWidth="3"
+            strokeLinecap="round"
+           />
+
+           <circle
+            cx="20"
+            cy="130"
+            r="4"
+            fill="var(--color-gold)"
+            stroke="#050505"
+            strokeWidth="2"
+           />
+           <circle
+            cx="120"
+            cy="130"
+            r="4"
+            fill="var(--color-gold)"
+            stroke="#050505"
+            strokeWidth="2"
+           />
+           <circle
+            cx="220"
+            cy="95"
+            r="4"
+            fill="var(--color-gold)"
+            stroke="#050505"
+            strokeWidth="2"
+           />
+           <circle
+            cx="320"
+            cy="80"
+            r="4"
+            fill="var(--color-gold)"
+            stroke="#050505"
+            strokeWidth="2"
+           />
+           <circle
+            cx="420"
+            cy="110"
+            r="4"
+            fill="var(--color-gold)"
+            stroke="#050505"
+            strokeWidth="2"
+           />
+           <circle
+            cx="480"
+            cy="50"
+            r="5"
+            fill="var(--color-white)"
+            stroke="var(--color-gold)"
+            strokeWidth="2"
+            style={{ filter: "drop-shadow(0 0 5px var(--color-gold))" }}
+           />
+
+           <text
+            x="20"
+            y="185"
+            fill="var(--color-muted)"
+            fontSize="9"
+            textAnchor="middle"
+           >
+            May 12
+           </text>
+           <text
+            x="120"
+            y="185"
+            fill="var(--color-muted)"
+            fontSize="9"
+            textAnchor="middle"
+           >
+            May 20
+           </text>
+           <text
+            x="220"
+            y="185"
+            fill="var(--color-muted)"
+            fontSize="9"
+            textAnchor="middle"
+           >
+            May 28
+           </text>
+           <text
+            x="320"
+            y="185"
+            fill="var(--color-muted)"
+            fontSize="9"
+            textAnchor="middle"
+           >
+            Jun 01
+           </text>
+           <text
+            x="420"
+            y="185"
+            fill="var(--color-muted)"
+            fontSize="9"
+            textAnchor="middle"
+           >
+            Jun 05
+           </text>
+           <text
+            x="480"
+            y="185"
+            fill="var(--color-muted)"
+            fontSize="9"
+            textAnchor="middle"
+           >
+            Jun 10
+           </text>
+          </svg>
+         </div>
+        </div>
+
+        {/* Top Selling list */}
+        <div className="admin-dash-widget-box">
+         <div className="admin-dash-widget-header">
+          <h3 className="admin-dash-widget-title">Top Selling Products</h3>
+          <button
+           className="btn btn-outline"
+           style={{ height: "24px", fontSize: "0.65rem", padding: "0 0.5rem" }}
+           onClick={() => setActivePanel("products")}
+          >
+           View All
+          </button>
+         </div>
+         <div className="admin-dash-product-list">
+          {products.slice(0, 5).map((prod, index) => {
+           const mockSales = [256, 189, 145, 132, 98];
+           const mockRevenues = [
+            "₹2,56,000",
+            "₹1,89,000",
+            "₹1,45,000",
+            "₹1,32,000",
+            "₹98,000",
+           ];
+           return (
+            <div className="admin-dash-product-item" key={prod.id}>
+             <div className="admin-dash-prod-left">
+              <div className="admin-dash-prod-img-wrapper">
+               <img src={prod.image} alt={prod.title} />
+              </div>
+              <div className="admin-dash-prod-info">
+               <span className="admin-dash-prod-name">{prod.name}</span>
+               <span className="admin-dash-prod-flavor">{prod.flavor}</span>
+              </div>
+             </div>
+             <div className="admin-dash-prod-stats">
+              <span className="admin-dash-prod-orders">
+               {mockSales[index] || 80} orders
+              </span>
+              <span className="admin-dash-prod-revenue">
+               {mockRevenues[index] || "₹75,000"}
+              </span>
+             </div>
+            </div>
+           );
+          })}
+         </div>
+        </div>
+       </div>
+
+       {/* Bottom Row Layout */}
+       <div className="admin-dash-widgets-grid">
+        {/* Content Pages list */}
+        <div className="admin-dash-widget-box" style={{ gridColumn: "span 2" }}>
+         <div
+          className="admin-dash-widget-header"
+          style={{ marginBottom: "1rem" }}
+         >
+          <h3 className="admin-dash-widget-title">Content Pages</h3>
+          <button
+           className="btn btn-primary"
+           style={{ height: "28px", padding: "0 0.8rem", fontSize: "0.68rem" }}
+           onClick={() => setActivePanel("content")}
+          >
+           + Add New Page
+          </button>
+         </div>
+
+         <div style={{ overflowX: "auto" }}>
+          <table className="admin-dash-table">
+           <thead>
+            <tr>
+             <th>Page Title</th>
+             <th>Type</th>
+             <th>Status</th>
+             <th>Last Updated</th>
+             <th>Updated By</th>
+             <th style={{ textAlign: "right" }}>Actions</th>
+            </tr>
+           </thead>
+           <tbody>
+            {[
+             {
+              title: "Home Page",
+              file: "index.html",
+              type: "Landing Page",
+              date: "Jun 10, 2026",
+              user: "Admin User",
+             },
+             {
+              title: "About Us",
+              file: "about.html",
+              type: "Static Page",
+              date: "Jun 09, 2026",
+              user: "Admin User",
+             },
+             {
+              title: "Contact Our House",
+              file: "contact.html",
+              type: "Static Page",
+              date: "Jun 08, 2026",
+              user: "Admin User",
+             },
+            ].map((pg) => (
+             <tr key={pg.file}>
+              <td className="highlight">{pg.title}</td>
+              <td>{pg.type}</td>
+              <td>
+               <span className="admin-dash-status-badge published">
+                Published
+               </span>
+              </td>
+              <td>{pg.date}</td>
+              <td>{pg.user}</td>
+              <td style={{ textAlign: "right" }}>
+               <div className="admin-dash-action-btn-row">
+                <button
+                 className="admin-dash-action-btn"
+                 onClick={() => {
+                  setSelectedPage(pg.file);
+                  setActivePanel("content");
+                 }}
+                 title="Edit Content"
+                >
+                 <IconEdit />
+                </button>
+               </div>
+              </td>
+             </tr>
+            ))}
+           </tbody>
+          </table>
+         </div>
+        </div>
+
+        {/* Donut visitors chart */}
+        <div className="admin-dash-widget-box">
+         <div className="admin-dash-widget-header">
+          <h3 className="admin-dash-widget-title">Website Visitors</h3>
+          <select className="admin-dash-select-filter">
+           <option>Last 30 Days</option>
+           <option>Last Week</option>
+          </select>
+         </div>
+
+         <div
+          style={{
+           display: "flex",
+           flexDirection: "column",
+           alignItems: "center",
+           justifyContent: "center",
+           flex: 1,
+          }}
+         >
+          <svg
+           viewBox="0 0 160 160"
+           width="130"
+           height="130"
+           style={{ overflow: "visible" }}
+          >
+           <defs>
+            <linearGradient id="donutGold" x1="0" y1="0" x2="0" y2="1">
+             <stop offset="0%" stopColor="var(--color-gold)" />
+             <stop offset="100%" stopColor="#8d6e24" />
+            </linearGradient>
+            <linearGradient id="donutWhite" x1="0" y1="0" x2="0" y2="1">
+             <stop offset="0%" stopColor="#f5f5f7" />
+             <stop offset="100%" stopColor="#86868b" />
+            </linearGradient>
+           </defs>
+           <circle
+            cx="80"
+            cy="80"
+            r="55"
+            fill="transparent"
+            stroke="rgba(255,255,255,0.03)"
+            strokeWidth="14"
+           />
+
+           <circle
+            cx="80"
+            cy="80"
+            r="55"
+            fill="transparent"
+            stroke="url(#donutGold)"
+            strokeWidth="15"
+            strokeDasharray="128 345"
+            strokeDashoffset="86"
+            strokeLinecap="round"
+           />
+           <circle
+            cx="80"
+            cy="80"
+            r="55"
+            fill="transparent"
+            stroke="url(#donutWhite)"
+            strokeWidth="13"
+            strokeDasharray="117 345"
+            strokeDashoffset="-42"
+            strokeLinecap="round"
+           />
+           <circle
+            cx="80"
+            cy="80"
+            r="55"
+            fill="transparent"
+            stroke="rgba(255,255,255,0.12)"
+            strokeWidth="11"
+            strokeDasharray="65 345"
+            strokeDashoffset="-159"
+            strokeLinecap="round"
+           />
+           <circle
+            cx="80"
+            cy="80"
+            r="55"
+            fill="transparent"
+            stroke="rgba(201,168,76,0.2)"
+            strokeWidth="9"
+            strokeDasharray="35 345"
+            strokeDashoffset="-224"
+            strokeLinecap="round"
+           />
+           <text
+            x="80"
+            y="76"
+            fill="var(--color-white)"
+            fontSize="16"
+            fontWeight="bold"
+            textAnchor="middle"
+           >
+            12,580
+           </text>
+           <text
+            x="80"
+            y="92"
+            fill="var(--color-muted)"
+            fontSize="8"
+            letterSpacing="0.05em"
+            textAnchor="middle"
+           >
+            TOTAL VISITORS
+           </text>
+          </svg>
+
+          <div
+           className="admin-dash-donut-legend"
+           style={{ width: "100%", marginTop: "1.5rem" }}
+          >
+           {[
+            {
+             label: "Direct",
+             val: "4,650",
+             pct: "37%",
+             color: "var(--color-gold)",
+            },
+            {
+             label: "Organic Search",
+             val: "4,220",
+             pct: "34%",
+             color: "var(--color-white)",
+            },
+            {
+             label: "Social Media",
+             val: "2,350",
+             pct: "19%",
+             color: "rgba(255,255,255,0.3)",
+            },
+            {
+             label: "Referral",
+             val: "1,360",
+             pct: "10%",
+             color: "rgba(201,168,76,0.3)",
+            },
+           ].map((leg) => (
+            <div className="admin-dash-legend-item" key={leg.label}>
+             <div className="admin-dash-legend-label">
+              <span
+               className="admin-dash-legend-dot"
+               style={{ backgroundColor: leg.color }}
+              />
+              {leg.label}
+             </div>
+             <div className="admin-dash-legend-value">
+              {leg.val}{" "}
+              <span className="admin-dash-legend-percent">({leg.pct})</span>
+             </div>
+            </div>
+           ))}
+          </div>
+         </div>
+        </div>
+       </div>
+
+       {/* Timeline activity log */}
+       <div
+        className="admin-dash-widgets-grid"
+        style={{ gridTemplateColumns: "1fr" }}
+       >
+        <div className="admin-dash-widget-box">
+         <div className="admin-dash-widget-header">
+          <h3 className="admin-dash-widget-title">Recent Activity</h3>
+         </div>
+         <div className="admin-dash-activity-list">
+          {[
+           {
+            text: "New order #ORD1258 received from customer (Saffron Makhana)",
+            time: "10 Jun, 2026 11:25 AM",
+            type: "success",
+           },
+           {
+            text: 'Page "About Us" updated by Admin User',
+            time: "10 Jun, 2026 11:10 AM",
+            type: "info",
+           },
+           {
+            text: "New customer John Doe registered",
+            time: "10 Jun, 2026 10:45 AM",
+            type: "success",
+           },
+           {
+            text: 'Banner "Summer Sale" published',
+            time: "10 Jun, 2026 09:30 AM",
+            type: "warning",
+           },
+           {
+            text: 'Product "Premium Pistachios" updated by Admin User',
+            time: "10 Jun, 2026 09:15 AM",
+            type: "info",
+           },
+          ].map((act, index) => (
+           <div className="admin-dash-activity-item" key={index}>
+            <div
+             className={`admin-dash-activity-icon-wrapper ${act.type === "success" ? "success" : act.type === "warning" ? "warning" : ""}`}
+            >
+             {act.type === "success" ? "✓" : act.type === "warning" ? "!" : "i"}
+            </div>
+            <div className="admin-dash-activity-details">
+             <span className="admin-dash-activity-text">{act.text}</span>
+             <span className="admin-dash-activity-time">{act.time}</span>
+            </div>
+           </div>
+          ))}
+         </div>
+        </div>
+       </div>
+      </>
+     )}
+
+     {activePanel === "products" && (
+      <div className="admin-dash-table-card">
+       <div className="admin-dash-table-toolbar">
+        <h3
+         className="admin-dash-widget-title"
+         style={{ fontSize: "1.2rem", fontFamily: "var(--font-heading)" }}
+        >
+         Product Inventory Catalog
+        </h3>
+        <div className="admin-dash-table-actions">
+         <button
+          className="btn btn-primary"
+          onClick={() => handleOpenProductModal("create")}
+          style={{ height: "32px", padding: "0 1rem", fontSize: "0.72rem" }}
+         >
+          <IconPlus /> Add Product
+         </button>
+        </div>
+       </div>
+
+       <div style={{ overflowX: "auto" }}>
+        <table className="admin-dash-table">
+         <thead>
+          <tr>
+           <th>Thumbnail</th>
+           <th>Title</th>
+           <th>Flavor</th>
+           <th>Price</th>
+           <th>Weight</th>
+           <th style={{ textAlign: "right" }}>Actions</th>
+          </tr>
+         </thead>
+         <tbody>
+          {products.map((p) => (
+           <tr key={p.id}>
+            <td>
+             <div
+              style={{
+               width: "40px",
+               height: "40px",
+               backgroundColor: "rgba(255,255,255,0.02)",
+               display: "flex",
+               alignItems: "center",
+               justifyContent: "center",
+               borderRadius: "4px",
+               border: "1px solid rgba(255,255,255,0.05)",
+              }}
+             >
+              <img
+               src={p.image}
+               alt={p.title}
+               style={{
+                maxWidth: "85%",
+                maxHeight: "85%",
+                objectFit: "contain",
+               }}
+              />
+             </div>
+            </td>
+            <td className="highlight">{p.title}</td>
+            <td>{p.flavor}</td>
+            <td style={{ color: "var(--color-gold)", fontWeight: 600 }}>
+             ₹{p.price}
+            </td>
+            <td>{p.weight}</td>
+            <td style={{ textAlign: "right" }}>
+             <div className="admin-dash-action-btn-row">
+              <button
+               onClick={() => handleOpenProductModal("edit", p)}
+               className="admin-dash-action-btn"
+               title="Edit Product"
+              >
+               <IconEdit />
+              </button>
+              <button
+               onClick={() => handleDeleteProduct(p.id)}
+               className="admin-dash-action-btn delete"
+               title="Delete Product"
+              >
+               <IconDelete />
+              </button>
+             </div>
+            </td>
+           </tr>
+          ))}
+         </tbody>
+        </table>
+       </div>
+      </div>
+     )}
+
+     {activePanel === "content" && (
+      <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+       <div
+        style={{
+         display: "flex",
+         justifyContent: "space-between",
+         alignItems: "center",
+        }}
+       >
+        <h3
+         className="admin-dash-widget-title"
+         style={{ fontSize: "1.25rem", fontFamily: "var(--font-heading)" }}
+        >
+         Select Page Layout to Customize
+        </h3>
+        <select
+         value={selectedPage}
+         onChange={(e) => setSelectedPage(e.target.value)}
+         className="admin-dash-select-filter"
+         style={{ height: "36px", padding: "0 1rem", fontSize: "0.82rem" }}
+        >
+         <option value="index.html">Home Page (index.html)</option>
+         <option value="about.html">About Page (about.html)</option>
+         <option value="contact.html">Contact Page (contact.html)</option>
+        </select>
+       </div>
+
+       {/* Dynamic CMS Page Form */}
+       <div
+        style={{
+         display: "flex",
+         flexDirection: "column",
+         gap: "1.5rem",
+         border: "1px solid rgba(255,255,255,0.03)",
+         borderRadius: "8px",
+         padding: "2rem",
+         backgroundColor: "#0a0a0a",
+        }}
+       >
+        {Object.entries(contentForm).map(([selector, value]) => (
+         <div
+          key={selector}
+          style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}
+         >
+          <div
+           style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+           }}
+          >
+           <div
+            style={{ display: "flex", flexDirection: "column", gap: "0.1rem" }}
+           >
+            <span
+             style={{
+              fontSize: "0.85rem",
+              color: "var(--color-white)",
+              fontWeight: 500,
+             }}
+            >
+             {getSelectorLabel(selector)}
+            </span>
+            <span
+             style={{
+              fontSize: "0.65rem",
+              color: "var(--color-muted)",
+              fontFamily: "monospace",
+             }}
+            >
+             {selector}
+            </span>
+           </div>
+           <button
+            onClick={() => handleSaveContent(selector, contentForm[selector])}
+            style={{
+             background: "transparent",
+             border: "none",
+             color: "var(--color-gold)",
+             cursor: "pointer",
+             fontSize: "0.78rem",
+             fontWeight: 600,
+             textDecoration: "underline",
+            }}
+           >
+            Update Node
+           </button>
+          </div>
+          {selector.includes("img") ||
+          (typeof value === "string" &&
+           (value.includes("images/") ||
+            value.endsWith(".png") ||
+            value.endsWith(".jpg") ||
+            value.endsWith(".jpeg"))) ? (
+           <div
+            style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}
+           >
+            <span style={{ fontSize: "0.72rem", color: "var(--color-gold)" }}>
+             Image URL (Use Imgur, Cloudinary, or image hosting)
+            </span>
+            <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
+             <input
+              type="text"
+              className="contact-form-input"
+              value={value}
+              onChange={(e) =>
+               setContentForm((prev) => ({
+                ...prev,
+                [selector]: e.target.value,
+               }))
+              }
+              placeholder="https://example.com/image.jpg"
+              style={{ flex: 1 }}
+             />
+             {value && (
+              <div
+               style={{
+                width: "48px",
+                height: "48px",
+                backgroundColor: "rgba(255,255,255,0.02)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                borderRadius: "6px",
+                border: "1px solid rgba(255,255,255,0.08)",
+               }}
+              >
+               <img
+                src={value}
+                alt="Preview"
+                style={{
+                 maxWidth: "90%",
+                 maxHeight: "90%",
+                 objectFit: "contain",
+                }}
+                onError={(e) => (e.target.style.opacity = "0.3")}
+               />
+              </div>
+             )}
+            </div>
+           </div>
+          ) : (
+           <textarea
+            className="contact-form-textarea"
+            rows={
+             selector.includes("body") ||
+             selector.includes("p") ||
+             selector.includes("h1") ||
+             selector.includes("h2")
+              ? 3
+              : 1
+            }
+            value={value}
+            onChange={(e) =>
+             setContentForm((prev) => ({ ...prev, [selector]: e.target.value }))
+            }
+            style={{ minHeight: "auto" }}
+           />
+          )}
+         </div>
+        ))}
+       </div>
+      </div>
+     )}
+
+     {activePanel === "styles" && (
+      <form
+       onSubmit={handleSaveStyles}
+       style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}
+      >
+       <div
+        style={{
+         border: "1px solid rgba(255,255,255,0.03)",
+         borderRadius: "8px",
+         padding: "2rem",
+         backgroundColor: "#0a0a0a",
+         display: "flex",
+         flexDirection: "column",
+         gap: "1.5rem",
+        }}
+       >
+        <h3
+         style={{
+          fontSize: "1.1rem",
+          fontFamily: "var(--font-heading)",
+          color: "var(--color-white)",
+          marginBottom: "0.5rem",
+         }}
+        >
+         Global Theme Palette
+        </h3>
+
+        <div
+         style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          gap: "1.5rem",
+         }}
+        >
+         <div className="contact-form-group">
+          <label className="contact-form-label">
+           Background Color (--color-bg)
+          </label>
+          <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
+           <input
+            type="color"
+            value={stylesForm.colorBg}
+            onChange={(e) =>
+             setStylesForm((prev) => ({ ...prev, colorBg: e.target.value }))
+            }
+            style={{
+             border: "none",
+             background: "transparent",
+             width: "40px",
+             height: "40px",
+             cursor: "pointer",
+            }}
+           />
+           <span
+            style={{
+             fontSize: "0.85rem",
+             fontFamily: "monospace",
+             color: "var(--color-muted)",
+            }}
+           >
+            {stylesForm.colorBg}
+           </span>
+          </div>
+         </div>
+
+         <div className="contact-form-group">
+          <label className="contact-form-label">
+           Gold Accent Color (--color-gold)
+          </label>
+          <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
+           <input
+            type="color"
+            value={stylesForm.colorGold}
+            onChange={(e) =>
+             setStylesForm((prev) => ({ ...prev, colorGold: e.target.value }))
+            }
+            style={{
+             border: "none",
+             background: "transparent",
+             width: "40px",
+             height: "40px",
+             cursor: "pointer",
+            }}
+           />
+           <span
+            style={{
+             fontSize: "0.85rem",
+             fontFamily: "monospace",
+             color: "var(--color-muted)",
+            }}
+           >
+            {stylesForm.colorGold}
+           </span>
+          </div>
+         </div>
+
+         <div className="contact-form-group">
+          <label className="contact-form-label">
+           Gold Hover Accent (--color-gold-hover)
+          </label>
+          <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
+           <input
+            type="color"
+            value={stylesForm.colorGoldHover}
+            onChange={(e) =>
+             setStylesForm((prev) => ({
+              ...prev,
+              colorGoldHover: e.target.value,
+             }))
+            }
+            style={{
+             border: "none",
+             background: "transparent",
+             width: "40px",
+             height: "40px",
+             cursor: "pointer",
+            }}
+           />
+           <span
+            style={{
+             fontSize: "0.85rem",
+             fontFamily: "monospace",
+             color: "var(--color-muted)",
+            }}
+           >
+            {stylesForm.colorGoldHover}
+           </span>
+          </div>
+         </div>
+
+         <div className="contact-form-group">
+          <label className="contact-form-label">
+           Primary Text Color (--color-white)
+          </label>
+          <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
+           <input
+            type="color"
+            value={stylesForm.colorWhite}
+            onChange={(e) =>
+             setStylesForm((prev) => ({ ...prev, colorWhite: e.target.value }))
+            }
+            style={{
+             border: "none",
+             background: "transparent",
+             width: "40px",
+             height: "40px",
+             cursor: "pointer",
+            }}
+           />
+           <span
+            style={{
+             fontSize: "0.85rem",
+             fontFamily: "monospace",
+             color: "var(--color-muted)",
+            }}
+           >
+            {stylesForm.colorWhite}
+           </span>
+          </div>
+         </div>
+        </div>
+
+        <hr
+         style={{
+          border: "none",
+          borderTop: "1px solid rgba(255,255,255,0.05)",
+          margin: "1rem 0",
+         }}
+        />
+
+        <h3
+         style={{
+          fontSize: "1.1rem",
+          fontFamily: "var(--font-heading)",
+          color: "var(--color-white)",
+          marginBottom: "0.5rem",
+         }}
+        >
+         Typography & Text Styling
+        </h3>
+
+        <div
+         style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr 1fr",
+          gap: "1.5rem",
+         }}
+        >
+         <div className="contact-form-group">
+          <label className="contact-form-label">Heading Font Family</label>
+          <select
+           value={stylesForm.fontHeading || "Cormorant Garamond"}
+           onChange={(e) =>
+            setStylesForm((prev) => ({ ...prev, fontHeading: e.target.value }))
+           }
+           style={{
+            background: "#0a0a0a",
+            color: "var(--color-white)",
+            border: "1px solid rgba(255,255,255,0.08)",
+            padding: "0.6rem 1rem",
+            fontSize: "0.85rem",
+            outline: "none",
+            borderRadius: "4px",
+            width: "100%",
+           }}
+          >
+           <option value="Cormorant Garamond">
+            Cormorant Garamond (Serif Default)
+           </option>
+           <option value="Playfair Display">
+            Playfair Display (Elegant Serif)
+           </option>
+           <option value="Cinzel">Cinzel (Classical Serif)</option>
+           <option value="Lora">Lora (Contemporary Serif)</option>
+           <option value="Georgia">Georgia (Standard Serif)</option>
+           <option value="Montserrat">Montserrat (Modern Sans)</option>
+           <option value="Outfit">Outfit (Luxury Minimalist)</option>
+          </select>
+         </div>
+
+         <div className="contact-form-group">
+          <label className="contact-form-label">Body Font Family</label>
+          <select
+           value={stylesForm.fontBody || "Inter"}
+           onChange={(e) =>
+            setStylesForm((prev) => ({ ...prev, fontBody: e.target.value }))
+           }
+           style={{
+            background: "#0a0a0a",
+            color: "var(--color-white)",
+            border: "1px solid rgba(255,255,255,0.08)",
+            padding: "0.6rem 1rem",
+            fontSize: "0.85rem",
+            outline: "none",
+            borderRadius: "4px",
+            width: "100%",
+           }}
+          >
+           <option value="Inter">Inter (Clean Sans Default)</option>
+           <option value="Montserrat">Montserrat (Geometric Sans)</option>
+           <option value="Outfit">Outfit (Luxury Minimalist)</option>
+           <option value="Roboto">Roboto (Neo-Grotesque)</option>
+           <option value="Open Sans">Open Sans (Neutral Sans)</option>
+           <option value="Lato">Lato (Warm Sans)</option>
+          </select>
+         </div>
+
+         <div className="contact-form-group">
+          <label className="contact-form-label">Base Text Size Scale</label>
+          <select
+           value={stylesForm.textSizeOffset || "100%"}
+           onChange={(e) =>
+            setStylesForm((prev) => ({
+             ...prev,
+             textSizeOffset: e.target.value,
+            }))
+           }
+           style={{
+            background: "#0a0a0a",
+            color: "var(--color-white)",
+            border: "1px solid rgba(255,255,255,0.08)",
+            padding: "0.6rem 1rem",
+            fontSize: "0.85rem",
+            outline: "none",
+            borderRadius: "4px",
+            width: "100%",
+           }}
+          >
+           <option value="95%">95% (Compact)</option>
+           <option value="100%">100% (Default Size)</option>
+           <option value="105%">105% (Slightly Larger)</option>
+           <option value="110%">110% (Medium Scale)</option>
+           <option value="115%">115% (Large Scale)</option>
+           <option value="120%">120% (Extra Large)</option>
+          </select>
+         </div>
+        </div>
+
+        <div className="contact-form-group" style={{ marginTop: "1.5rem" }}>
+         <label className="contact-form-label">Custom CSS Overrides</label>
+         <textarea
+          className="contact-form-textarea"
+          placeholder="/* Write custom CSS styles here... e.g. .brand-logo-img { filter: drop-shadow(0 0 5px rgba(255,255,255,0.2)) } */"
+          value={stylesForm.customCSS}
+          onChange={(e) =>
+           setStylesForm((prev) => ({ ...prev, customCSS: e.target.value }))
+          }
+          style={{
+           minHeight: "140px",
+           fontFamily: "monospace",
+           fontSize: "0.82rem",
+          }}
+         />
+        </div>
+
+        <button
+         type="submit"
+         className="btn btn-primary"
+         style={{ height: "44px", marginTop: "1rem", alignSelf: "flex-start" }}
+        >
+         SAVE THEME STYLES
+        </button>
+       </div>
+      </form>
+     )}
+
+     {activePanel === "orders" && (
+      <div className="admin-dash-table-card">
+       <div className="admin-dash-table-toolbar">
+        <h3
+         className="admin-dash-widget-title"
+         style={{ fontSize: "1.2rem", fontFamily: "var(--font-heading)" }}
+        >
+         Customer Orders Log
+        </h3>
+        <div className="admin-dash-table-search">
+         <span className="admin-dash-table-search-icon">
+          <IconSearch />
+         </span>
+         <input
+          type="text"
+          className="admin-dash-table-search-input"
+          placeholder="Search orders..."
+         />
+        </div>
+       </div>
+
+       <div style={{ overflowX: "auto" }}>
+        <table className="admin-dash-table">
+         <thead>
+          <tr>
+           <th>Order ID</th>
+           <th>Customer Email</th>
+           <th>Date</th>
+           <th>Payment Method</th>
+           <th>Subtotal</th>
+           <th>Total Paid</th>
+           <th>Status</th>
+          </tr>
+         </thead>
+         <tbody>
+          {orders.length === 0 ? (
+           <tr>
+            <td
+             colSpan="7"
+             style={{
+              textAlign: "center",
+              padding: "3rem",
+              color: "var(--color-muted)",
+             }}
+            >
+             No orders registered in system.
+            </td>
+           </tr>
+          ) : (
+           orders.map((o) => (
+            <tr key={o.id}>
+             <td className="highlight" style={{ fontFamily: "monospace" }}>
+              #{o.id}
+             </td>
+             <td>{o.user_email}</td>
+             <td>{o.date}</td>
+             <td>{o.payment_method}</td>
+             <td>₹{o.subtotal}</td>
+             <td style={{ color: "var(--color-gold)", fontWeight: 600 }}>
+              ₹{o.total}
+             </td>
+             <td>
+              <span
+               className={`admin-dash-status-badge ${o.status === "Delivered" ? "published" : "pending"}`}
+              >
+               {o.status || "Processing"}
+              </span>
+             </td>
+            </tr>
+           ))
+          )}
+         </tbody>
+        </table>
+       </div>
+      </div>
+     )}
+
+     {activePanel === "system" && (
+      <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+       <div
+        style={{
+         border: "1px solid rgba(255,255,255,0.03)",
+         borderRadius: "8px",
+         padding: "2.5rem",
+         backgroundColor: "#0a0a0a",
+         display: "flex",
+         flexDirection: "column",
+         gap: "2rem",
+        }}
+       >
+        <div>
+         <h3
+          style={{
+           fontSize: "1.05rem",
+           color: "var(--color-white)",
+           marginBottom: "0.5rem",
+          }}
+         >
+          Factory Reset DB
+         </h3>
+         <p
+          style={{
+           fontSize: "0.85rem",
+           color: "var(--color-muted)",
+           marginBottom: "1.2rem",
+           lineHeight: 1.5,
+          }}
+         >
+          Clears all modifications to page content, product inventories, and
+          style overrides, restoring the original Rein Oro aesthetic layouts
+          from baseline seeds.
+         </p>
+         <button
+          className="btn"
+          onClick={handleFactoryReset}
+          style={{
+           border: "1px solid rgba(255,80,80,0.5)",
+           color: "rgba(255,80,80,0.9)",
+          }}
+         >
+          FACTORY RESET DB
+         </button>
+        </div>
+
+        <hr
+         style={{
+          border: "none",
+          borderTop: "1px solid rgba(255,255,255,0.05)",
+         }}
+        />
+
+        <div>
+         <h3
+          style={{
+           fontSize: "1.05rem",
+           color: "var(--color-white)",
+           marginBottom: "0.5rem",
+          }}
+         >
+          Backup Database Settings
+         </h3>
+         <p
+          style={{
+           fontSize: "0.85rem",
+           color: "var(--color-muted)",
+           marginBottom: "1.2rem",
+           lineHeight: 1.5,
+          }}
+         >
+          Download the current active CMS settings (products database, page text
+          overrides, theme colors) as a JSON configuration backup file.
+         </p>
+         <button
+          className="btn btn-outline"
+          onClick={() => {
+           const dataStr =
+            "data:text/json;charset=utf-8," +
+            encodeURIComponent(
+             JSON.stringify({ cmsContent, cmsStyles, products }),
+            );
+           const downloadAnchor = document.createElement("a");
+           downloadAnchor.setAttribute("href", dataStr);
+           downloadAnchor.setAttribute("download", "rein_oro_backup.json");
+           document.body.appendChild(downloadAnchor);
+           downloadAnchor.click();
+           downloadAnchor.remove();
+          }}
+         >
+          EXPORT BACKUP
+         </button>
+        </div>
+       </div>
+      </div>
+     )}
+
+     {activePanel === "categories" && (
+      <div className="admin-dash-table-card">
+       <div
+        className="admin-dash-table-toolbar"
+        style={{
+         display: "flex",
+         justifyContent: "space-between",
+         alignItems: "center",
+         marginBottom: "1.5rem",
+        }}
+       >
+        <h3
+         className="admin-dash-widget-title"
+         style={{ fontSize: "1.2rem", fontFamily: "var(--font-heading)" }}
+        >
+         Product Categories
+        </h3>
+        {!editingCategory && (
+         <button
+          onClick={() =>
+           setEditingCategory({ name: "", description: "", image: "" })
+          }
+          className="btn btn-primary"
+          style={{
+           padding: "8px 16px",
+           fontSize: "0.85rem",
+           display: "flex",
+           alignItems: "center",
+           gap: "6px",
+          }}
+         >
+          <IconPlus /> Add Category
+         </button>
+        )}
+       </div>
+
+       {editingCategory ? (
+        <form
+         onSubmit={handleSaveCategory}
+         style={{
+          border: "1px solid rgba(255,255,255,0.05)",
+          padding: "2rem",
+          borderRadius: "8px",
+          backgroundColor: "rgba(255,255,255,0.01)",
+          display: "flex",
+          flexDirection: "column",
+          gap: "1.2rem",
+          marginBottom: "2rem",
+         }}
+        >
+         <h4
+          style={{
+           color: "var(--color-white)",
+           fontFamily: "var(--font-heading)",
+           fontSize: "1.1rem",
+          }}
+         >
+          {editingCategory.id ? "Edit Category" : "Create Category"}
+         </h4>
+         <div className="contact-form-group">
+          <label className="contact-form-label">Category Name</label>
+          <input
+           type="text"
+           className="contact-form-input"
+           required
+           value={editingCategory.name}
+           onChange={(e) =>
+            setEditingCategory((prev) => ({ ...prev, name: e.target.value }))
+           }
+           placeholder="e.g. Exotic Nuts"
+          />
+         </div>
+         <div className="contact-form-group">
+          <label className="contact-form-label">Description</label>
+          <textarea
+           className="contact-form-textarea"
+           value={editingCategory.description || ""}
+           onChange={(e) =>
+            setEditingCategory((prev) => ({
+             ...prev,
+             description: e.target.value,
+            }))
+           }
+           placeholder="Brief summary of the category..."
+           style={{ minHeight: "80px" }}
+          />
+         </div>
+         <div className="contact-form-group">
+          <label className="contact-form-label">Image URL</label>
+          <input
+           type="text"
+           className="contact-form-input"
+           value={editingCategory.image || ""}
+           onChange={(e) =>
+            setEditingCategory((prev) => ({ ...prev, image: e.target.value }))
+           }
+           placeholder="https://example.com/category.png"
+          />
+         </div>
+         <div style={{ display: "flex", gap: "1rem" }}>
+          <button
+           type="submit"
+           className="btn btn-primary"
+           style={{ height: "36px", fontSize: "0.8rem" }}
+          >
+           Save Category
+          </button>
+          <button
+           type="button"
+           onClick={() => setEditingCategory(null)}
+           className="btn btn-outline"
+           style={{ height: "36px", fontSize: "0.8rem" }}
+          >
+           Cancel
+          </button>
+         </div>
+        </form>
+       ) : (
+        <div style={{ overflowX: "auto" }}>
+         <table className="admin-dash-table">
+          <thead>
+           <tr>
+            <th>Image</th>
+            <th>Name</th>
+            <th>Description</th>
+            <th style={{ textAlign: "right" }}>Actions</th>
+           </tr>
+          </thead>
+          <tbody>
+           {categories.map((cat) => (
+            <tr key={cat.id}>
+             <td>
+              <img
+               src={cat.image || "https://via.placeholder.com/48"}
+               alt={cat.name}
+               style={{
+                width: "40px",
+                height: "40px",
+                objectFit: "contain",
+                borderRadius: "4px",
+                border: "1px solid rgba(255,255,255,0.06)",
+               }}
+              />
+             </td>
+             <td style={{ fontWeight: 600, color: "var(--color-white)" }}>
+              {cat.name}
+             </td>
+             <td
+              style={{
+               color: "var(--color-muted)",
+               maxWidth: "300px",
+               overflow: "hidden",
+               textOverflow: "ellipsis",
+               whiteSpace: "nowrap",
+              }}
+             >
+              {cat.description}
+             </td>
+             <td style={{ textAlign: "right" }}>
+              <div style={{ display: "inline-flex", gap: "0.5rem" }}>
+               <button
+                onClick={() => setEditingCategory(cat)}
+                className="admin-dash-action-btn edit"
+                title="Edit"
+               >
+                <IconEdit />
+               </button>
+               <button
+                onClick={() => handleDeleteCategory(cat.id)}
+                className="admin-dash-action-btn delete"
+                title="Delete"
+               >
+                <IconDelete />
+               </button>
+              </div>
+             </td>
+            </tr>
+           ))}
+          </tbody>
+         </table>
+        </div>
+       )}
+      </div>
+     )}
+
+     {activePanel === "banners" && (
+      <div className="admin-dash-table-card">
+       <div
+        className="admin-dash-table-toolbar"
+        style={{
+         display: "flex",
+         justifyContent: "space-between",
+         alignItems: "center",
+         marginBottom: "1.5rem",
+        }}
+       >
+        <h3
+         className="admin-dash-widget-title"
+         style={{ fontSize: "1.2rem", fontFamily: "var(--font-heading)" }}
+        >
+         Store Banners
+        </h3>
+        {!editingBanner && (
+         <button
+          onClick={() =>
+           setEditingBanner({ title: "", subtitle: "", image: "", link: "" })
+          }
+          className="btn btn-primary"
+          style={{
+           padding: "8px 16px",
+           fontSize: "0.85rem",
+           display: "flex",
+           alignItems: "center",
+           gap: "6px",
+          }}
+         >
+          <IconPlus /> Add Banner
+         </button>
+        )}
+       </div>
+
+       {editingBanner ? (
+        <form
+         onSubmit={handleSaveBanner}
+         style={{
+          border: "1px solid rgba(255,255,255,0.05)",
+          padding: "2rem",
+          borderRadius: "8px",
+          backgroundColor: "rgba(255,255,255,0.01)",
+          display: "flex",
+          flexDirection: "column",
+          gap: "1.2rem",
+          marginBottom: "2rem",
+         }}
+        >
+         <h4
+          style={{
+           color: "var(--color-white)",
+           fontFamily: "var(--font-heading)",
+           fontSize: "1.1rem",
+          }}
+         >
+          {editingBanner.id ? "Edit Banner" : "Create Banner"}
+         </h4>
+         <div className="contact-form-group">
+          <label className="contact-form-label">Banner Title</label>
+          <input
+           type="text"
+           className="contact-form-input"
+           required
+           value={editingBanner.title || ""}
+           onChange={(e) =>
+            setEditingBanner((prev) => ({ ...prev, title: e.target.value }))
+           }
+           placeholder="e.g. Royal Gifting Box Collection"
+          />
+         </div>
+         <div className="contact-form-group">
+          <label className="contact-form-label">Subtitle</label>
+          <input
+           type="text"
+           className="contact-form-input"
+           value={editingBanner.subtitle || ""}
+           onChange={(e) =>
+            setEditingBanner((prev) => ({ ...prev, subtitle: e.target.value }))
+           }
+           placeholder="e.g. Exclusive gold embossed luxury selection..."
+          />
+         </div>
+         <div className="contact-form-group">
+          <label className="contact-form-label">Image URL</label>
+          <input
+           type="text"
+           className="contact-form-input"
+           required
+           value={editingBanner.image || ""}
+           onChange={(e) =>
+            setEditingBanner((prev) => ({ ...prev, image: e.target.value }))
+           }
+           placeholder="https://example.com/banner.jpg"
+          />
+         </div>
+         <div className="contact-form-group">
+          <label className="contact-form-label">Redirection Link</label>
+          <input
+           type="text"
+           className="contact-form-input"
+           value={editingBanner.link || ""}
+           onChange={(e) =>
+            setEditingBanner((prev) => ({ ...prev, link: e.target.value }))
+           }
+           placeholder="e.g. /shop or /contact"
+          />
+         </div>
+         <div style={{ display: "flex", gap: "1rem" }}>
+          <button
+           type="submit"
+           className="btn btn-primary"
+           style={{ height: "36px", fontSize: "0.8rem" }}
+          >
+           Save Banner
+          </button>
+          <button
+           type="button"
+           onClick={() => setEditingBanner(null)}
+           className="btn btn-outline"
+           style={{ height: "36px", fontSize: "0.8rem" }}
+          >
+           Cancel
+          </button>
+         </div>
+        </form>
+       ) : (
+        <div style={{ overflowX: "auto" }}>
+         <table className="admin-dash-table">
+          <thead>
+           <tr>
+            <th>Preview</th>
+            <th>Title</th>
+            <th>Subtitle</th>
+            <th>Link</th>
+            <th style={{ textAlign: "right" }}>Actions</th>
+           </tr>
+          </thead>
+          <tbody>
+           {banners.map((banner) => (
+            <tr key={banner.id}>
+             <td>
+              <img
+               src={banner.image || "https://via.placeholder.com/120x60"}
+               alt={banner.title}
+               style={{
+                width: "100px",
+                height: "50px",
+                objectFit: "cover",
+                borderRadius: "4px",
+                border: "1px solid rgba(255,255,255,0.06)",
+               }}
+              />
+             </td>
+             <td style={{ fontWeight: 600, color: "var(--color-white)" }}>
+              {banner.title}
+             </td>
+             <td
+              style={{
+               color: "var(--color-muted)",
+               maxWidth: "250px",
+               overflow: "hidden",
+               textOverflow: "ellipsis",
+               whiteSpace: "nowrap",
+              }}
+             >
+              {banner.subtitle}
+             </td>
+             <td style={{ fontFamily: "monospace", fontSize: "0.75rem" }}>
+              {banner.link}
+             </td>
+             <td style={{ textAlign: "right" }}>
+              <div style={{ display: "inline-flex", gap: "0.5rem" }}>
+               <button
+                onClick={() => setEditingBanner(banner)}
+                className="admin-dash-action-btn edit"
+                title="Edit"
+               >
+                <IconEdit />
+               </button>
+               <button
+                onClick={() => handleDeleteBanner(banner.id)}
+                className="admin-dash-action-btn delete"
+                title="Delete"
+               >
+                <IconDelete />
+               </button>
+              </div>
+             </td>
+            </tr>
+           ))}
+          </tbody>
+         </table>
+        </div>
+       )}
+      </div>
+     )}
+
+     {activePanel === "media" && (
+      <div style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
+       <div className="admin-dash-table-card" style={{ padding: "2rem" }}>
+        <h3
+         className="admin-dash-widget-title"
+         style={{
+          fontSize: "1.2rem",
+          fontFamily: "var(--font-heading)",
+          marginBottom: "1.2rem",
+         }}
+        >
+         Upload / Register Hosted Asset
+        </h3>
+        <form
+         onSubmit={handleSaveMedia}
+         style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr auto",
+          gap: "1.2rem",
+          alignItems: "end",
+         }}
+        >
+         <div className="contact-form-group">
+          <label className="contact-form-label">Asset Name / Description</label>
+          <input
+           type="text"
+           className="contact-form-input"
+           required
+           value={mediaForm.name}
+           onChange={(e) =>
+            setMediaForm((prev) => ({ ...prev, name: e.target.value }))
+           }
+           placeholder="e.g. Himalayan Salt Packet"
+          />
+         </div>
+         <div className="contact-form-group">
+          <label className="contact-form-label">Asset Image URL</label>
+          <input
+           type="text"
+           className="contact-form-input"
+           required
+           value={mediaForm.url}
+           onChange={(e) =>
+            setMediaForm((prev) => ({ ...prev, url: e.target.value }))
+           }
+           placeholder="Paste direct hosted link here..."
+          />
+         </div>
+         <button
+          type="submit"
+          className="btn btn-primary"
+          style={{ height: "40px", padding: "0 24px", fontSize: "0.85rem" }}
+         >
+          Add Asset
+         </button>
+        </form>
+       </div>
+
+       <div
+        style={{
+         display: "grid",
+         gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
+         gap: "1.5rem",
+        }}
+       >
+        {media.map((m) => (
+         <div
+          key={m.id}
+          style={{
+           border: "1px solid rgba(255,255,255,0.05)",
+           borderRadius: "8px",
+           padding: "1.2rem",
+           backgroundColor: "#0a0a0a",
+           display: "flex",
+           flexDirection: "column",
+           gap: "0.8rem",
+          }}
+         >
+          <div
+           style={{
+            width: "100%",
+            height: "140px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: "#050505",
+            borderRadius: "4px",
+            overflow: "hidden",
+           }}
+          >
+           <img
+            src={m.url}
+            alt={m.name}
+            style={{ maxWidth: "90%", maxHeight: "90%", objectFit: "contain" }}
+            onError={(e) => (e.target.src = "https://via.placeholder.com/150")}
+           />
+          </div>
+          <div
+           style={{
+            fontSize: "0.8rem",
+            color: "var(--color-white)",
+            fontWeight: 600,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+           }}
+          >
+           {m.name}
+          </div>
+          <div style={{ display: "flex", gap: "0.6rem" }}>
+           <button
+            onClick={() => {
+             navigator.clipboard.writeText(m.url);
+             alert("Image URL copied to clipboard.");
+            }}
+            className="btn btn-outline"
+            style={{ height: "32px", flex: 1, fontSize: "0.75rem", padding: 0 }}
+           >
+            Copy URL
+           </button>
+           <button
+            onClick={() => handleDeleteMedia(m.id)}
+            className="btn"
+            style={{
+             height: "32px",
+             flex: 1,
+             fontSize: "0.75rem",
+             padding: 0,
+             border: "1px solid rgba(255,80,80,0.3)",
+             color: "rgba(255,80,80,0.8)",
+            }}
+           >
+            Delete
+           </button>
+          </div>
+         </div>
+        ))}
+       </div>
+      </div>
+     )}
+
+     {activePanel === "testimonials" && (
+      <div className="admin-dash-table-card">
+       <div
+        className="admin-dash-table-toolbar"
+        style={{
+         display: "flex",
+         justifyContent: "space-between",
+         alignItems: "center",
+         marginBottom: "1.5rem",
+        }}
+       >
+        <h3
+         className="admin-dash-widget-title"
+         style={{ fontSize: "1.2rem", fontFamily: "var(--font-heading)" }}
+        >
+         Customer Testimonials
+        </h3>
+        {!editingTestimonial && (
+         <button
+          onClick={() =>
+           setEditingTestimonial({ name: "", quote: "", rating: 5, avatar: "" })
+          }
+          className="btn btn-primary"
+          style={{
+           padding: "8px 16px",
+           fontSize: "0.85rem",
+           display: "flex",
+           alignItems: "center",
+           gap: "6px",
+          }}
+         >
+          <IconPlus /> Add Testimonial
+         </button>
+        )}
+       </div>
+
+       {editingTestimonial ? (
+        <form
+         onSubmit={handleSaveTestimonial}
+         style={{
+          border: "1px solid rgba(255,255,255,0.05)",
+          padding: "2rem",
+          borderRadius: "8px",
+          backgroundColor: "rgba(255,255,255,0.01)",
+          display: "flex",
+          flexDirection: "column",
+          gap: "1.2rem",
+          marginBottom: "2rem",
+         }}
+        >
+         <h4
+          style={{
+           color: "var(--color-white)",
+           fontFamily: "var(--font-heading)",
+           fontSize: "1.1rem",
+          }}
+         >
+          {editingTestimonial.id ? "Edit Testimonial" : "Create Testimonial"}
+         </h4>
+         <div className="contact-form-group">
+          <label className="contact-form-label">Client Name</label>
+          <input
+           type="text"
+           className="contact-form-input"
+           required
+           value={editingTestimonial.name || ""}
+           onChange={(e) =>
+            setEditingTestimonial((prev) => ({ ...prev, name: e.target.value }))
+           }
+           placeholder="e.g. Vikram Malhotra"
+          />
+         </div>
+         <div className="contact-form-group">
+          <label className="contact-form-label">Quote Content</label>
+          <textarea
+           className="contact-form-textarea"
+           required
+           value={editingTestimonial.quote || ""}
+           onChange={(e) =>
+            setEditingTestimonial((prev) => ({
+             ...prev,
+             quote: e.target.value,
+            }))
+           }
+           placeholder="Their experience with Rein Oro..."
+           style={{ minHeight: "80px" }}
+          />
+         </div>
+         <div className="contact-form-group">
+          <label className="contact-form-label">Rating (1 to 5 Stars)</label>
+          <select
+           className="contact-form-input"
+           value={editingTestimonial.rating || 5}
+           onChange={(e) =>
+            setEditingTestimonial((prev) => ({
+             ...prev,
+             rating: parseInt(e.target.value),
+            }))
+           }
+           style={{ backgroundColor: "#050505", color: "#fff" }}
+          >
+           <option value="5">5 Stars</option>
+           <option value="4">4 Stars</option>
+           <option value="3">3 Stars</option>
+           <option value="2">2 Stars</option>
+           <option value="1">1 Star</option>
+          </select>
+         </div>
+         <div className="contact-form-group">
+          <label className="contact-form-label">
+           Avatar Image URL (Optional)
+          </label>
+          <input
+           type="text"
+           className="contact-form-input"
+           value={editingTestimonial.avatar || ""}
+           onChange={(e) =>
+            setEditingTestimonial((prev) => ({
+             ...prev,
+             avatar: e.target.value,
+            }))
+           }
+           placeholder="https://example.com/avatar.jpg"
+          />
+         </div>
+         <div style={{ display: "flex", gap: "1rem" }}>
+          <button
+           type="submit"
+           className="btn btn-primary"
+           style={{ height: "36px", fontSize: "0.8rem" }}
+          >
+           Save Testimonial
+          </button>
+          <button
+           type="button"
+           onClick={() => setEditingTestimonial(null)}
+           className="btn btn-outline"
+           style={{ height: "36px", fontSize: "0.8rem" }}
+          >
+           Cancel
+          </button>
+         </div>
+        </form>
+       ) : (
+        <div style={{ overflowX: "auto" }}>
+         <table className="admin-dash-table">
+          <thead>
+           <tr>
+            <th>Client</th>
+            <th>Quote</th>
+            <th>Rating</th>
+            <th style={{ textAlign: "right" }}>Actions</th>
+           </tr>
+          </thead>
+          <tbody>
+           {testimonials.map((t) => (
+            <tr key={t.id}>
+             <td style={{ fontWeight: 600, color: "var(--color-white)" }}>
+              {t.name}
+             </td>
+             <td
+              style={{
+               color: "var(--color-muted)",
+               fontStyle: "italic",
+               maxWidth: "350px",
+               overflow: "hidden",
+               textOverflow: "ellipsis",
+               whiteSpace: "nowrap",
+              }}
+             >
+              "{t.quote}"
+             </td>
+             <td style={{ color: "var(--color-gold)" }}>
+              {"★".repeat(t.rating)}
+              {"☆".repeat(5 - t.rating)}
+             </td>
+             <td style={{ textAlign: "right" }}>
+              <div style={{ display: "inline-flex", gap: "0.5rem" }}>
+               <button
+                onClick={() => setEditingTestimonial(t)}
+                className="admin-dash-action-btn edit"
+                title="Edit"
+               >
+                <IconEdit />
+               </button>
+               <button
+                onClick={() => handleDeleteTestimonial(t.id)}
+                className="admin-dash-action-btn delete"
+                title="Delete"
+               >
+                <IconDelete />
+               </button>
+              </div>
+             </td>
+            </tr>
+           ))}
+          </tbody>
+         </table>
+        </div>
+       )}
+      </div>
+     )}
+
+     {activePanel === "blog" && (
+      <div className="admin-dash-table-card">
+       <div
+        className="admin-dash-table-toolbar"
+        style={{
+         display: "flex",
+         justifyContent: "space-between",
+         alignItems: "center",
+         marginBottom: "1.5rem",
+        }}
+       >
+        <h3
+         className="admin-dash-widget-title"
+         style={{ fontSize: "1.2rem", fontFamily: "var(--font-heading)" }}
+        >
+         Blog Editorial Posts
+        </h3>
+        {!editingBlog && (
+         <button
+          onClick={() => setEditingBlog({ title: "", content: "", image: "" })}
+          className="btn btn-primary"
+          style={{
+           padding: "8px 16px",
+           fontSize: "0.85rem",
+           display: "flex",
+           alignItems: "center",
+           gap: "6px",
+          }}
+         >
+          <IconPlus /> Add Post
+         </button>
+        )}
+       </div>
+
+       {editingBlog ? (
+        <form
+         onSubmit={handleSaveBlog}
+         style={{
+          border: "1px solid rgba(255,255,255,0.05)",
+          padding: "2rem",
+          borderRadius: "8px",
+          backgroundColor: "rgba(255,255,255,0.01)",
+          display: "flex",
+          flexDirection: "column",
+          gap: "1.2rem",
+          marginBottom: "2rem",
+         }}
+        >
+         <h4
+          style={{
+           color: "var(--color-white)",
+           fontFamily: "var(--font-heading)",
+           fontSize: "1.1rem",
+          }}
+         >
+          {editingBlog.id ? "Edit Blog Post" : "Create Blog Post"}
+         </h4>
+         <div className="contact-form-group">
+          <label className="contact-form-label">Article Title</label>
+          <input
+           type="text"
+           className="contact-form-input"
+           required
+           value={editingBlog.title || ""}
+           onChange={(e) =>
+            setEditingBlog((prev) => ({ ...prev, title: e.target.value }))
+           }
+           placeholder="e.g. Sourcing Organic Wetland Lotus Seeds"
+          />
+         </div>
+         <div className="contact-form-group">
+          <label className="contact-form-label">Main Content</label>
+          <textarea
+           className="contact-form-textarea"
+           required
+           value={editingBlog.content || ""}
+           onChange={(e) =>
+            setEditingBlog((prev) => ({ ...prev, content: e.target.value }))
+           }
+           placeholder="Write details here..."
+           style={{ minHeight: "180px" }}
+          />
+         </div>
+         <div className="contact-form-group">
+          <label className="contact-form-label">Image URL</label>
+          <input
+           type="text"
+           className="contact-form-input"
+           value={editingBlog.image || ""}
+           onChange={(e) =>
+            setEditingBlog((prev) => ({ ...prev, image: e.target.value }))
+           }
+           placeholder="https://example.com/blog_image.jpg"
+          />
+         </div>
+         <div style={{ display: "flex", gap: "1rem" }}>
+          <button
+           type="submit"
+           className="btn btn-primary"
+           style={{ height: "36px", fontSize: "0.8rem" }}
+          >
+           Publish Post
+          </button>
+          <button
+           type="button"
+           onClick={() => setEditingBlog(null)}
+           className="btn btn-outline"
+           style={{ height: "36px", fontSize: "0.8rem" }}
+          >
+           Cancel
+          </button>
+         </div>
+        </form>
+       ) : (
+        <div style={{ overflowX: "auto" }}>
+         <table className="admin-dash-table">
+          <thead>
+           <tr>
+            <th>Thumbnail</th>
+            <th>Title</th>
+            <th>Content Preview</th>
+            <th>Published Date</th>
+            <th style={{ textAlign: "right" }}>Actions</th>
+           </tr>
+          </thead>
+          <tbody>
+           {blogs.map((post) => (
+            <tr key={post.id}>
+             <td>
+              <img
+               src={post.image || "https://via.placeholder.com/80x50"}
+               alt={post.title}
+               style={{
+                width: "60px",
+                height: "40px",
+                objectFit: "cover",
+                borderRadius: "4px",
+                border: "1px solid rgba(255,255,255,0.06)",
+               }}
+              />
+             </td>
+             <td style={{ fontWeight: 600, color: "var(--color-white)" }}>
+              {post.title}
+             </td>
+             <td
+              style={{
+               color: "var(--color-muted)",
+               maxWidth: "250px",
+               overflow: "hidden",
+               textOverflow: "ellipsis",
+               whiteSpace: "nowrap",
+              }}
+             >
+              {post.content}
+             </td>
+             <td style={{ color: "var(--color-muted)", fontSize: "0.8rem" }}>
+              {post.date}
+             </td>
+             <td style={{ textAlign: "right" }}>
+              <div style={{ display: "inline-flex", gap: "0.5rem" }}>
+               <button
+                onClick={() => setEditingBlog(post)}
+                className="admin-dash-action-btn edit"
+                title="Edit"
+               >
+                <IconEdit />
+               </button>
+               <button
+                onClick={() => handleDeleteBlog(post.id)}
+                className="admin-dash-action-btn delete"
+                title="Delete"
+               >
+                <IconDelete />
+               </button>
+              </div>
+             </td>
+            </tr>
+           ))}
+          </tbody>
+         </table>
+        </div>
+       )}
+      </div>
+     )}
+
+     {activePanel === "faqs" && (
+      <div className="admin-dash-table-card">
+       <div
+        className="admin-dash-table-toolbar"
+        style={{
+         display: "flex",
+         justifyContent: "space-between",
+         alignItems: "center",
+         marginBottom: "1.5rem",
+        }}
+       >
+        <h3
+         className="admin-dash-widget-title"
+         style={{ fontSize: "1.2rem", fontFamily: "var(--font-heading)" }}
+        >
+         Frequently Asked Questions
+        </h3>
+        {!editingFaq && (
+         <button
+          onClick={() => setEditingFaq({ question: "", answer: "" })}
+          className="btn btn-primary"
+          style={{
+           padding: "8px 16px",
+           fontSize: "0.85rem",
+           display: "flex",
+           alignItems: "center",
+           gap: "6px",
+          }}
+         >
+          <IconPlus /> Add FAQ
+         </button>
+        )}
+       </div>
+
+       {editingFaq ? (
+        <form
+         onSubmit={handleSaveFaq}
+         style={{
+          border: "1px solid rgba(255,255,255,0.05)",
+          padding: "2rem",
+          borderRadius: "8px",
+          backgroundColor: "rgba(255,255,255,0.01)",
+          display: "flex",
+          flexDirection: "column",
+          gap: "1.2rem",
+          marginBottom: "2rem",
+         }}
+        >
+         <h4
+          style={{
+           color: "var(--color-white)",
+           fontFamily: "var(--font-heading)",
+           fontSize: "1.1rem",
+          }}
+         >
+          {editingFaq.id ? "Edit FAQ" : "Create FAQ"}
+         </h4>
+         <div className="contact-form-group">
+          <label className="contact-form-label">Question</label>
+          <input
+           type="text"
+           className="contact-form-input"
+           required
+           value={editingFaq.question || ""}
+           onChange={(e) =>
+            setEditingFaq((prev) => ({ ...prev, question: e.target.value }))
+           }
+           placeholder="e.g. Do you ship internationally?"
+          />
+         </div>
+         <div className="contact-form-group">
+          <label className="contact-form-label">Answer</label>
+          <textarea
+           className="contact-form-textarea"
+           required
+           value={editingFaq.answer || ""}
+           onChange={(e) =>
+            setEditingFaq((prev) => ({ ...prev, answer: e.target.value }))
+           }
+           placeholder="Write answer here..."
+           style={{ minHeight: "100px" }}
+          />
+         </div>
+         <div style={{ display: "flex", gap: "1rem" }}>
+          <button
+           type="submit"
+           className="btn btn-primary"
+           style={{ height: "36px", fontSize: "0.8rem" }}
+          >
+           Save FAQ
+          </button>
+          <button
+           type="button"
+           onClick={() => setEditingFaq(null)}
+           className="btn btn-outline"
+           style={{ height: "36px", fontSize: "0.8rem" }}
+          >
+           Cancel
+          </button>
+         </div>
+        </form>
+       ) : (
+        <div style={{ overflowX: "auto" }}>
+         <table className="admin-dash-table">
+          <thead>
+           <tr>
+            <th>Question</th>
+            <th>Answer</th>
+            <th style={{ textAlign: "right" }}>Actions</th>
+           </tr>
+          </thead>
+          <tbody>
+           {faqs.map((faq) => (
+            <tr key={faq.id}>
+             <td style={{ fontWeight: 600, color: "var(--color-white)" }}>
+              {faq.question}
+             </td>
+             <td
+              style={{
+               color: "var(--color-muted)",
+               maxWidth: "400px",
+               overflow: "hidden",
+               textOverflow: "ellipsis",
+               whiteSpace: "nowrap",
+              }}
+             >
+              {faq.answer}
+             </td>
+             <td style={{ textAlign: "right" }}>
+              <div style={{ display: "inline-flex", gap: "0.5rem" }}>
+               <button
+                onClick={() => setEditingFaq(faq)}
+                className="admin-dash-action-btn edit"
+                title="Edit"
+               >
+                <IconEdit />
+               </button>
+               <button
+                onClick={() => handleDeleteFaq(faq.id)}
+                className="admin-dash-action-btn delete"
+                title="Delete"
+               >
+                <IconDelete />
+               </button>
+              </div>
+             </td>
+            </tr>
+           ))}
+          </tbody>
+         </table>
+        </div>
+       )}
+      </div>
+     )}
+
+     {activePanel === "customers" && (
+      <div className="admin-dash-table-card">
+       <div
+        className="admin-dash-table-toolbar"
+        style={{
+         display: "flex",
+         justifyContent: "space-between",
+         alignItems: "center",
+         marginBottom: "1.5rem",
+        }}
+       >
+        <h3
+         className="admin-dash-widget-title"
+         style={{ fontSize: "1.2rem", fontFamily: "var(--font-heading)" }}
+        >
+         Registered Customers Directory
+        </h3>
+       </div>
+
+       <div style={{ overflowX: "auto" }}>
+        <table className="admin-dash-table">
+         <thead>
+          <tr>
+           <th>Customer Email</th>
+           <th>Account Role</th>
+           <th>Registered On</th>
+           <th>Orders Placed</th>
+          </tr>
+         </thead>
+         <tbody>
+          {usersList.map((u) => {
+           const orderCount = orders.filter(
+            (o) => o.user_email === u.email,
+           ).length;
+           return (
+            <tr key={u.id}>
+             <td style={{ fontWeight: 600, color: "var(--color-white)" }}>
+              {u.email}
+             </td>
+             <td>
+              <span
+               className={`admin-dash-status-badge ${u.role === "admin" ? "published" : "pending"}`}
+              >
+               {u.role}
+              </span>
+             </td>
+             <td style={{ color: "var(--color-muted)", fontSize: "0.8rem" }}>
+              {u.member_since}
+             </td>
+             <td style={{ fontWeight: "bold", color: "var(--color-gold)" }}>
+              {orderCount} order(s)
+             </td>
+            </tr>
+           );
+          })}
+         </tbody>
+        </table>
+       </div>
+      </div>
+     )}
+
+     {activePanel === "enquiries" && (
+      <div className="admin-dash-table-card">
+       <div
+        className="admin-dash-table-toolbar"
+        style={{
+         display: "flex",
+         justifyContent: "space-between",
+         alignItems: "center",
+         marginBottom: "1.5rem",
+        }}
+       >
+        <h3
+         className="admin-dash-widget-title"
+         style={{ fontSize: "1.2rem", fontFamily: "var(--font-heading)" }}
+        >
+         Contact & Concierge Enquiries
+        </h3>
+       </div>
+
+       <div style={{ overflowX: "auto" }}>
+        <table className="admin-dash-table">
+         <thead>
+          <tr>
+           <th>Name / Email</th>
+           <th>Subject</th>
+           <th>Message Details</th>
+           <th>Received Date</th>
+           <th>Status Flag</th>
+           <th style={{ textAlign: "right" }}>Actions</th>
+          </tr>
+         </thead>
+         <tbody>
+          {enquiries.map((enq) => (
+           <tr key={enq.id}>
+            <td>
+             <div style={{ fontWeight: 600, color: "var(--color-white)" }}>
+              {enq.name}
+             </div>
+             <div style={{ fontSize: "0.75rem", color: "var(--color-muted)" }}>
+              {enq.email}
+             </div>
+            </td>
+            <td style={{ fontWeight: 500, color: "var(--color-gold)" }}>
+             {enq.subject}
+            </td>
+            <td
+             style={{
+              fontSize: "0.8rem",
+              color: "var(--color-muted)",
+              maxWidth: "300px",
+              whiteSpace: "pre-line",
+             }}
+            >
+             {enq.message}
+            </td>
+            <td style={{ fontSize: "0.75rem", color: "var(--color-muted)" }}>
+             {enq.date}
+            </td>
+            <td>
+             <select
+              value={enq.status || "New"}
+              onChange={(e) =>
+               handleUpdateEnquiryStatus(enq.id, e.target.value)
+              }
+              style={{
+               backgroundColor: "#050505",
+               color: enq.status === "Resolved" ? "#10b981" : "#c9a84c",
+               border: "1px solid rgba(255,255,255,0.08)",
+               borderRadius: "4px",
+               fontSize: "0.75rem",
+               padding: "2px 4px",
+              }}
+             >
+              <option value="New">New</option>
+              <option value="In Progress">In Progress</option>
+              <option value="Resolved">Resolved</option>
+             </select>
+            </td>
+            <td style={{ textAlign: "right" }}>
+             <button
+              onClick={() => handleDeleteEnquiry(enq.id)}
+              className="admin-dash-action-btn delete"
+              title="Delete Log"
+             >
+              <IconDelete />
+             </button>
+            </td>
+           </tr>
+          ))}
+         </tbody>
+        </table>
+       </div>
+      </div>
+     )}
+
+     {activePanel === "coupons" && (
+      <div className="admin-dash-table-card">
+       <div
+        className="admin-dash-table-toolbar"
+        style={{
+         display: "flex",
+         justifyContent: "space-between",
+         alignItems: "center",
+         marginBottom: "1.5rem",
+        }}
+       >
+        <h3
+         className="admin-dash-widget-title"
+         style={{ fontSize: "1.2rem", fontFamily: "var(--font-heading)" }}
+        >
+         Marketing Discount Coupons
+        </h3>
+        {!editingCoupon && (
+         <button
+          onClick={() =>
+           setEditingCoupon({ code: "", discount_rate: 0.1, active: 1 })
+          }
+          className="btn btn-primary"
+          style={{
+           padding: "8px 16px",
+           fontSize: "0.85rem",
+           display: "flex",
+           alignItems: "center",
+           gap: "6px",
+          }}
+         >
+          <IconPlus /> Add Coupon
+         </button>
+        )}
+       </div>
+
+       {editingCoupon ? (
+        <form
+         onSubmit={handleSaveCoupon}
+         style={{
+          border: "1px solid rgba(255,255,255,0.05)",
+          padding: "2rem",
+          borderRadius: "8px",
+          backgroundColor: "rgba(255,255,255,0.01)",
+          display: "flex",
+          flexDirection: "column",
+          gap: "1.2rem",
+          marginBottom: "2rem",
+         }}
+        >
+         <h4
+          style={{
+           color: "var(--color-white)",
+           fontFamily: "var(--font-heading)",
+           fontSize: "1.1rem",
+          }}
+         >
+          {editingCoupon.originalCode ? "Edit Coupon" : "Create Coupon"}
+         </h4>
+         <div className="contact-form-group">
+          <label className="contact-form-label">Coupon Code (Uppercase)</label>
+          <input
+           type="text"
+           className="contact-form-input"
+           required
+           disabled={!!editingCoupon.originalCode}
+           value={editingCoupon.code || ""}
+           onChange={(e) =>
+            setEditingCoupon((prev) => ({
+             ...prev,
+             code: e.target.value.toUpperCase(),
+            }))
+           }
+           placeholder="e.g. WELCOME20"
+          />
+         </div>
+         <div className="contact-form-group">
+          <label className="contact-form-label">
+           Discount Rate (e.g. 0.15 for 15% discount)
+          </label>
+          <input
+           type="number"
+           step="0.01"
+           min="0"
+           max="1"
+           className="contact-form-input"
+           required
+           value={editingCoupon.discount_rate}
+           onChange={(e) =>
+            setEditingCoupon((prev) => ({
+             ...prev,
+             discount_rate: parseFloat(e.target.value),
+            }))
+           }
+          />
+         </div>
+         <label
+          className="checkbox-label"
+          style={{
+           display: "flex",
+           alignItems: "center",
+           gap: "0.6rem",
+           fontSize: "0.85rem",
+           color: "var(--color-white)",
+           cursor: "pointer",
+          }}
+         >
+          <input
+           type="checkbox"
+           checked={!!editingCoupon.active}
+           onChange={(e) =>
+            setEditingCoupon((prev) => ({
+             ...prev,
+             active: e.target.checked ? 1 : 0,
+            }))
+           }
+           style={{ accentColor: "var(--color-gold)" }}
+          />
+          Coupon is currently active and can be used on checkout
+         </label>
+         <div style={{ display: "flex", gap: "1rem" }}>
+          <button
+           type="submit"
+           className="btn btn-primary"
+           style={{ height: "36px", fontSize: "0.8rem" }}
+          >
+           Save Coupon
+          </button>
+          <button
+           type="button"
+           onClick={() => setEditingCoupon(null)}
+           className="btn btn-outline"
+           style={{ height: "36px", fontSize: "0.8rem" }}
+          >
+           Cancel
+          </button>
+         </div>
+        </form>
+       ) : (
+        <div style={{ overflowX: "auto" }}>
+         <table className="admin-dash-table">
+          <thead>
+           <tr>
+            <th>Code</th>
+            <th>Discount Rate</th>
+            <th>Percent Off</th>
+            <th>Status</th>
+            <th style={{ textAlign: "right" }}>Actions</th>
+           </tr>
+          </thead>
+          <tbody>
+           {coupons.map((cp) => (
+            <tr key={cp.code}>
+             <td
+              style={{
+               fontWeight: 700,
+               color: "var(--color-gold)",
+               fontFamily: "monospace",
+              }}
+             >
+              {cp.code}
+             </td>
+             <td>{cp.discount_rate}</td>
+             <td style={{ fontWeight: 600 }}>
+              {Math.round(cp.discount_rate * 100)}% OFF
+             </td>
+             <td>
+              <span
+               className={`admin-dash-status-badge ${cp.active ? "published" : "pending"}`}
+              >
+               {cp.active ? "Active" : "Inactive"}
+              </span>
+             </td>
+             <td style={{ textAlign: "right" }}>
+              <div style={{ display: "inline-flex", gap: "0.5rem" }}>
+               <button
+                onClick={() =>
+                 setEditingCoupon({ ...cp, originalCode: cp.code })
+                }
+                className="admin-dash-action-btn edit"
+                title="Edit"
+               >
+                <IconEdit />
+               </button>
+               <button
+                onClick={() => handleDeleteCoupon(cp.code)}
+                className="admin-dash-action-btn delete"
+                title="Delete"
+               >
+                <IconDelete />
+               </button>
+              </div>
+             </td>
+            </tr>
+           ))}
+          </tbody>
+         </table>
+        </div>
+       )}
+      </div>
+     )}
+
+     {activePanel === "newsletter" && (
+      <div className="admin-dash-table-card">
+       <div
+        className="admin-dash-table-toolbar"
+        style={{
+         display: "flex",
+         justifyContent: "space-between",
+         alignItems: "center",
+         marginBottom: "1.5rem",
+        }}
+       >
+        <h3
+         className="admin-dash-widget-title"
+         style={{ fontSize: "1.2rem", fontFamily: "var(--font-heading)" }}
+        >
+         Newsletter Subscribers ({newsletterList.length})
+        </h3>
+        <button
+         onClick={() => {
+          const emails = newsletterList.map((n) => n.email).join("\n");
+          navigator.clipboard.writeText(emails);
+          alert(
+           "All subscriber emails copied to clipboard (newline separated).",
+          );
+         }}
+         className="btn btn-outline"
+         style={{ height: "36px", fontSize: "0.8rem" }}
+        >
+         Export / Copy Emails list
+        </button>
+       </div>
+
+       <div style={{ overflowX: "auto" }}>
+        <table className="admin-dash-table">
+         <thead>
+          <tr>
+           <th>Subscriber Email Address</th>
+           <th>Subscribed On</th>
+           <th style={{ textAlign: "right" }}>Remove</th>
+          </tr>
+         </thead>
+         <tbody>
+          {newsletterList.map((news) => (
+           <tr key={news.id}>
+            <td style={{ fontWeight: 600, color: "var(--color-white)" }}>
+             {news.email}
+            </td>
+            <td style={{ color: "var(--color-muted)", fontSize: "0.8rem" }}>
+             {news.subscribed_at}
+            </td>
+            <td style={{ textAlign: "right" }}>
+             <button
+              onClick={() => handleDeleteNewsletter(news.id)}
+              className="admin-dash-action-btn delete"
+              title="Unsubscribe"
+             >
+              <IconDelete />
+             </button>
+            </td>
+           </tr>
+          ))}
+         </tbody>
+        </table>
+       </div>
+      </div>
+     )}
+
+     {activePanel === "seo" && (
+      <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+       <form
+        onSubmit={handleSaveSeoSettings}
+        style={{
+         border: "1px solid rgba(255,255,255,0.03)",
+         borderRadius: "8px",
+         padding: "2.5rem",
+         backgroundColor: "#0a0a0a",
+         display: "flex",
+         flexDirection: "column",
+         gap: "1.5rem",
+        }}
+       >
+        <h3
+         style={{
+          fontSize: "1.2rem",
+          fontFamily: "var(--font-heading)",
+          color: "var(--color-white)",
+          marginBottom: "0.5rem",
+         }}
+        >
+         SEO Settings Override
+        </h3>
+
+        <div className="contact-form-group">
+         <label className="contact-form-label">
+          Global Page Title Template
+         </label>
+         <input
+          type="text"
+          className="contact-form-input"
+          required
+          value={seoSettings.titleTemplate || ""}
+          onChange={(e) =>
+           setSeoSettings((prev) => ({
+            ...prev,
+            titleTemplate: e.target.value,
+           }))
+          }
+          placeholder="e.g. Rein Oro - Purity Crowned in Gold"
+         />
+        </div>
+
+        <div className="contact-form-group">
+         <label className="contact-form-label">Global Meta Description</label>
+         <textarea
+          className="contact-form-textarea"
+          required
+          value={seoSettings.metaDescription || ""}
+          onChange={(e) =>
+           setSeoSettings((prev) => ({
+            ...prev,
+            metaDescription: e.target.value,
+           }))
+          }
+          placeholder="Description for search engines..."
+          style={{ minHeight: "100px" }}
+         />
+        </div>
+
+        <button
+         type="submit"
+         className="btn btn-primary"
+         style={{ height: "40px", alignSelf: "flex-start" }}
+        >
+         Save SEO Settings
+        </button>
+       </form>
+      </div>
+     )}
+
+     {activePanel === "payment" && (
+      <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+       <div
+        style={{
+         border: "1px solid rgba(255,255,255,0.03)",
+         borderRadius: "8px",
+         padding: "2.5rem",
+         backgroundColor: "#0a0a0a",
+         display: "flex",
+         flexDirection: "column",
+         gap: "1.5rem",
+        }}
+       >
+        <h3
+         style={{
+          fontSize: "1.2rem",
+          fontFamily: "var(--font-heading)",
+          color: "var(--color-white)",
+         }}
+        >
+         Checkout Payment Options
+        </h3>
+        <p
+         style={{
+          fontSize: "0.85rem",
+          color: "var(--color-muted)",
+          marginBottom: "1rem",
+         }}
+        >
+         Configure payment processors and gateways displayed at buyer checkout.
+        </p>
+        <div
+         style={{
+          border: "1px solid rgba(201,168,76,0.16)",
+          borderRadius: "6px",
+          padding: "1rem",
+          backgroundColor: "rgba(201,168,76,0.04)",
+          fontSize: "0.8rem",
+          color: "var(--color-muted)",
+         }}
+        >
+         <strong style={{ color: "var(--color-white)" }}>Firestore:</strong>{" "}
+         {firestoreStatus?.mode || "sqlite-local"} -{" "}
+         {firestoreStatus?.message || "Checking sync status..."}
+        </div>
+
+        {[
+         "Cash on Delivery (COD)",
+         "UPI / NetBanking",
+         "Credit / Debit Card",
+         "Razorpay (Online Payment)",
+        ].map((methodName) => (
+         <label
+          key={methodName}
+          className="checkbox-label"
+          style={{
+           display: "flex",
+           alignItems: "center",
+           gap: "0.8rem",
+           padding: "1rem",
+           border: "1px solid rgba(255,255,255,0.04)",
+           borderRadius: "6px",
+           cursor: "pointer",
+           backgroundColor: "rgba(255,255,255,0.01)",
+          }}
+         >
+          <input
+           type="checkbox"
+           checked={
+            paymentSettings[methodName] === 1 ||
+            paymentSettings[methodName] === true
+           }
+           onChange={(e) =>
+            handleSavePaymentSettings(methodName, e.target.checked)
+           }
+           style={{
+            accentColor: "var(--color-gold)",
+            transform: "scale(1.15)",
+           }}
+          />
+          <div>
+           <span
+            style={{
+             fontSize: "0.9rem",
+             color: "var(--color-white)",
+             fontWeight: 600,
+            }}
+           >
+            {methodName}
+           </span>
+           <div style={{ fontSize: "0.75rem", color: "var(--color-muted)" }}>
+            Status: {paymentSettings[methodName] ? "Enabled" : "Disabled"}
+           </div>
+          </div>
+         </label>
+        ))}
+       </div>
+
+       <form
+        onSubmit={handleSaveGatewaySettings}
+        style={{
+         border: "1px solid rgba(255,255,255,0.03)",
+         borderRadius: "8px",
+         padding: "2.5rem",
+         backgroundColor: "#0a0a0a",
+         display: "flex",
+         flexDirection: "column",
+         gap: "1.2rem",
+        }}
+       >
+        <h3
+         style={{
+          fontSize: "1.2rem",
+          fontFamily: "var(--font-heading)",
+          color: "var(--color-white)",
+          marginBottom: "0.5rem",
+         }}
+        >
+         Razorpay Payment Gateway API Keys
+        </h3>
+        <p
+         style={{
+          fontSize: "0.85rem",
+          color: "var(--color-muted)",
+          marginBottom: "1rem",
+          lineHeight: 1.5,
+         }}
+        >
+         Configure your Razorpay Key ID and Secret to enable real online
+         checkouts. Leave as default placeholders to run in Sandbox Simulation
+         mode.
+        </p>
+
+        <div className="contact-form-group">
+         <label className="contact-form-label">Razorpay Key ID</label>
+         <input
+          type="text"
+          className="contact-form-input"
+          required
+          value={gatewaySettings.razorpay_key_id || ""}
+          onChange={(e) =>
+           setGatewaySettings((prev) => ({
+            ...prev,
+            razorpay_key_id: e.target.value,
+           }))
+          }
+          placeholder="rzp_test_xxxxxx"
+         />
+        </div>
+
+        <div className="contact-form-group">
+         <label className="contact-form-label">Razorpay Key Secret</label>
+         <input
+          type="password"
+          className="contact-form-input"
+          required
+          value={gatewaySettings.razorpay_key_secret || ""}
+          onChange={(e) =>
+           setGatewaySettings((prev) => ({
+            ...prev,
+            razorpay_key_secret: e.target.value,
+           }))
+          }
+          placeholder="xxxxxxxx"
+         />
+        </div>
+
+        <button
+         type="submit"
+         className="btn btn-primary"
+         style={{ height: "40px", alignSelf: "flex-start" }}
+        >
+         Save Razorpay Keys
+        </button>
+       </form>
+      </div>
+     )}
+
+     {activePanel === "shipping" && (
+      <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+       <form
+        onSubmit={handleSaveShippingSettings}
+        style={{
+         border: "1px solid rgba(255,255,255,0.03)",
+         borderRadius: "8px",
+         padding: "2.5rem",
+         backgroundColor: "#0a0a0a",
+         display: "flex",
+         flexDirection: "column",
+         gap: "1.5rem",
+        }}
+       >
+        <h3
+         style={{
+          fontSize: "1.2rem",
+          fontFamily: "var(--font-heading)",
+          color: "var(--color-white)",
+          marginBottom: "0.5rem",
+         }}
+        >
+         Shipping Cost & Rules
+        </h3>
+
+        <div className="contact-form-group">
+         <label className="contact-form-label">
+          Free Shipping Threshold Amount (INR ₹)
+         </label>
+         <input
+          type="number"
+          className="contact-form-input"
+          required
+          value={shippingSettings.freeShippingThreshold || ""}
+          onChange={(e) =>
+           setShippingSettings((prev) => ({
+            ...prev,
+            freeShippingThreshold: e.target.value,
+           }))
+          }
+         />
+        </div>
+
+        <div className="contact-form-group">
+         <label className="contact-form-label">
+          Standard Shipping Fee Amount (INR ₹)
+         </label>
+         <input
+          type="number"
+          className="contact-form-input"
+          required
+          value={shippingSettings.shippingFee || ""}
+          onChange={(e) =>
+           setShippingSettings((prev) => ({
+            ...prev,
+            shippingFee: e.target.value,
+           }))
+          }
+         />
+        </div>
+
+        <button
+         type="submit"
+         className="btn btn-primary"
+         style={{ height: "40px", alignSelf: "flex-start" }}
+        >
+         Save Shipping Rules
+        </button>
+       </form>
+      </div>
+     )}
+
+     {activePanel === "users" && (
+      <div className="admin-dash-table-card">
+       <div
+        className="admin-dash-table-toolbar"
+        style={{
+         display: "flex",
+         justifyContent: "space-between",
+         alignItems: "center",
+         marginBottom: "1.5rem",
+        }}
+       >
+        <h3
+         className="admin-dash-widget-title"
+         style={{ fontSize: "1.2rem", fontFamily: "var(--font-heading)" }}
+        >
+         Administrative Users & Roles Management
+        </h3>
+       </div>
+
+       <div style={{ overflowX: "auto" }}>
+        <table className="admin-dash-table">
+         <thead>
+          <tr>
+           <th>Account Email</th>
+           <th>Registered Date</th>
+           <th>Current Role</th>
+           <th style={{ textAlign: "right" }}>Actions</th>
+          </tr>
+         </thead>
+         <tbody>
+          {usersList.map((u) => (
+           <tr key={u.id}>
+            <td style={{ fontWeight: 600, color: "var(--color-white)" }}>
+             {u.email}
+            </td>
+            <td style={{ color: "var(--color-muted)", fontSize: "0.8rem" }}>
+             {u.member_since}
+            </td>
+            <td>
+             <select
+              value={u.role || "user"}
+              onChange={(e) => handleUpdateUserRole(u.id, e.target.value)}
+              style={{
+               backgroundColor: "#050505",
+               color: "#fff",
+               border: "1px solid rgba(255,255,255,0.08)",
+               borderRadius: "4px",
+               fontSize: "0.8rem",
+               padding: "2px 6px",
+              }}
+             >
+              <option value="user">User</option>
+              <option value="admin">Admin</option>
+             </select>
+            </td>
+            <td style={{ textAlign: "right" }}>
+             <button
+              onClick={() => handleDeleteUser(u.id)}
+              className="admin-dash-action-btn delete"
+              title="Delete Account"
+              disabled={u.email === "admin@reinoro.com"}
+              style={{ opacity: u.email === "admin@reinoro.com" ? 0.3 : 1 }}
+             >
+              <IconDelete />
+             </button>
+            </td>
+           </tr>
+          ))}
+         </tbody>
+        </table>
+       </div>
+      </div>
+     )}
+    </div>
+   </main>
+
+   {/* Product Create/Edit Modal popup */}
+   {isModalOpen && (
+    <div
+     style={{
+      position: "fixed",
+      inset: 0,
+      backgroundColor: "rgba(0,0,0,0.85)",
+      zIndex: 10000,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      padding: "2rem",
+     }}
+    >
+     <div
+      style={{
+       border: "1px solid var(--color-gold-border)",
+       borderRadius: "12px",
+       width: "100%",
+       maxWidth: "640px",
+       padding: "2.5rem",
+       backgroundColor: "#090909",
+       position: "relative",
+       maxHeight: "90vh",
+       overflowY: "auto",
+      }}
+     >
+      <h3
+       style={{
+        fontFamily: "var(--font-heading)",
+        fontSize: "1.6rem",
+        color: "var(--color-white)",
+        fontWeight: 300,
+        marginBottom: "1.5rem",
+       }}
+      >
+       {modalMode === "create"
+        ? "Create Gourmet Offering"
+        : "Edit Product Details"}
+      </h3>
+
+      <form
+       onSubmit={handleProductSubmit}
+       style={{ display: "flex", flexDirection: "column", gap: "1.2rem" }}
+      >
+       <div
+        style={{
+         display: "grid",
+         gridTemplateColumns: "1fr 1fr",
+         gap: "1.2rem",
+        }}
+       >
+        <div className="contact-form-group">
+         <label className="contact-form-label">Product ID (Unique)</label>
+         <input
+          type="text"
+          className="contact-form-input"
+          required
+          disabled={modalMode === "edit"}
+          value={productForm.id}
+          onChange={(e) =>
+           setProductForm((prev) => ({ ...prev, id: e.target.value }))
+          }
+          placeholder="e.g. makhana_saffron"
+         />
+        </div>
+        <div className="contact-form-group">
+         <label className="contact-form-label">Product Category Name</label>
+         <input
+          type="text"
+          className="contact-form-input"
+          required
+          value={productForm.name}
+          onChange={(e) =>
+           setProductForm((prev) => ({ ...prev, name: e.target.value }))
+          }
+          placeholder="e.g. Makhana or Nuts"
+         />
+        </div>
+       </div>
+
+       <div
+        style={{
+         display: "grid",
+         gridTemplateColumns: "1fr 1fr",
+         gap: "1.2rem",
+        }}
+       >
+        <div className="contact-form-group">
+         <label className="contact-form-label">Product Flavor Tag</label>
+         <input
+          type="text"
+          className="contact-form-input"
+          required
+          value={productForm.flavor}
+          onChange={(e) =>
+           setProductForm((prev) => ({ ...prev, flavor: e.target.value }))
+          }
+          placeholder="e.g. Saffron Infused"
+         />
+        </div>
+        <div className="contact-form-group">
+         <label className="contact-form-label">Detailed Page Title</label>
+         <input
+          type="text"
+          className="contact-form-input"
+          required
+          value={productForm.title}
+          onChange={(e) =>
+           setProductForm((prev) => ({ ...prev, title: e.target.value }))
+          }
+          placeholder="e.g. Makhana Royal Saffron"
+         />
+        </div>
+       </div>
+
+       <div
+        style={{
+         display: "grid",
+         gridTemplateColumns: "1fr 1fr",
+         gap: "1.2rem",
+        }}
+       >
+        <div className="contact-form-group">
+         <label className="contact-form-label">Price (INR ₹)</label>
+         <input
+          type="number"
+          className="contact-form-input"
+          required
+          value={productForm.price}
+          onChange={(e) =>
+           setProductForm((prev) => ({ ...prev, price: e.target.value }))
+          }
+         />
+        </div>
+        <div className="contact-form-group">
+         <label className="contact-form-label">Net Weight</label>
+         <input
+          type="text"
+          className="contact-form-input"
+          required
+          value={productForm.weight}
+          onChange={(e) =>
+           setProductForm((prev) => ({ ...prev, weight: e.target.value }))
+          }
+          placeholder="e.g. 100g"
+         />
+        </div>
+       </div>
+
+       <div className="contact-form-group" style={{ gridColumn: "span 2" }}>
+        <label className="contact-form-label">
+         Product Image URL
+         <span
+          style={{
+           color: "var(--color-gold)",
+           fontSize: "0.72rem",
+           textTransform: "none",
+           marginLeft: "0.5rem",
+          }}
+         >
+          (Use Imgur, Cloudinary, or image hosting)
+         </span>
+        </label>
+        <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
+         <input
+          type="text"
+          className="contact-form-input"
+          required
+          value={productForm.image}
+          onChange={(e) =>
+           setProductForm((prev) => ({ ...prev, image: e.target.value }))
+          }
+          placeholder="https://example.com/image.jpg"
+          style={{ flex: 1 }}
+         />
+         {productForm.image && (
+          <div
+           style={{
+            width: "48px",
+            height: "48px",
+            backgroundColor: "rgba(255,255,255,0.02)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            borderRadius: "6px",
+            border: "1px solid rgba(255,255,255,0.08)",
+           }}
+          >
+           <img
+            src={productForm.image}
+            alt="Preview"
+            style={{ maxWidth: "90%", maxHeight: "90%", objectFit: "contain" }}
+            onError={(e) => (e.target.style.opacity = "0.3")}
+           />
+          </div>
+         )}
+        </div>
+       </div>
+
+       <div className="contact-form-group" style={{ gridColumn: "span 2" }}>
+        <label className="contact-form-label">
+         Benefits Section Image URL
+         <span
+          style={{
+           color: "var(--color-gold)",
+           fontSize: "0.72rem",
+           textTransform: "none",
+           marginLeft: "0.5rem",
+          }}
+         >
+          (Use Imgur, Cloudinary, or image hosting)
+         </span>
+        </label>
+        <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
+         <input
+          type="text"
+          className="contact-form-input"
+          required
+          value={productForm.benefits_image}
+          onChange={(e) =>
+           setProductForm((prev) => ({
+            ...prev,
+            benefits_image: e.target.value,
+           }))
+          }
+          placeholder="https://example.com/image.jpg"
+          style={{ flex: 1 }}
+         />
+         {productForm.benefits_image && (
+          <div
+           style={{
+            width: "48px",
+            height: "48px",
+            backgroundColor: "rgba(255,255,255,0.02)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            borderRadius: "6px",
+            border: "1px solid rgba(255,255,255,0.08)",
+           }}
+          >
+           <img
+            src={productForm.benefits_image}
+            alt="Preview"
+            style={{ maxWidth: "90%", maxHeight: "90%", objectFit: "contain" }}
+            onError={(e) => (e.target.style.opacity = "0.3")}
+           />
+          </div>
+         )}
+        </div>
+       </div>
+
+       <div className="contact-form-group">
+        <label className="contact-form-label">Description Summary</label>
+        <textarea
+         className="contact-form-textarea"
+         required
+         value={productForm.description}
+         onChange={(e) =>
+          setProductForm((prev) => ({ ...prev, description: e.target.value }))
+         }
+         style={{ minHeight: "80px" }}
+        />
+       </div>
+
+       <div className="contact-form-group">
+        <label className="contact-form-label">
+         Benefits Checklist (Comma separated list)
+        </label>
+        <input
+         type="text"
+         className="contact-form-input"
+         value={productForm.benefits}
+         onChange={(e) =>
+          setProductForm((prev) => ({ ...prev, benefits: e.target.value }))
+         }
+         placeholder="Roasted Not Fried, Zero Trans Fat, Crunchy"
+        />
+       </div>
+
+       {/* Ingredients UI */}
+       <div className="contact-form-group" style={{ gridColumn: "span 2" }}>
+        <label
+         className="contact-form-label"
+         style={{ fontSize: "0.95rem", color: "var(--color-white)" }}
+        >
+         Key Ingredients
+        </label>
+        <div
+         style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: "0.8rem",
+          border: "1px solid rgba(255,255,255,0.03)",
+          padding: "1rem",
+          borderRadius: "8px",
+          backgroundColor: "rgba(0,0,0,0.2)",
+         }}
+        >
+         {productForm.ingredients &&
+          productForm.ingredients.map((ing, index) => (
+           <div
+            key={index}
+            style={{ display: "flex", gap: "0.8rem", alignItems: "center" }}
+           >
+            <input
+             type="text"
+             className="contact-form-input"
+             placeholder="Ingredient Name (e.g. Makhana)"
+             value={ing.name || ""}
+             onChange={(e) => {
+              const newIngs = [...productForm.ingredients];
+              newIngs[index].name = e.target.value;
+
+              // Auto-map name to image if possible!
+              const knownMap = {
+               makhana: "images/ingredient_makhana.png",
+               "cheese powder": "images/ingredient_cheese.png",
+               "onion powder": "images/ingredient_onion.png",
+               "rock salt": "images/ingredient_salt.png",
+               salt: "images/ingredient_salt.png",
+               "pink himalayan salt": "images/ingredient_salt.png",
+               "spices & herbs": "images/ingredient_spices.png",
+               "olive oil": "images/ingredient_spices.png",
+               "cold pressed oil": "images/ingredient_spices.png",
+               "premium almonds": "images/almonds_california.png",
+               "creamy cashews": "images/cashews_roasted.png",
+               "iranian pistachios": "images/pistachios_roasted.png",
+               "green raisins": "images/raisins_premium.png",
+              };
+              const key = e.target.value.toLowerCase().trim();
+              if (knownMap[key]) {
+               newIngs[index].img = knownMap[key];
+              }
+              setProductForm((prev) => ({ ...prev, ingredients: newIngs }));
+             }}
+             style={{ flex: 1 }}
+            />
+            <input
+             type="text"
+             className="contact-form-input"
+             placeholder="Image URL (e.g. https://example.com/image.png)"
+             value={ing.img || ""}
+             onChange={(e) => {
+              const newIngs = [...productForm.ingredients];
+              newIngs[index].img = e.target.value;
+              setProductForm((prev) => ({ ...prev, ingredients: newIngs }));
+             }}
+             style={{ flex: 1 }}
+            />
+            {ing.img && (
+             <div
+              style={{
+               width: "32px",
+               height: "32px",
+               display: "flex",
+               alignItems: "center",
+               justifyContent: "center",
+               border: "1px solid rgba(255,255,255,0.1)",
+               borderRadius: "4px",
+               backgroundColor: "rgba(255,255,255,0.02)",
+              }}
+             >
+              <img
+               src={ing.img}
+               alt=""
+               style={{
+                maxWidth: "90%",
+                maxHeight: "90%",
+                objectFit: "contain",
+               }}
+               onError={(e) => (e.target.style.display = "none")}
+              />
+             </div>
+            )}
+            <button
+             type="button"
+             onClick={() => {
+              const newIngs = productForm.ingredients.filter(
+               (_, i) => i !== index,
+              );
+              setProductForm((prev) => ({ ...prev, ingredients: newIngs }));
+             }}
+             style={{
+              background: "rgba(255,80,80,0.15)",
+              color: "rgba(255,80,80,0.9)",
+              border: "none",
+              borderRadius: "4px",
+              width: "32px",
+              height: "32px",
+              cursor: "pointer",
+              fontSize: "1.2rem",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+             }}
+            >
+             &times;
+            </button>
+           </div>
+          ))}
+         <button
+          type="button"
+          onClick={() => {
+           setProductForm((prev) => ({
+            ...prev,
+            ingredients: [...(prev.ingredients || []), { name: "", img: "" }],
+           }));
+          }}
+          className="btn btn-outline"
+          style={{
+           height: "32px",
+           fontSize: "0.75rem",
+           alignSelf: "flex-start",
+          }}
+         >
+          + Add Ingredient Item
+         </button>
+        </div>
+       </div>
+
+       {/* Specifications UI */}
+       <div className="contact-form-group" style={{ gridColumn: "span 2" }}>
+        <label
+         className="contact-form-label"
+         style={{ fontSize: "0.95rem", color: "var(--color-white)" }}
+        >
+         Product Specifications
+        </label>
+        <div
+         style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          gap: "1rem",
+          border: "1px solid rgba(255,255,255,0.03)",
+          padding: "1rem",
+          borderRadius: "8px",
+          backgroundColor: "rgba(0,0,0,0.2)",
+         }}
+        >
+         {[
+          "Brand",
+          "Flavour",
+          "Net Weight",
+          "Diet Type",
+          "Shelf Life",
+          "Country of Origin",
+         ].map((specName) => (
+          <div key={specName} className="contact-form-group">
+           <label
+            className="contact-form-label"
+            style={{ fontSize: "0.7rem", color: "var(--color-muted)" }}
+           >
+            {specName}
+           </label>
+           <input
+            type="text"
+            className="contact-form-input"
+            value={
+             productForm.specs && productForm.specs[specName] !== undefined
+              ? productForm.specs[specName]
+              : ""
+            }
+            onChange={(e) => {
+             setProductForm((prev) => ({
+              ...prev,
+              specs: {
+               ...(prev.specs || {}),
+               [specName]: e.target.value,
+              },
+             }));
+            }}
+            placeholder={`e.g. ${specName === "Brand" ? "Rein Oro" : specName === "Flavour" ? "Cheese & Onion" : ""}`}
+           />
+          </div>
+         ))}
+        </div>
+       </div>
+
+       {/* Nutrition UI */}
+       <div className="contact-form-group" style={{ gridColumn: "span 2" }}>
+        <label
+         className="contact-form-label"
+         style={{ fontSize: "0.95rem", color: "var(--color-white)" }}
+        >
+         Nutritional Information (per 100g/serving)
+        </label>
+        <div
+         style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr 1fr",
+          gap: "1rem",
+          border: "1px solid rgba(255,255,255,0.03)",
+          padding: "1rem",
+          borderRadius: "8px",
+          backgroundColor: "rgba(0,0,0,0.2)",
+         }}
+        >
+         {[
+          "Calories",
+          "Protein",
+          "Total Carbohydrates",
+          "Dietary Fiber",
+          "Total Fat",
+          "Trans Fat",
+          "Sodium",
+         ].map((nutName) => (
+          <div key={nutName} className="contact-form-group">
+           <label
+            className="contact-form-label"
+            style={{ fontSize: "0.7rem", color: "var(--color-muted)" }}
+           >
+            {nutName}
+           </label>
+           <input
+            type="text"
+            className="contact-form-input"
+            value={
+             productForm.nutrition &&
+             productForm.nutrition[nutName] !== undefined
+              ? productForm.nutrition[nutName]
+              : ""
+            }
+            onChange={(e) => {
+             setProductForm((prev) => ({
+              ...prev,
+              nutrition: {
+               ...(prev.nutrition || {}),
+               [nutName]: e.target.value,
+              },
+             }));
+            }}
+            placeholder={`e.g. ${nutName === "Calories" ? "380 Kcal" : nutName === "Protein" ? "9.5g" : "0g"}`}
+           />
+          </div>
+         ))}
+        </div>
+       </div>
+
+       <div style={{ display: "flex", gap: "1.5rem", marginTop: "1rem" }}>
+        <button
+         type="submit"
+         className="btn btn-primary"
+         style={{ flex: 1, height: "40px" }}
+        >
+         SAVE CHANGES
+        </button>
+        <button
+         type="button"
+         className="btn btn-outline"
+         onClick={() => setIsModalOpen(false)}
+         style={{ flex: 1, height: "40px" }}
+        >
+         CANCEL
+        </button>
+       </div>
+      </form>
+     </div>
+    </div>
+   )}
+  </div>
+ );
 }

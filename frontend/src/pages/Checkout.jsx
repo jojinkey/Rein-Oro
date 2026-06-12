@@ -1,6 +1,9 @@
 import React, { useContext, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { CartContext, AuthContext } from "../App.jsx";
+import { apiUrl } from "../config/api.js";
+
+const apiFetch = (path, options) => fetch(apiUrl(path), options);
 
 export default function Checkout() {
  const {
@@ -40,7 +43,7 @@ export default function Checkout() {
  const [isSubmitting, setIsSubmitting] = useState(false);
 
  React.useEffect(() => {
-  fetch("/api/settings/payment")
+  fetch(apiUrl("/api/settings/payment"))
    .then((res) => res.json())
    .then((data) => {
     setEnabledPayments(data);
@@ -117,7 +120,7 @@ export default function Checkout() {
   localOrderId,
   amount,
  }) => {
-  const response = await fetch("/api/payments/razorpay/verify", {
+  const response = await fetch(apiUrl("/api/payments/razorpay/verify"), {
    method: "POST",
    headers: { "Content-Type": "application/json" },
    body: JSON.stringify({
@@ -128,10 +131,19 @@ export default function Checkout() {
     amount,
    }),
   });
-  const data = await response.json();
+
+  const contentType = response.headers.get("content-type") || "";
+  const isJson = contentType.includes("application/json");
+  const data = isJson ? await response.json() : await response.text();
+
   if (!response.ok) {
-   throw new Error(data.error || "Payment verification failed");
+   const msg =
+    typeof data === "string"
+     ? data
+     : data?.error || "Payment verification failed";
+   throw new Error(msg);
   }
+
   return data;
  };
 
@@ -221,11 +233,12 @@ export default function Checkout() {
 
   if (paymentMethod === "razorpay") {
    try {
-    const orderRes = await fetch("/api/payments/razorpay/order", {
+    const orderRes = await fetch(apiUrl("/api/payments/razorpay/order"), {
      method: "POST",
      headers: { "Content-Type": "application/json" },
      body: JSON.stringify({ amount: totalAmount, receipt: orderId }),
     });
+
     const orderData = await orderRes.json();
     if (!orderRes.ok) {
      throw new Error(orderData.error || "Failed to create payment order");

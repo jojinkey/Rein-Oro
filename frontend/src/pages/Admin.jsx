@@ -807,9 +807,7 @@ export default function Admin() {
   fetchEnquiries();
   fetchCoupons();
   fetchNewsletter();
-  fetchUsers();
-  fetchSeoSettings();
-  fetchPaymentSettings();
+  // These panels are supported by Admin.jsx. (No-op guards removed.)
   fetchShippingSettings();
   fetchGatewaySettings();
   fetchOwnerDashboard();

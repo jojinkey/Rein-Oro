@@ -1,6 +1,7 @@
 import React, { useContext, useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { AuthContext, CartContext } from "../App.jsx";
+import { apiUrl } from "../config/api.js";
 
 export default function Dashboard() {
  const { user, logout } = useContext(AuthContext);
@@ -22,7 +23,7 @@ export default function Dashboard() {
  // Fetch user orders from database
  useEffect(() => {
   if (!user) return;
-  fetch(`/api/orders?email=${encodeURIComponent(user.email)}`)
+  fetch(apiUrl(`/api/orders?email=${encodeURIComponent(user.email)}`))
    .then((res) => res.json())
    .then((data) => {
     setOrders(Array.isArray(data) ? data : []);
@@ -35,7 +36,7 @@ export default function Dashboard() {
 
  // Fetch recommendations
  useEffect(() => {
-  fetch("/api/products")
+  fetch(apiUrl("/api/products"))
    .then((res) => res.json())
    .then((data) => {
     setRecProducts(data.slice(0, 5));

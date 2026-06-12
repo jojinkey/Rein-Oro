@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext, CMSContext } from "../App.jsx";
+import { apiUrl } from "../config/api.js";
 
 const getSelectorLabel = (selector) => {
  const labels = {
@@ -39,6 +40,16 @@ const getSelectorLabel = (selector) => {
   ".contact-hours": "Bespoke Concierge Business Hours",
  };
  return labels[selector] || selector;
+};
+
+const safeParseJson = async (res) => {
+ try {
+  const text = await res.text();
+  if (!text) return null;
+  return JSON.parse(text);
+ } catch {
+  return null;
+ }
 };
 
 // Inline SVG Icon Helpers for Luxury Aesthetic
@@ -489,19 +500,6 @@ const IconCalendar = () => (
   <line x1="3" y1="10" x2="21" y2="10" />
  </svg>
 );
-const IconChevronRight = () => (
- <svg
-  viewBox="0 0 24 24"
-  fill="none"
-  stroke="currentColor"
-  strokeWidth="2"
-  strokeLinecap="round"
-  strokeLinejoin="round"
-  style={{ width: "16px", height: "16px" }}
- >
-  <polyline points="9 18 15 12 9 6" />
- </svg>
-);
 const IconEdit = () => (
  <svg
   viewBox="0 0 24 24"
@@ -546,20 +544,6 @@ const IconPlus = () => (
   <line x1="5" y1="12" x2="19" y2="12" />
  </svg>
 );
-const IconEye = () => (
- <svg
-  viewBox="0 0 24 24"
-  fill="none"
-  stroke="currentColor"
-  strokeWidth="2"
-  strokeLinecap="round"
-  strokeLinejoin="round"
-  style={{ width: "14px", height: "14px" }}
- >
-  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-  <circle cx="12" cy="12" r="3" />
- </svg>
-);
 
 export default function Admin() {
  const { user, login, logout } = useContext(AuthContext);
@@ -585,7 +569,7 @@ export default function Admin() {
 
  // Product Modal State
  const [isModalOpen, setIsModalOpen] = useState(false);
- const [modalMode, setModalMode] = useState("create"); // 'create' or 'edit'
+ const [modalMode, setModalMode] = useState("create");
  const [productForm, setProductForm] = useState({
   id: "",
   name: "",
@@ -602,7 +586,6 @@ export default function Admin() {
   nutrition: {},
  });
 
- // Styles Form State
  const [stylesForm, setStylesForm] = useState({
   colorBg: "#050505",
   colorGold: "#c9a84c",
@@ -659,90 +642,116 @@ export default function Admin() {
  const [ownerDashboard, setOwnerDashboard] = useState(null);
  const [firestoreStatus, setFirestoreStatus] = useState(null);
 
- const fetchCategories = () => {
-  fetch("/api/categories")
-   .then((res) => res.json())
-   .then((data) => setCategories(data))
-   .catch((err) => console.error(err));
+ const jsonFetch = async (path, options) => {
+  const res = await fetch(apiUrl(path), options);
+  const data = await safeParseJson(res);
+  return { res, data };
  };
- const fetchBanners = () => {
-  fetch("/api/banners")
-   .then((res) => res.json())
-   .then((data) => setBanners(data))
-   .catch((err) => console.error(err));
+
+ const fetchCategories = async () => {
+  try {
+   const { res, data } = await jsonFetch("/api/categories");
+   if (!res.ok) throw new Error(data?.error || "Failed to load categories");
+   setCategories(Array.isArray(data) ? data : []);
+  } catch (err) {
+   console.error(err);
+   setCategories([]);
+  }
  };
- const fetchMedia = () => {
-  fetch("/api/media")
-   .then((res) => res.json())
-   .then((data) => setMedia(data))
-   .catch((err) => console.error(err));
+ const fetchBanners = async () => {
+  try {
+   const { res, data } = await jsonFetch("/api/banners");
+   if (!res.ok) throw new Error(data?.error || "Failed to load banners");
+   setBanners(Array.isArray(data) ? data : []);
+  } catch (err) {
+   console.error(err);
+   setBanners([]);
+  }
  };
- const fetchTestimonials = () => {
-  fetch("/api/testimonials")
-   .then((res) => res.json())
-   .then((data) => setTestimonials(data))
-   .catch((err) => console.error(err));
+ const fetchMedia = async () => {
+  try {
+   const { res, data } = await jsonFetch("/api/media");
+   if (!res.ok) throw new Error(data?.error || "Failed to load media");
+   setMedia(Array.isArray(data) ? data : []);
+  } catch (err) {
+   console.error(err);
+   setMedia([]);
+  }
  };
- const fetchBlogs = () => {
-  fetch("/api/blog")
-   .then((res) => res.json())
-   .then((data) => setBlogs(data))
-   .catch((err) => console.error(err));
+ const fetchTestimonials = async () => {
+  try {
+   const { res, data } = await jsonFetch("/api/testimonials");
+   if (!res.ok) throw new Error(data?.error || "Failed to load testimonials");
+   setTestimonials(Array.isArray(data) ? data : []);
+  } catch (err) {
+   console.error(err);
+   setTestimonials([]);
+  }
  };
- const fetchFaqs = () => {
-  fetch("/api/faqs")
-   .then((res) => res.json())
-   .then((data) => setFaqs(data))
-   .catch((err) => console.error(err));
+ const fetchBlogs = async () => {
+  try {
+   const { res, data } = await jsonFetch("/api/blog");
+   if (!res.ok) throw new Error(data?.error || "Failed to load blog posts");
+   setBlogs(Array.isArray(data) ? data : []);
+  } catch (err) {
+   console.error(err);
+   setBlogs([]);
+  }
  };
- const fetchEnquiries = () => {
-  fetch("/api/enquiries")
-   .then((res) => res.json())
-   .then((data) => setEnquiries(data))
-   .catch((err) => console.error(err));
+ const fetchFaqs = async () => {
+  try {
+   const { res, data } = await jsonFetch("/api/faqs");
+   if (!res.ok) throw new Error(data?.error || "Failed to load FAQs");
+   setFaqs(Array.isArray(data) ? data : []);
+  } catch (err) {
+   console.error(err);
+   setFaqs([]);
+  }
  };
- const fetchCoupons = () => {
-  fetch("/api/coupons")
-   .then((res) => res.json())
-   .then((data) => setCoupons(data))
-   .catch((err) => console.error(err));
+ const fetchEnquiries = async () => {
+  try {
+   const { res, data } = await jsonFetch("/api/enquiries");
+   if (!res.ok) throw new Error(data?.error || "Failed to load enquiries");
+   setEnquiries(Array.isArray(data) ? data : []);
+  } catch (err) {
+   console.error(err);
+   setEnquiries([]);
+  }
  };
- const fetchNewsletter = () => {
-  fetch("/api/newsletter")
-   .then((res) => res.json())
-   .then((data) => setNewsletterList(data))
-   .catch((err) => console.error(err));
+ const fetchCoupons = async () => {
+  try {
+   const { res, data } = await jsonFetch("/api/coupons");
+   if (!res.ok) throw new Error(data?.error || "Failed to load coupons");
+   setCoupons(Array.isArray(data) ? data : []);
+  } catch (err) {
+   console.error(err);
+   setCoupons([]);
+  }
  };
- const fetchUsers = () => {
-  fetch("/api/users")
-   .then((res) => res.json())
-   .then((data) => setUsersList(data))
-   .catch((err) => console.error(err));
+ const fetchNewsletter = async () => {
+  try {
+   const { res, data } = await jsonFetch("/api/newsletter");
+   if (!res.ok) throw new Error(data?.error || "Failed to load newsletter");
+   setNewsletterList(Array.isArray(data) ? data : []);
+  } catch (err) {
+   console.error(err);
+   setNewsletterList([]);
+  }
  };
- const fetchSeoSettings = () => {
-  fetch("/api/settings/seo")
-   .then((res) => res.json())
-   .then((data) => setSeoSettings(data))
-   .catch((err) => console.error(err));
- };
- const fetchPaymentSettings = () => {
-  fetch("/api/settings/payment")
-   .then((res) => res.json())
-   .then((data) => setPaymentSettings(data))
-   .catch((err) => console.error(err));
- };
+
  const fetchShippingSettings = () => {
-  fetch("/api/settings/shipping")
+  fetch(apiUrl("/api/settings/shipping"))
    .then((res) => res.json())
    .then((data) => setShippingSettings(data))
    .catch((err) => console.error(err));
  };
  const fetchGatewaySettings = () => {
-  fetch("/api/settings/gateway")
+  fetch(apiUrl("/api/settings/gateway"))
    .then((res) => res.json())
    .then((data) => setGatewaySettings(data))
    .catch((err) => console.error(err));
  };
+
  const fetchOwnerDashboard = () => {
   fetch("/api/owner/dashboard")
    .then((res) => res.json())

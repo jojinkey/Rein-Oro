@@ -49,4 +49,8 @@ app.get("*", (req, res, next) => {
  res.sendFile(path.join(__dirname, "../frontend/dist", "index.html"));
 });
 
+app.get("/", (req, res) => {
+ res.status(200).json({ message: "Welcome to Rein Oro API" });
+});
+
 export default app;

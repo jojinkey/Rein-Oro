@@ -1,6 +1,7 @@
 import React, { useState, useContext, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../App.jsx";
+import { apiUrl } from "../config/api.js";
 
 export default function Login() {
  const { user, login } = useContext(AuthContext);
@@ -32,8 +33,10 @@ export default function Login() {
   setIsSubmitting(true);
 
   try {
-   const endpoint = mode === "login" ? "/api/auth/login" : "/api/auth/register";
+   const endpoint =
+    mode === "login" ? apiUrl("/api/auth/login") : apiUrl("/api/auth/register");
    const payload = { email, password };
+
    if (mode === "register") payload.name = name;
    const response = await fetch(endpoint, {
     method: "POST",
@@ -80,6 +83,7 @@ export default function Login() {
    }
    alert(`A simulated 6-digit OTP code has been sent to ${mobile.trim()}.`);
    const code = prompt("Enter the 6-digit OTP sent to your phone:");
+
    if (code) {
     if (code.trim().length === 6) {
      login("royal.guest@reinoro.com", "user");

@@ -96,7 +96,8 @@ export default function Login() {
   <main className="login-main-section">
    {/* Left Column: Product Showcase */}
    <section className="login-showcase-col left-showcase">
-    <img src="images/makhana_classic.png" alt="Makhana Classic" />
+    <img src="/images/makhana_classic.png" alt="Makhana Classic" />
+
     <div style={{ textAlign: "center" }}>
      <h4
       style={{
@@ -126,7 +127,7 @@ export default function Login() {
     <div className="login-card">
      <div style={{ textAlign: "center", marginBottom: "2rem" }}>
       <img
-       src="images/logo.png"
+       src="/images/logo.png"
        alt="Rein Oro Crown"
        style={{ height: "32px", marginBottom: "0.6rem" }}
       />
@@ -371,7 +372,7 @@ export default function Login() {
 
    {/* Right Column: Product Showcase */}
    <section className="login-showcase-col right-showcase">
-    <img src="images/almonds_california.png" alt="Almonds California" />
+    <img src="/images/almonds_california.png" alt="Almonds California" />
     <div style={{ textAlign: "center" }}>
      <h4
       style={{

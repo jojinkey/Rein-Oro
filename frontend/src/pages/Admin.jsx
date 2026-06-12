@@ -753,7 +753,7 @@ export default function Admin() {
  };
 
  const fetchOwnerDashboard = () => {
-  fetch("/api/owner/dashboard")
+  fetch(apiUrl("/api/owner/dashboard"))
    .then((res) => res.json())
    .then((data) => {
     setOwnerDashboard(data);
@@ -762,7 +762,7 @@ export default function Admin() {
    .catch((err) => console.error(err));
  };
  const fetchFirestoreStatus = () => {
-  fetch("/api/firestore/status")
+  fetch(apiUrl("/api/firestore/status"))
    .then((res) => res.json())
    .then((data) => setFirestoreStatus(data))
    .catch((err) => console.error(err));
@@ -787,13 +787,13 @@ export default function Admin() {
   if (!isAdminLoggedIn) return;
 
   // Fetch products
-  fetch("/api/products")
+  fetch(apiUrl("/api/products"))
    .then((res) => res.json())
    .then((data) => setProducts(data))
    .catch((err) => console.error(err));
 
   // Fetch all orders
-  fetch("/api/orders")
+  fetch(apiUrl("/api/orders"))
    .then((res) => res.json())
    .then((data) => setOrders(data))
    .catch((err) => console.error(err));
@@ -1007,7 +1007,7 @@ export default function Admin() {
  const handleAdminGateSubmit = async (e) => {
   e.preventDefault();
   try {
-   const res = await fetch("/api/auth/login", {
+   const res = await fetch(apiUrl("/api/auth/login"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email: authEmail, password: authPassword }),
@@ -1105,8 +1105,8 @@ export default function Admin() {
    const method = modalMode === "create" ? "POST" : "PUT";
    const endpoint =
     modalMode === "create"
-     ? "/api/products"
-     : `/api/products/${productForm.id}`;
+     ? apiUrl("/api/products")
+     : apiUrl(`/api/products/${productForm.id}`);
    const res = await fetch(endpoint, {
     method,
     headers: { "Content-Type": "application/json" },
@@ -1123,7 +1123,8 @@ export default function Admin() {
    );
    setIsModalOpen(false);
    // Reload products list
-   const updatedRes = await fetch("/api/products");
+   const updatedRes = await fetch(apiUrl("/api/products"));
+
    const updatedData = await updatedRes.json();
    setProducts(updatedData);
   } catch (err) {
@@ -1135,7 +1136,8 @@ export default function Admin() {
   if (!confirm("Are you sure you want to permanently delete this product?"))
    return;
   try {
-   const res = await fetch(`/api/products/${id}`, { method: "DELETE" });
+   const res = await fetch(apiUrl(`/api/products/${id}`), { method: "DELETE" });
+
    if (!res.ok) throw new Error("Deletion failed");
 
    alert("Product deleted successfully.");
@@ -1149,7 +1151,7 @@ export default function Admin() {
  const handleSaveStyles = async (e) => {
   e.preventDefault();
   try {
-   const res = await fetch("/api/cms/styles", {
+   const res = await fetch(apiUrl("/api/cms/styles"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(stylesForm),
@@ -1166,7 +1168,7 @@ export default function Admin() {
  // --- Content Editor Handler ---
  const handleSaveContent = async (selector, value) => {
   try {
-   const res = await fetch("/api/cms/content", {
+   const res = await fetch(apiUrl("/api/cms/content"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -1210,7 +1212,9 @@ export default function Admin() {
  const handleDeleteCategory = async (id) => {
   if (!confirm("Are you sure you want to delete this category?")) return;
   try {
-   const res = await fetch(`/api/categories/${id}`, { method: "DELETE" });
+   const res = await fetch(apiUrl(`/api/categories/${id}`), {
+    method: "DELETE",
+   });
    if (!res.ok) throw new Error("Deletion failed");
    alert("Category deleted successfully.");
    fetchCategories();
@@ -1243,7 +1247,7 @@ export default function Admin() {
  const handleDeleteBanner = async (id) => {
   if (!confirm("Are you sure you want to delete this banner?")) return;
   try {
-   const res = await fetch(`/api/banners/${id}`, { method: "DELETE" });
+   const res = await fetch(apiUrl(`/api/banners/${id}`), { method: "DELETE" });
    if (!res.ok) throw new Error("Deletion failed");
    alert("Banner deleted successfully.");
    fetchBanners();
@@ -1273,7 +1277,7 @@ export default function Admin() {
  const handleDeleteMedia = async (id) => {
   if (!confirm("Are you sure you want to delete this media item?")) return;
   try {
-   const res = await fetch(`/api/media/${id}`, { method: "DELETE" });
+   const res = await fetch(apiUrl(`/api/media/${id}`), { method: "DELETE" });
    if (!res.ok) throw new Error("Deletion failed");
    alert("Media item deleted successfully.");
    fetchMedia();
@@ -1308,7 +1312,9 @@ export default function Admin() {
  const handleDeleteTestimonial = async (id) => {
   if (!confirm("Are you sure you want to delete this testimonial?")) return;
   try {
-   const res = await fetch(`/api/testimonials/${id}`, { method: "DELETE" });
+   const res = await fetch(apiUrl(`/api/testimonials/${id}`), {
+    method: "DELETE",
+   });
    if (!res.ok) throw new Error("Deletion failed");
    alert("Testimonial deleted successfully.");
    fetchTestimonials();
@@ -1341,7 +1347,7 @@ export default function Admin() {
  const handleDeleteBlog = async (id) => {
   if (!confirm("Are you sure you want to delete this blog post?")) return;
   try {
-   const res = await fetch(`/api/blog/${id}`, { method: "DELETE" });
+   const res = await fetch(apiUrl(`/api/blog/${id}`), { method: "DELETE" });
    if (!res.ok) throw new Error("Deletion failed");
    alert("Blog post deleted successfully.");
    fetchBlogs();
@@ -1374,7 +1380,7 @@ export default function Admin() {
  const handleDeleteFaq = async (id) => {
   if (!confirm("Are you sure you want to delete this FAQ?")) return;
   try {
-   const res = await fetch(`/api/faqs/${id}`, { method: "DELETE" });
+   const res = await fetch(apiUrl(`/api/faqs/${id}`), { method: "DELETE" });
    if (!res.ok) throw new Error("Deletion failed");
    alert("FAQ deleted successfully.");
    fetchFaqs();
@@ -1409,7 +1415,9 @@ export default function Admin() {
  const handleDeleteCoupon = async (code) => {
   if (!confirm(`Are you sure you want to delete coupon ${code}?`)) return;
   try {
-   const res = await fetch(`/api/coupons/${code}`, { method: "DELETE" });
+   const res = await fetch(apiUrl(`/api/coupons/${code}`), {
+    method: "DELETE",
+   });
    if (!res.ok) throw new Error("Deletion failed");
    alert("Coupon deleted successfully.");
    fetchCoupons();
@@ -1437,7 +1445,9 @@ export default function Admin() {
  const handleDeleteEnquiry = async (id) => {
   if (!confirm("Are you sure you want to delete this enquiry log?")) return;
   try {
-   const res = await fetch(`/api/enquiries/${id}`, { method: "DELETE" });
+   const res = await fetch(apiUrl(`/api/enquiries/${id}`), {
+    method: "DELETE",
+   });
    if (!res.ok) throw new Error("Deletion failed");
    alert("Enquiry deleted successfully.");
    fetchEnquiries();
@@ -1450,7 +1460,9 @@ export default function Admin() {
  const handleDeleteNewsletter = async (id) => {
   if (!confirm("Remove this subscriber email from the list?")) return;
   try {
-   const res = await fetch(`/api/newsletter/${id}`, { method: "DELETE" });
+   const res = await fetch(apiUrl(`/api/newsletter/${id}`), {
+    method: "DELETE",
+   });
    if (!res.ok) throw new Error("Deletion failed");
    alert("Subscriber email removed successfully.");
    fetchNewsletter();
@@ -1462,7 +1474,7 @@ export default function Admin() {
  // --- User Handlers ---
  const handleUpdateUserRole = async (id, role) => {
   try {
-   const res = await fetch(`/api/users/${id}/role`, {
+   const res = await fetch(apiUrl(`/api/users/${id}/role`), {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ role }),
@@ -1478,7 +1490,7 @@ export default function Admin() {
  const handleDeleteUser = async (id) => {
   if (!confirm("Permanently delete this user account?")) return;
   try {
-   const res = await fetch(`/api/users/${id}`, { method: "DELETE" });
+   const res = await fetch(apiUrl(`/api/users/${id}`), { method: "DELETE" });
    if (!res.ok) throw new Error("Deletion failed");
    alert("User account deleted successfully.");
    fetchUsers();
@@ -1491,7 +1503,7 @@ export default function Admin() {
  const handleSaveSeoSettings = async (e) => {
   e.preventDefault();
   try {
-   const res = await fetch("/api/settings/seo", {
+   const res = await fetch(apiUrl("/api/settings/seo"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(seoSettings),
@@ -1507,7 +1519,7 @@ export default function Admin() {
  const handleSavePaymentSettings = async (methodName, enabled) => {
   try {
    const updated = { ...paymentSettings, [methodName]: enabled };
-   const res = await fetch("/api/settings/payment", {
+   const res = await fetch(apiUrl("/api/settings/payment"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(updated),
@@ -1522,7 +1534,7 @@ export default function Admin() {
  const handleSaveShippingSettings = async (e) => {
   e.preventDefault();
   try {
-   const res = await fetch("/api/settings/shipping", {
+   const res = await fetch(apiUrl("/api/settings/shipping"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(shippingSettings),
@@ -1538,7 +1550,7 @@ export default function Admin() {
  const handleSaveGatewaySettings = async (e) => {
   e.preventDefault();
   try {
-   const res = await fetch("/api/settings/gateway", {
+   const res = await fetch(apiUrl("/api/settings/gateway"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(gatewaySettings),
@@ -1560,7 +1572,7 @@ export default function Admin() {
   )
    return;
   try {
-   const res = await fetch("/api/cms/reset", { method: "POST" });
+   const res = await fetch(apiUrl("/api/cms/reset"), { method: "POST" });
    if (!res.ok) throw new Error("Reset failed");
 
    alert("Factory reset completed successfully. Re-seeding tables...");

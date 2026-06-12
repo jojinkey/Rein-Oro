@@ -148,7 +148,7 @@ export default function Checkout() {
  };
 
  const saveOrderToDB = async (payload) => {
-  const response = await fetch("/api/orders", {
+  const response = await fetch(apiUrl("/api/orders"), {
    method: "POST",
    headers: { "Content-Type": "application/json" },
    body: JSON.stringify(payload),

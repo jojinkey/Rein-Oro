@@ -76,9 +76,13 @@ export default function App() {
     // Revalidate localStorage promo code
     const savedPromo = localStorage.getItem("rein_oro_promo") || "";
     if (savedPromo) {
-     const matched = data.find((c) => c.code === savedPromo && c.active);
+     const matched = data.find(
+      (c) =>
+       c.code === savedPromo &&
+       (c.active === true || c.active === 1 || c.active === "true"),
+     );
      if (matched) {
-      setDiscountRate(matched.discount_rate);
+      setDiscountRate(Number(matched.discount_rate) || 0);
      } else {
       setAppliedPromo("");
       setDiscountRate(0.0);
@@ -132,7 +136,11 @@ export default function App() {
 
  const applyPromoCode = (code) => {
   const uppercaseCode = code.trim().toUpperCase();
-  const matched = coupons.find((c) => c.code === uppercaseCode && c.active);
+  const matched = coupons.find(
+   (c) =>
+    c.code === uppercaseCode &&
+    (c.active === true || c.active === 1 || c.active === "true"),
+  );
   if (matched) {
    setAppliedPromo(uppercaseCode);
    setDiscountRate(matched.discount_rate);

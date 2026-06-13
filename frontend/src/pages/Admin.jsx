@@ -2,6 +2,7 @@ import React, { useState, useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext, CMSContext } from "../App.jsx";
 import { apiUrl } from "../config/api.js";
+import * as adminAPI from "../config/admin.js";
 
 const getSelectorLabel = (selector) => {
  const labels = {
@@ -642,130 +643,74 @@ export default function Admin() {
  const [ownerDashboard, setOwnerDashboard] = useState(null);
  const [firestoreStatus, setFirestoreStatus] = useState(null);
 
- const jsonFetch = async (path, options) => {
-  const res = await fetch(apiUrl(path), options);
-  const data = await safeParseJson(res);
-  return { res, data };
- };
-
  const fetchCategories = async () => {
-  try {
-   const { res, data } = await jsonFetch("/api/categories");
-   if (!res.ok) throw new Error(data?.error || "Failed to load categories");
-   setCategories(Array.isArray(data) ? data : []);
-  } catch (err) {
-   console.error(err);
-   setCategories([]);
-  }
+  const data = await adminAPI.fetchCategories();
+  setCategories(data);
  };
  const fetchBanners = async () => {
-  try {
-   const { res, data } = await jsonFetch("/api/banners");
-   if (!res.ok) throw new Error(data?.error || "Failed to load banners");
-   setBanners(Array.isArray(data) ? data : []);
-  } catch (err) {
-   console.error(err);
-   setBanners([]);
-  }
+  const data = await adminAPI.fetchBanners();
+  setBanners(data);
  };
  const fetchMedia = async () => {
-  try {
-   const { res, data } = await jsonFetch("/api/media");
-   if (!res.ok) throw new Error(data?.error || "Failed to load media");
-   setMedia(Array.isArray(data) ? data : []);
-  } catch (err) {
-   console.error(err);
-   setMedia([]);
-  }
+  const data = await adminAPI.fetchMedia();
+  setMedia(data);
  };
  const fetchTestimonials = async () => {
-  try {
-   const { res, data } = await jsonFetch("/api/testimonials");
-   if (!res.ok) throw new Error(data?.error || "Failed to load testimonials");
-   setTestimonials(Array.isArray(data) ? data : []);
-  } catch (err) {
-   console.error(err);
-   setTestimonials([]);
-  }
+  const data = await adminAPI.fetchTestimonials();
+  setTestimonials(data);
  };
  const fetchBlogs = async () => {
-  try {
-   const { res, data } = await jsonFetch("/api/blog");
-   if (!res.ok) throw new Error(data?.error || "Failed to load blog posts");
-   setBlogs(Array.isArray(data) ? data : []);
-  } catch (err) {
-   console.error(err);
-   setBlogs([]);
-  }
+  const data = await adminAPI.fetchBlogs();
+  setBlogs(data);
  };
  const fetchFaqs = async () => {
-  try {
-   const { res, data } = await jsonFetch("/api/faqs");
-   if (!res.ok) throw new Error(data?.error || "Failed to load FAQs");
-   setFaqs(Array.isArray(data) ? data : []);
-  } catch (err) {
-   console.error(err);
-   setFaqs([]);
-  }
+  const data = await adminAPI.fetchFaqs();
+  setFaqs(data);
  };
  const fetchEnquiries = async () => {
-  try {
-   const { res, data } = await jsonFetch("/api/enquiries");
-   if (!res.ok) throw new Error(data?.error || "Failed to load enquiries");
-   setEnquiries(Array.isArray(data) ? data : []);
-  } catch (err) {
-   console.error(err);
-   setEnquiries([]);
-  }
+  const data = await adminAPI.fetchEnquiries();
+  setEnquiries(data);
  };
  const fetchCoupons = async () => {
-  try {
-   const { res, data } = await jsonFetch("/api/coupons");
-   if (!res.ok) throw new Error(data?.error || "Failed to load coupons");
-   setCoupons(Array.isArray(data) ? data : []);
-  } catch (err) {
-   console.error(err);
-   setCoupons([]);
-  }
+  const data = await adminAPI.fetchCoupons();
+  setCoupons(data);
  };
  const fetchNewsletter = async () => {
-  try {
-   const { res, data } = await jsonFetch("/api/newsletter");
-   if (!res.ok) throw new Error(data?.error || "Failed to load newsletter");
-   setNewsletterList(Array.isArray(data) ? data : []);
-  } catch (err) {
-   console.error(err);
-   setNewsletterList([]);
-  }
+  const data = await adminAPI.fetchNewsletter();
+  setNewsletterList(data);
+ };
+ const fetchUsers = async () => {
+  const data = await adminAPI.fetchUsers();
+  setUsersList(data);
  };
 
- const fetchShippingSettings = () => {
-  fetch(apiUrl("/api/settings/shipping"))
-   .then((res) => res.json())
-   .then((data) => setShippingSettings(data))
-   .catch((err) => console.error(err));
- };
- const fetchGatewaySettings = () => {
-  fetch(apiUrl("/api/settings/gateway"))
-   .then((res) => res.json())
-   .then((data) => setGatewaySettings(data))
-   .catch((err) => console.error(err));
+ const fetchProducts = async () => {
+  const data = await adminAPI.fetchProducts();
+  setProducts(data);
  };
 
- const fetchOwnerDashboard = () => {
-  fetch(apiUrl("/api/owner/dashboard"))
-   .then((res) => res.json())
-   .then((data) => {
-    setOwnerDashboard(data);
-    setFirestoreStatus(data.firestore || null);
-   })
-   .catch((err) => console.error(err));
+ const fetchOrders = async () => {
+  const data = await adminAPI.fetchOrders();
+  setOrders(data);
  };
- const fetchFirestoreStatus = () => {
-  fetch(apiUrl("/api/firestore/status"))
-   .then((res) => res.json())
-   .then((data) => setFirestoreStatus(data))
-   .catch((err) => console.error(err));
+
+ const fetchShippingSettings = async () => {
+  const data = await adminAPI.fetchShippingSettings();
+  setShippingSettings(data);
+ };
+ const fetchGatewaySettings = async () => {
+  const data = await adminAPI.fetchGatewaySettings();
+  setGatewaySettings(data);
+ };
+
+ const fetchOwnerDashboard = async () => {
+  const data = await adminAPI.fetchOwnerDashboard();
+  setOwnerDashboard(data);
+  setFirestoreStatus(data?.firestore || null);
+ };
+ const fetchFirestoreStatus = async () => {
+  const data = await adminAPI.fetchFirestoreStatus();
+  setFirestoreStatus(data);
  };
 
  // Check role and login status
@@ -786,18 +731,8 @@ export default function Admin() {
  useEffect(() => {
   if (!isAdminLoggedIn) return;
 
-  // Fetch products
-  fetch(apiUrl("/api/products"))
-   .then((res) => res.json())
-   .then((data) => setProducts(data))
-   .catch((err) => console.error(err));
-
-  // Fetch all orders
-  fetch(apiUrl("/api/orders"))
-   .then((res) => res.json())
-   .then((data) => setOrders(data))
-   .catch((err) => console.error(err));
-
+  fetchProducts();
+  fetchOrders();
   fetchCategories();
   fetchBanners();
   fetchMedia();
@@ -807,6 +742,7 @@ export default function Admin() {
   fetchEnquiries();
   fetchCoupons();
   fetchNewsletter();
+  fetchUsers();
   // These panels are supported by Admin.jsx. (No-op guards removed.)
   fetchShippingSettings();
   fetchGatewaySettings();
@@ -1100,20 +1036,10 @@ export default function Admin() {
   };
 
   try {
-   const method = modalMode === "create" ? "POST" : "PUT";
-   const endpoint =
-    modalMode === "create"
-     ? apiUrl("/api/products")
-     : apiUrl(`/api/products/${productForm.id}`);
-   const res = await fetch(endpoint, {
-    method,
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-   });
-
-   if (!res.ok) {
-    const data = await res.json();
-    throw new Error(data.error || "Product operation failed");
+   if (modalMode === "create") {
+    await adminAPI.addProduct(payload);
+   } else {
+    await adminAPI.updateProduct(productForm.id, payload);
    }
 
    alert(
@@ -1121,9 +1047,7 @@ export default function Admin() {
    );
    setIsModalOpen(false);
    // Reload products list
-   const updatedRes = await fetch(apiUrl("/api/products"));
-
-   const updatedData = await updatedRes.json();
+   const updatedData = await adminAPI.fetchProducts();
    setProducts(updatedData);
   } catch (err) {
    alert(`Error: ${err.message}`);
@@ -1134,10 +1058,7 @@ export default function Admin() {
   if (!confirm("Are you sure you want to permanently delete this product?"))
    return;
   try {
-   const res = await fetch(apiUrl(`/api/products/${id}`), { method: "DELETE" });
-
-   if (!res.ok) throw new Error("Deletion failed");
-
+   await adminAPI.deleteProduct(id);
    alert("Product deleted successfully.");
    setProducts((prev) => prev.filter((p) => p.id !== id));
   } catch (err) {
@@ -1149,13 +1070,7 @@ export default function Admin() {
  const handleSaveStyles = async (e) => {
   e.preventDefault();
   try {
-   const res = await fetch(apiUrl("/api/cms/styles"), {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(stylesForm),
-   });
-   if (!res.ok) throw new Error("Styles saving failed");
-
+   await adminAPI.saveCmsStyles(stylesForm);
    alert("Styles and theme overrides saved successfully.");
    fetchCMSData(); // Refresh App state styles
   } catch (err) {
@@ -1166,17 +1081,7 @@ export default function Admin() {
  // --- Content Editor Handler ---
  const handleSaveContent = async (selector, value) => {
   try {
-   const res = await fetch(apiUrl("/api/cms/content"), {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-     page_name: selectedPage,
-     selector,
-     content_value: value,
-    }),
-   });
-   if (!res.ok) throw new Error("Content saving failed");
-
+   await adminAPI.saveCmsContent(selectedPage, selector, value);
    setContentForm((prev) => ({ ...prev, [selector]: value }));
    fetchCMSData(); // Refresh App context
   } catch (err) {
@@ -1188,17 +1093,12 @@ export default function Admin() {
  const handleSaveCategory = async (e) => {
   e.preventDefault();
   const isEdit = !!editingCategory.id;
-  const endpoint = isEdit
-   ? `/api/categories/${editingCategory.id}`
-   : "/api/categories";
-  const method = isEdit ? "PUT" : "POST";
   try {
-   const res = await fetch(endpoint, {
-    method,
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(editingCategory),
-   });
-   if (!res.ok) throw new Error("Failed to save category");
+   if (isEdit) {
+    await adminAPI.updateCategory(editingCategory.id, editingCategory);
+   } else {
+    await adminAPI.addCategory(editingCategory);
+   }
    alert(`Category ${isEdit ? "updated" : "created"} successfully.`);
    setEditingCategory(null);
    fetchCategories();
@@ -1210,10 +1110,7 @@ export default function Admin() {
  const handleDeleteCategory = async (id) => {
   if (!confirm("Are you sure you want to delete this category?")) return;
   try {
-   const res = await fetch(apiUrl(`/api/categories/${id}`), {
-    method: "DELETE",
-   });
-   if (!res.ok) throw new Error("Deletion failed");
+   await adminAPI.deleteCategory(id);
    alert("Category deleted successfully.");
    fetchCategories();
   } catch (err) {
@@ -1225,15 +1122,12 @@ export default function Admin() {
  const handleSaveBanner = async (e) => {
   e.preventDefault();
   const isEdit = !!editingBanner.id;
-  const endpoint = isEdit ? `/api/banners/${editingBanner.id}` : "/api/banners";
-  const method = isEdit ? "PUT" : "POST";
   try {
-   const res = await fetch(endpoint, {
-    method,
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(editingBanner),
-   });
-   if (!res.ok) throw new Error("Failed to save banner");
+   if (isEdit) {
+    await adminAPI.updateBanner(editingBanner.id, editingBanner);
+   } else {
+    await adminAPI.addBanner(editingBanner);
+   }
    alert(`Banner ${isEdit ? "updated" : "created"} successfully.`);
    setEditingBanner(null);
    fetchBanners();
@@ -1245,8 +1139,7 @@ export default function Admin() {
  const handleDeleteBanner = async (id) => {
   if (!confirm("Are you sure you want to delete this banner?")) return;
   try {
-   const res = await fetch(apiUrl(`/api/banners/${id}`), { method: "DELETE" });
-   if (!res.ok) throw new Error("Deletion failed");
+   await adminAPI.deleteBanner(id);
    alert("Banner deleted successfully.");
    fetchBanners();
   } catch (err) {
@@ -1258,12 +1151,7 @@ export default function Admin() {
  const handleSaveMedia = async (e) => {
   e.preventDefault();
   try {
-   const res = await fetch("/api/media", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(mediaForm),
-   });
-   if (!res.ok) throw new Error("Failed to save media item");
+   await adminAPI.addMedia(mediaForm);
    alert("Media item registered successfully.");
    setMediaForm({ name: "", url: "" });
    fetchMedia();
@@ -1275,8 +1163,7 @@ export default function Admin() {
  const handleDeleteMedia = async (id) => {
   if (!confirm("Are you sure you want to delete this media item?")) return;
   try {
-   const res = await fetch(apiUrl(`/api/media/${id}`), { method: "DELETE" });
-   if (!res.ok) throw new Error("Deletion failed");
+   await adminAPI.deleteMedia(id);
    alert("Media item deleted successfully.");
    fetchMedia();
   } catch (err) {
@@ -1288,17 +1175,12 @@ export default function Admin() {
  const handleSaveTestimonial = async (e) => {
   e.preventDefault();
   const isEdit = !!editingTestimonial.id;
-  const endpoint = isEdit
-   ? `/api/testimonials/${editingTestimonial.id}`
-   : "/api/testimonials";
-  const method = isEdit ? "PUT" : "POST";
   try {
-   const res = await fetch(endpoint, {
-    method,
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(editingTestimonial),
-   });
-   if (!res.ok) throw new Error("Failed to save testimonial");
+   if (isEdit) {
+    await adminAPI.updateTestimonial(editingTestimonial.id, editingTestimonial);
+   } else {
+    await adminAPI.addTestimonial(editingTestimonial);
+   }
    alert(`Testimonial ${isEdit ? "updated" : "created"} successfully.`);
    setEditingTestimonial(null);
    fetchTestimonials();
@@ -1310,10 +1192,7 @@ export default function Admin() {
  const handleDeleteTestimonial = async (id) => {
   if (!confirm("Are you sure you want to delete this testimonial?")) return;
   try {
-   const res = await fetch(apiUrl(`/api/testimonials/${id}`), {
-    method: "DELETE",
-   });
-   if (!res.ok) throw new Error("Deletion failed");
+   await adminAPI.deleteTestimonial(id);
    alert("Testimonial deleted successfully.");
    fetchTestimonials();
   } catch (err) {
@@ -1325,15 +1204,12 @@ export default function Admin() {
  const handleSaveBlog = async (e) => {
   e.preventDefault();
   const isEdit = !!editingBlog.id;
-  const endpoint = isEdit ? `/api/blog/${editingBlog.id}` : "/api/blog";
-  const method = isEdit ? "PUT" : "POST";
   try {
-   const res = await fetch(endpoint, {
-    method,
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(editingBlog),
-   });
-   if (!res.ok) throw new Error("Failed to save blog post");
+   if (isEdit) {
+    await adminAPI.updateBlog(editingBlog.id, editingBlog);
+   } else {
+    await adminAPI.addBlog(editingBlog);
+   }
    alert(`Blog post ${isEdit ? "updated" : "created"} successfully.`);
    setEditingBlog(null);
    fetchBlogs();
@@ -1345,8 +1221,7 @@ export default function Admin() {
  const handleDeleteBlog = async (id) => {
   if (!confirm("Are you sure you want to delete this blog post?")) return;
   try {
-   const res = await fetch(apiUrl(`/api/blog/${id}`), { method: "DELETE" });
-   if (!res.ok) throw new Error("Deletion failed");
+   await adminAPI.deleteBlog(id);
    alert("Blog post deleted successfully.");
    fetchBlogs();
   } catch (err) {
@@ -1358,15 +1233,12 @@ export default function Admin() {
  const handleSaveFaq = async (e) => {
   e.preventDefault();
   const isEdit = !!editingFaq.id;
-  const endpoint = isEdit ? `/api/faqs/${editingFaq.id}` : "/api/faqs";
-  const method = isEdit ? "PUT" : "POST";
   try {
-   const res = await fetch(endpoint, {
-    method,
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(editingFaq),
-   });
-   if (!res.ok) throw new Error("Failed to save FAQ");
+   if (isEdit) {
+    await adminAPI.updateFaq(editingFaq.id, editingFaq);
+   } else {
+    await adminAPI.addFaq(editingFaq);
+   }
    alert(`FAQ ${isEdit ? "updated" : "created"} successfully.`);
    setEditingFaq(null);
    fetchFaqs();
@@ -1378,8 +1250,7 @@ export default function Admin() {
  const handleDeleteFaq = async (id) => {
   if (!confirm("Are you sure you want to delete this FAQ?")) return;
   try {
-   const res = await fetch(apiUrl(`/api/faqs/${id}`), { method: "DELETE" });
-   if (!res.ok) throw new Error("Deletion failed");
+   await adminAPI.deleteFaq(id);
    alert("FAQ deleted successfully.");
    fetchFaqs();
   } catch (err) {
@@ -1391,17 +1262,12 @@ export default function Admin() {
  const handleSaveCoupon = async (e) => {
   e.preventDefault();
   const isEdit = !!editingCoupon.originalCode;
-  const endpoint = isEdit
-   ? `/api/coupons/${editingCoupon.originalCode}`
-   : "/api/coupons";
-  const method = isEdit ? "PUT" : "POST";
   try {
-   const res = await fetch(endpoint, {
-    method,
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(editingCoupon),
-   });
-   if (!res.ok) throw new Error("Failed to save coupon");
+   if (isEdit) {
+    await adminAPI.updateCoupon(editingCoupon.originalCode, editingCoupon);
+   } else {
+    await adminAPI.addCoupon(editingCoupon);
+   }
    alert(`Coupon ${isEdit ? "updated" : "created"} successfully.`);
    setEditingCoupon(null);
    fetchCoupons();
@@ -1413,10 +1279,7 @@ export default function Admin() {
  const handleDeleteCoupon = async (code) => {
   if (!confirm(`Are you sure you want to delete coupon ${code}?`)) return;
   try {
-   const res = await fetch(apiUrl(`/api/coupons/${code}`), {
-    method: "DELETE",
-   });
-   if (!res.ok) throw new Error("Deletion failed");
+   await adminAPI.deleteCoupon(code);
    alert("Coupon deleted successfully.");
    fetchCoupons();
   } catch (err) {
@@ -1427,12 +1290,7 @@ export default function Admin() {
  // --- Enquiries Handlers ---
  const handleUpdateEnquiryStatus = async (id, status) => {
   try {
-   const res = await fetch(`/api/enquiries/${id}/status`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ status }),
-   });
-   if (!res.ok) throw new Error("Status update failed");
+   await adminAPI.updateEnquiryStatus(id, status);
    alert(`Enquiry status updated to ${status}.`);
    fetchEnquiries();
   } catch (err) {
@@ -1443,10 +1301,7 @@ export default function Admin() {
  const handleDeleteEnquiry = async (id) => {
   if (!confirm("Are you sure you want to delete this enquiry log?")) return;
   try {
-   const res = await fetch(apiUrl(`/api/enquiries/${id}`), {
-    method: "DELETE",
-   });
-   if (!res.ok) throw new Error("Deletion failed");
+   await adminAPI.deleteEnquiry(id);
    alert("Enquiry deleted successfully.");
    fetchEnquiries();
   } catch (err) {
@@ -1458,10 +1313,7 @@ export default function Admin() {
  const handleDeleteNewsletter = async (id) => {
   if (!confirm("Remove this subscriber email from the list?")) return;
   try {
-   const res = await fetch(apiUrl(`/api/newsletter/${id}`), {
-    method: "DELETE",
-   });
-   if (!res.ok) throw new Error("Deletion failed");
+   await adminAPI.deleteNewsletter(id);
    alert("Subscriber email removed successfully.");
    fetchNewsletter();
   } catch (err) {
@@ -1472,12 +1324,7 @@ export default function Admin() {
  // --- User Handlers ---
  const handleUpdateUserRole = async (id, role) => {
   try {
-   const res = await fetch(apiUrl(`/api/users/${id}/role`), {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ role }),
-   });
-   if (!res.ok) throw new Error("Role update failed");
+   await adminAPI.updateUserRole(id, role);
    alert(`User role updated to ${role}.`);
    fetchUsers();
   } catch (err) {
@@ -1488,8 +1335,7 @@ export default function Admin() {
  const handleDeleteUser = async (id) => {
   if (!confirm("Permanently delete this user account?")) return;
   try {
-   const res = await fetch(apiUrl(`/api/users/${id}`), { method: "DELETE" });
-   if (!res.ok) throw new Error("Deletion failed");
+   await adminAPI.deleteUser(id);
    alert("User account deleted successfully.");
    fetchUsers();
   } catch (err) {
@@ -1532,12 +1378,7 @@ export default function Admin() {
  const handleSaveShippingSettings = async (e) => {
   e.preventDefault();
   try {
-   const res = await fetch(apiUrl("/api/settings/shipping"), {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(shippingSettings),
-   });
-   if (!res.ok) throw new Error("Failed to save shipping settings");
+   await adminAPI.saveShippingSettings(shippingSettings);
    alert("Shipping settings saved successfully.");
    fetchShippingSettings();
   } catch (err) {
@@ -1548,12 +1389,7 @@ export default function Admin() {
  const handleSaveGatewaySettings = async (e) => {
   e.preventDefault();
   try {
-   const res = await fetch(apiUrl("/api/settings/gateway"), {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(gatewaySettings),
-   });
-   if (!res.ok) throw new Error("Gateway settings save failed");
+   await adminAPI.saveGatewaySettings(gatewaySettings);
    alert("Razorpay gateway keys updated successfully.");
    fetchGatewaySettings();
   } catch (err) {
@@ -1570,9 +1406,7 @@ export default function Admin() {
   )
    return;
   try {
-   const res = await fetch(apiUrl("/api/cms/reset"), { method: "POST" });
-   if (!res.ok) throw new Error("Reset failed");
-
+   await adminAPI.factoryReset();
    alert("Factory reset completed successfully. Re-seeding tables...");
    window.location.reload();
   } catch (err) {

@@ -1,7 +1,6 @@
 import React, { useContext, useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { AuthContext, CartContext } from "../App.jsx";
-import { apiUrl } from "../config/api.js";
 
 export default function Dashboard() {
  const { user, logout } = useContext(AuthContext);
@@ -23,7 +22,7 @@ export default function Dashboard() {
  // Fetch user orders from database
  useEffect(() => {
   if (!user) return;
-  fetch(apiUrl(`/api/orders?email=${encodeURIComponent(user.email)}`))
+  fetch(`/api/orders?email=${encodeURIComponent(user.email)}`)
    .then((res) => res.json())
    .then((data) => {
     setOrders(Array.isArray(data) ? data : []);
@@ -36,7 +35,7 @@ export default function Dashboard() {
 
  // Fetch recommendations
  useEffect(() => {
-  fetch(apiUrl("/api/products"))
+  fetch("/api/products")
    .then((res) => res.json())
    .then((data) => {
     setRecProducts(data.slice(0, 5));
@@ -63,6 +62,26 @@ export default function Dashboard() {
  };
  const handleRecPrev = () => {
   setRecIndex((prev) => Math.max(0, prev - 1));
+ };
+
+ const getTrackingSteps = (status = "Processing") => {
+  const steps = [
+   "Processing",
+   "Packed",
+   "Shipped",
+   "Out for Delivery",
+   "Delivered",
+  ];
+  const normalizedStatus = String(status || "Processing").toLowerCase();
+  const currentIndex = Math.max(
+   0,
+   steps.findIndex((step) => step.toLowerCase() === normalizedStatus),
+  );
+
+  return steps.map((step, index) => ({
+   label: step,
+   done: index <= currentIndex,
+  }));
  };
 
  return (
@@ -683,6 +702,47 @@ export default function Dashboard() {
               ₹{order.total}
              </strong>
             </span>
+           </div>
+
+           <div
+            style={{
+             padding: "0 1.5rem 1.3rem",
+             borderTop: "1px solid rgba(255,255,255,0.03)",
+            }}
+           >
+            <p
+             style={{
+              fontSize: "0.75rem",
+              color: "var(--color-muted)",
+              marginBottom: "0.8rem",
+             }}
+            >
+             Estimated Delivery:{" "}
+             <strong style={{ color: "var(--color-gold)" }}>
+              {order.est_delivery || "Updating soon"}
+             </strong>
+            </p>
+            <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+             {getTrackingSteps(order.status).map((step) => (
+              <span
+               key={step.label}
+               style={{
+                fontSize: "0.68rem",
+                padding: "0.25rem 0.55rem",
+                borderRadius: "999px",
+                backgroundColor: step.done
+                 ? "rgba(201,168,76,0.16)"
+                 : "rgba(255,255,255,0.05)",
+                color: step.done ? "var(--color-gold)" : "var(--color-muted)",
+                border: step.done
+                 ? "1px solid rgba(201,168,76,0.35)"
+                 : "1px solid rgba(255,255,255,0.06)",
+               }}
+              >
+               {step.label}
+              </span>
+             ))}
+            </div>
            </div>
           </div>
          ))}

@@ -1,11 +1,18 @@
 import React, { useState, useContext, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../App.jsx";
-import { apiUrl } from "../config/api.js";
 
 export default function Login() {
  const { user, login } = useContext(AuthContext);
  const navigate = useNavigate();
+
+ const getPostLoginPath = (role) => {
+  const savedPath = sessionStorage.getItem("rein_oro_after_login");
+  sessionStorage.removeItem("rein_oro_after_login");
+
+  if (role === "admin") return "/admin";
+  return savedPath || "/dashboard";
+ };
 
  // Mode: 'login' or 'register'
  const [mode, setMode] = useState("login");
@@ -18,11 +25,7 @@ export default function Login() {
  // Redirect if already logged in
  useEffect(() => {
   if (user) {
-   if (user.role === "admin") {
-    navigate("/admin");
-   } else {
-    navigate("/dashboard");
-   }
+   navigate(getPostLoginPath(user.role), { replace: true });
   }
  }, [user, navigate]);
 
@@ -33,10 +36,8 @@ export default function Login() {
   setIsSubmitting(true);
 
   try {
-   const endpoint =
-    mode === "login" ? apiUrl("/api/auth/login") : apiUrl("/api/auth/register");
+   const endpoint = mode === "login" ? "/api/auth/login" : "/api/auth/register";
    const payload = { email, password };
-
    if (mode === "register") payload.name = name;
    const response = await fetch(endpoint, {
     method: "POST",
@@ -60,11 +61,7 @@ export default function Login() {
      : "Account registered successfully! Logging you in...",
    );
    login(userEmail, role);
-   if (role === "admin") {
-    navigate("/admin", { replace: true });
-   } else {
-    navigate("/dashboard", { replace: true });
-   }
+   navigate(getPostLoginPath(role), { replace: true });
   } catch (err) {
    alert(err.message);
   } finally {
@@ -83,12 +80,11 @@ export default function Login() {
    }
    alert(`A simulated 6-digit OTP code has been sent to ${mobile.trim()}.`);
    const code = prompt("Enter the 6-digit OTP sent to your phone:");
-
    if (code) {
     if (code.trim().length === 6) {
      login("royal.guest@reinoro.com", "user");
-     alert("Simulated authentication successful! Welcome to the Royal Circle.");
-     navigate("/dashboard");
+     alert("Simulated authentication successful! Welcome to Rein Oro Foods.");
+     navigate(getPostLoginPath("user"), { replace: true });
     } else {
      alert("Invalid OTP length. Code must be 6 digits.");
     }
@@ -100,8 +96,7 @@ export default function Login() {
   <main className="login-main-section">
    {/* Left Column: Product Showcase */}
    <section className="login-showcase-col left-showcase">
-    <img src="/images/makhana_classic.png" alt="Makhana Classic" />
-
+    <img src="images/makhana_classic.png" alt="Makhana Classic" />
     <div style={{ textAlign: "center" }}>
      <h4
       style={{
@@ -131,7 +126,7 @@ export default function Login() {
     <div className="login-card">
      <div style={{ textAlign: "center", marginBottom: "2rem" }}>
       <img
-       src="/images/logo.png"
+       src="images/logo.png"
        alt="Rein Oro Crown"
        style={{ height: "32px", marginBottom: "0.6rem" }}
       />
@@ -376,7 +371,7 @@ export default function Login() {
 
    {/* Right Column: Product Showcase */}
    <section className="login-showcase-col right-showcase">
-    <img src="/images/almonds_california.png" alt="Almonds California" />
+    <img src="images/almonds_california.png" alt="Almonds California" />
     <div style={{ textAlign: "center" }}>
      <h4
       style={{

@@ -1,9 +1,6 @@
 import React, { useContext, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { CartContext, AuthContext } from "../App.jsx";
-import { apiUrl } from "../config/api.js";
-
-const apiFetch = (path, options) => fetch(apiUrl(path), options);
 
 export default function Checkout() {
  const {
@@ -20,6 +17,11 @@ export default function Checkout() {
  } = useContext(CartContext);
  const { user } = useContext(AuthContext);
  const navigate = useNavigate();
+
+ const redirectToLogin = () => {
+  sessionStorage.setItem("rein_oro_after_login", "/checkout");
+  navigate("/login");
+ };
 
  // Form States
  const [formData, setFormData] = useState({
@@ -43,7 +45,13 @@ export default function Checkout() {
  const [isSubmitting, setIsSubmitting] = useState(false);
 
  React.useEffect(() => {
-  fetch(apiUrl("/api/settings/payment"))
+  if (user?.email) {
+   setFormData((prev) => ({ ...prev, email: user.email }));
+  }
+ }, [user]);
+
+ React.useEffect(() => {
+  fetch("/api/settings/payment")
    .then((res) => res.json())
    .then((data) => {
     setEnabledPayments(data);
@@ -120,7 +128,7 @@ export default function Checkout() {
   localOrderId,
   amount,
  }) => {
-  const response = await fetch(apiUrl("/api/payments/razorpay/verify"), {
+  const response = await fetch("/api/payments/razorpay/verify", {
    method: "POST",
    headers: { "Content-Type": "application/json" },
    body: JSON.stringify({
@@ -131,24 +139,15 @@ export default function Checkout() {
     amount,
    }),
   });
-
-  const contentType = response.headers.get("content-type") || "";
-  const isJson = contentType.includes("application/json");
-  const data = isJson ? await response.json() : await response.text();
-
+  const data = await response.json();
   if (!response.ok) {
-   const msg =
-    typeof data === "string"
-     ? data
-     : data?.error || "Payment verification failed";
-   throw new Error(msg);
+   throw new Error(data.error || "Payment verification failed");
   }
-
   return data;
  };
 
  const saveOrderToDB = async (payload) => {
-  const response = await fetch(apiUrl("/api/orders"), {
+  const response = await fetch("/api/orders", {
    method: "POST",
    headers: { "Content-Type": "application/json" },
    body: JSON.stringify(payload),
@@ -166,6 +165,12 @@ export default function Checkout() {
 
  const handlePlaceOrder = async (e) => {
   e.preventDefault();
+  if (!user) {
+   alert("Please login or create an account before buying a product.");
+   redirectToLogin();
+   return;
+  }
+
   if (!agreed) {
    alert(
     "You must agree to our Terms & Conditions and Privacy Policy to place an order.",
@@ -210,7 +215,7 @@ export default function Checkout() {
 
   const orderPayload = {
    id: orderId,
-   user_email: formData.email || "guest@reinoro.com",
+   user_email: user.email,
    date: formattedDate,
    est_delivery: formattedDelivery,
    payment_method: paymentMethodName,
@@ -222,6 +227,7 @@ export default function Checkout() {
    total: totalAmount,
    items: cart.map((item) => ({
     id: item.id,
+    cart_key: item.cartKey || `${item.id}::${item.weight || ''}`,
     name: item.name,
     flavor: item.flavor,
     weight: item.weight,
@@ -233,12 +239,11 @@ export default function Checkout() {
 
   if (paymentMethod === "razorpay") {
    try {
-    const orderRes = await fetch(apiUrl("/api/payments/razorpay/order"), {
+    const orderRes = await fetch("/api/payments/razorpay/order", {
      method: "POST",
      headers: { "Content-Type": "application/json" },
      body: JSON.stringify({ amount: totalAmount, receipt: orderId }),
     });
-
     const orderData = await orderRes.json();
     if (!orderRes.ok) {
      throw new Error(orderData.error || "Failed to create payment order");
@@ -261,12 +266,12 @@ export default function Checkout() {
       key: orderData.keyId,
       amount: orderData.amount,
       currency: "INR",
-      name: "Rein Oro Luxury Foods",
+      name: "Rein Oro Foods",
       description: "Gourmet Order Payment",
       order_id: orderData.orderId,
       prefill: {
        name: formData.name,
-       email: formData.email,
+       email: user.email,
        contact: formData.phone,
       },
       theme: {
@@ -320,6 +325,39 @@ export default function Checkout() {
   }
  };
 
+ if (!user) {
+  return (
+   <div
+    style={{
+     padding: "12rem 2rem",
+     textAlign: "center",
+     backgroundColor: "var(--color-bg)",
+    }}
+   >
+    <h2
+     style={{
+      color: "var(--color-white)",
+      fontFamily: "var(--font-heading)",
+      fontWeight: 300,
+     }}
+    >
+     Login Required
+    </h2>
+    <p style={{ color: "var(--color-muted)", marginTop: "1rem" }}>
+     Please login or create an account before checkout.
+    </p>
+    <button
+     type="button"
+     onClick={redirectToLogin}
+     className="btn btn-primary"
+     style={{ marginTop: "1.5rem" }}
+    >
+     Login / Signup
+    </button>
+   </div>
+  );
+ }
+
  if (cart.length === 0) {
   return (
    <div
@@ -358,7 +396,7 @@ export default function Checkout() {
        marginBottom: "0.5rem",
       }}
      >
-      Concierge Checkout
+      Secure Checkout
      </h1>
 
      {/* Step 1: Delivery Information */}
@@ -928,7 +966,7 @@ export default function Checkout() {
       >
        {cart.map((item) => (
         <div
-         key={item.id}
+         key={item.cartKey || `${item.id}::${item.weight || ''}`}
          style={{ display: "flex", gap: "1rem", alignItems: "center" }}
         >
          <div

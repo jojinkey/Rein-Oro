@@ -2,6 +2,7 @@ import React, { useState, useEffect, useContext } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { CartContext } from '../App.jsx';
 import useSEO from '../hooks/useSEO.js';
+import { apiUrl } from '../config/api.js';
 
 function parseJsonish(value, fallback) {
   if (value === undefined || value === null || value === '') return fallback;
@@ -101,7 +102,7 @@ export default function ProductDetails() {
 
   // Fetch all products
   useEffect(() => {
-    fetch('/api/products')
+    fetch(apiUrl('/api/products'))
       .then(res => res.json())
       .then(data => {
         const normalizedProducts = Array.isArray(data) ? data.map(normalizeProduct) : [];
@@ -118,7 +119,7 @@ export default function ProductDetails() {
   }, [id]);
 
   useEffect(() => {
-    fetch(`/api/products/${encodeURIComponent(id || '')}/reviews`)
+    fetch(apiUrl(`/api/products/${encodeURIComponent(id || '')}/reviews`))
       .then(res => (res.ok ? res.json() : { reviews: [], summary: { total: 0, average: 0, breakdown: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 } } }))
       .then(data => {
         setReviews(data.reviews || []);

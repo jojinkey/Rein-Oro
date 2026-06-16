@@ -79,46 +79,11 @@ function buildReviewSummary(reviews) {
  }
  const totalReviews = reviews.length;
  const averageRating = totalReviews ? totalRating / totalReviews : 0;
- const average = Number(averageRating.toFixed(2));
  return {
-  total: totalReviews,
   totalReviews,
-  average,
-  averageRating: average,
-  breakdown: ratingCounts,
+  averageRating: Number(averageRating.toFixed(2)),
   ratingCounts,
  };
-}
-
-function reviewProductId(review) {
- return cleanText(review.productId || review.product_id);
-}
-
-function reviewStatus(review) {
- return cleanText(review.status || "approved").toLowerCase();
-}
-
-function formatReview(review) {
- const productId = reviewProductId(review);
- const createdAt = review.createdAt || review.created_at || "";
- const userName = review.userName || review.name || "";
- return {
-  ...review,
-  productId,
-  product_id: productId,
-  userName,
-  name: userName,
-  createdAt,
-  created_at: createdAt,
- };
-}
-
-function sortReviewsNewestFirst(reviews) {
- return [...reviews].sort((a, b) => {
-  const aTime = new Date(a.createdAt || a.created_at || 0).getTime();
-  const bTime = new Date(b.createdAt || b.created_at || 0).getTime();
-  return bTime - aTime;
- });
 }
 
 export async function getReviews(req, res) {
@@ -126,14 +91,13 @@ export async function getReviews(req, res) {
   const productId = cleanText(req.query.productId || req.query.product_id);
   const status = cleanText(req.query.status);
   const where = [];
+  if (productId) where.push(["productId", "==", productId]);
   if (status) where.push(["status", "==", status]);
   const reviews = await queryFirestoreCollection(REVIEW_COLLECTION, {
    where,
+   orderBy: [["createdAt", "desc"]],
   });
-  const filteredReviews = reviews
-   .map(formatReview)
-   .filter((review) => !productId || review.productId === productId);
-  res.json(sortReviewsNewestFirst(filteredReviews));
+  res.json(reviews);
  } catch (err) {
   res.status(500).json({ error: err.message });
  }
@@ -162,17 +126,13 @@ export async function getProductReviews(req, res) {
  }
  try {
   const reviews = await queryFirestoreCollection(REVIEW_COLLECTION, {
-   where: [["status", "==", "approved"]],
+   where: [
+    ["productId", "==", productId],
+    ["status", "==", "approved"],
+   ],
+   orderBy: [["createdAt", "desc"]],
   });
-  const sortedReviews = sortReviewsNewestFirst(
-   reviews
-    .map(formatReview)
-    .filter(
-     (review) =>
-      review.productId === productId && reviewStatus(review) === "approved",
-    ),
-  );
-  res.json({ summary: buildReviewSummary(sortedReviews), reviews: sortedReviews });
+  res.json({ summary: buildReviewSummary(reviews), reviews });
  } catch (err) {
   res.status(500).json({ error: err.message });
  }

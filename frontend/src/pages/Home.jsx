@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { CartContext, CMSContext } from '../App.jsx';
 import ProductCard from '../components/ProductCard.jsx';
 import useSEO from '../hooks/useSEO.js';
+import { apiUrl } from '../config/api.js';
 
 export default function Home() {
   const navigate = useNavigate();
@@ -26,7 +27,7 @@ export default function Home() {
 
   // Fetch products
   useEffect(() => {
-    fetch('/api/products')
+    fetch(apiUrl('/api/products'))
       .then(res => res.json())
       .then(data => {
         const list = Array.isArray(data) ? data : [];

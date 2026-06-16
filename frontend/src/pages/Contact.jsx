@@ -1,6 +1,7 @@
 import React, { useState, useContext } from 'react';
 import { CMSContext } from '../App.jsx';
 import useSEO from '../hooks/useSEO.js';
+import { apiUrl } from '../config/api.js';
 
 const SUPPORT_EMAIL = 'wecare.reinoro@gmail.com';
 const SUPPORT_PHONE = '+91 6397003303';
@@ -67,7 +68,7 @@ export default function Contact() {
     setStatus(null);
 
     try {
-      const res = await fetch('/api/enquiries', {
+      const res = await fetch(apiUrl('/api/enquiries'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

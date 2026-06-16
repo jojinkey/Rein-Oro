@@ -87,6 +87,11 @@ function validateRegistrationPayload(payload) {
  return errors;
 }
 
+function getFormattedDate(date = new Date()) {
+ const pad = (n) => String(n).padStart(2, "0");
+ return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+}
+
 function sanitizeUserProfile(profile) {
  return {
   uid: profile.uid,
@@ -106,6 +111,7 @@ function sanitizeUserProfile(profile) {
    .trim()
    .toLowerCase(),
   createdAt: profile.createdAt || null,
+  member_since: profile.member_since || null,
   lastLoginAt: profile.lastLoginAt || null,
  };
 }
@@ -115,26 +121,44 @@ async function writeUserProfile(uid, payload) {
  if (!firestore) {
   throw new Error("Firestore is not available");
  }
- await firestore
-  .collection("users")
-  .doc(uid)
-  .set(
-   {
-    uid,
-    name: payload.name,
-    email: payload.email,
-    phone: payload.phone,
-    photoURL: payload.photoURL || null,
-    addresses: payload.addresses,
-    wishlist: payload.wishlist,
-    totalOrders: 0,
-    totalSpent: 0,
-    role: payload.role || "user",
-    createdAt: FieldValue.serverTimestamp(),
-    lastLoginAt: FieldValue.serverTimestamp(),
-   },
-   { merge: true },
-  );
+
+ const docRef = firestore.collection("users").doc(uid);
+ const doc = await docRef.get();
+ let member_since = payload.member_since;
+ let createdAt = FieldValue.serverTimestamp();
+
+ if (doc.exists) {
+  const data = doc.data();
+  if (data.member_since) {
+   member_since = data.member_since;
+  }
+  if (data.createdAt) {
+   createdAt = data.createdAt;
+  }
+ }
+
+ if (!member_since) {
+  member_since = getFormattedDate();
+ }
+
+ await docRef.set(
+  {
+   uid,
+   name: payload.name,
+   email: payload.email,
+   phone: payload.phone,
+   photoURL: payload.photoURL || null,
+   addresses: payload.addresses,
+   wishlist: payload.wishlist,
+   totalOrders: 0,
+   totalSpent: 0,
+   role: payload.role || "user",
+   createdAt,
+   member_since,
+   lastLoginAt: FieldValue.serverTimestamp(),
+  },
+  { merge: true },
+ );
 }
 
 async function getUserProfileByUid(uid) {

@@ -10,18 +10,17 @@ export default defineConfig({
   allowedHosts: true,
   proxy: {
    "/api": {
-    // Uses VITE_BACKEND_URL from frontend/.env when available
-    target: process.env.VITE_BACKEND_URL || "http://127.0.0.1:5000",
+    target: "http://127.0.0.1:5000",
     changeOrigin: true,
     secure: false,
    },
    "/sitemap.xml": {
-    target: process.env.VITE_BACKEND_URL || "http://127.0.0.1:5000",
+    target: "http://localhost:5000",
     changeOrigin: true,
     secure: false,
    },
    "/robots.txt": {
-    target: process.env.VITE_BACKEND_URL || "http://127.0.0.1:5000",
+    target: "http://localhost:5000",
     changeOrigin: true,
     secure: false,
    },

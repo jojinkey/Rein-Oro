@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext, CMSContext } from "../App.jsx";
-import { apiUrl } from "../config/api.js";
-import * as adminAPI from "../config/admin.js";
 
 const getSelectorLabel = (selector) => {
  const labels = {
@@ -34,23 +32,13 @@ const getSelectorLabel = (selector) => {
   ".contact-header h1": "Contact Page Hero Title",
   ".contact-header p": "Contact Page Hero Subtitle",
   ".contact-address": "Contact Address Details",
-  ".contact-email-1": "Concierge Desk Email",
-  ".contact-email-2": "Concierge Support Email",
-  ".contact-phone-1": "Concierge Phone Number",
-  ".contact-phone-2": "Concierge Support Phone Number",
-  ".contact-hours": "Bespoke Concierge Business Hours",
+  ".contact-email-1": "Customer Support Email",
+  ".contact-email-2": "Business Support Email",
+  ".contact-phone-1": "Customer Support Phone Number",
+  ".contact-phone-2": "WhatsApp Phone Number",
+  ".contact-hours": "Business Hours",
  };
  return labels[selector] || selector;
-};
-
-const safeParseJson = async (res) => {
- try {
-  const text = await res.text();
-  if (!text) return null;
-  return JSON.parse(text);
- } catch {
-  return null;
- }
 };
 
 // Inline SVG Icon Helpers for Luxury Aesthetic
@@ -501,6 +489,19 @@ const IconCalendar = () => (
   <line x1="3" y1="10" x2="21" y2="10" />
  </svg>
 );
+const IconChevronRight = () => (
+ <svg
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  strokeWidth="2"
+  strokeLinecap="round"
+  strokeLinejoin="round"
+  style={{ width: "16px", height: "16px" }}
+ >
+  <polyline points="9 18 15 12 9 6" />
+ </svg>
+);
 const IconEdit = () => (
  <svg
   viewBox="0 0 24 24"
@@ -545,6 +546,92 @@ const IconPlus = () => (
   <line x1="5" y1="12" x2="19" y2="12" />
  </svg>
 );
+const IconEye = () => (
+ <svg
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  strokeWidth="2"
+  strokeLinecap="round"
+  strokeLinejoin="round"
+  style={{ width: "14px", height: "14px" }}
+ >
+  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+  <circle cx="12" cy="12" r="3" />
+ </svg>
+);
+
+const parseJsonishAdmin = (value, fallback) => {
+ if (value === undefined || value === null || value === "") return fallback;
+ if (typeof value !== "string") return value;
+ try {
+  return JSON.parse(value);
+ } catch {
+  return value;
+ }
+};
+
+const toAdminArray = (value, fallback = []) => {
+ const parsed = parseJsonishAdmin(value, fallback);
+ if (Array.isArray(parsed)) return parsed;
+ if (typeof parsed === "string") {
+  return parsed
+   .split(/[\n,]/)
+   .map((item) => item.trim())
+   .filter(Boolean);
+ }
+ return fallback;
+};
+
+const toAdminObject = (value, fallback = {}) => {
+ const parsed = parseJsonishAdmin(value, fallback);
+ return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+  ? parsed
+  : fallback;
+};
+
+const toAdminNumber = (value, fallback = 0) => {
+ const numeric = Number(value);
+ return Number.isFinite(numeric) ? numeric : fallback;
+};
+
+const slugifyProduct = (value) =>
+ String(value || "")
+  .trim()
+  .toLowerCase()
+  .replace(/[^a-z0-9]+/g, "-")
+  .replace(/^-+|-+$/g, "");
+
+const normalizeVariantRows = (prod = {}) => {
+ const variants = toAdminArray(prod.variants, [])
+  .map((variant) => ({
+   weight: String(variant?.weight || "").trim(),
+   mrp: toAdminNumber(variant?.mrp, toAdminNumber(prod.mrp, prod.price || 0)),
+   sale_price: toAdminNumber(
+    variant?.sale_price ?? variant?.salePrice ?? variant?.price,
+    toAdminNumber(prod.sale_price ?? prod.price, 0),
+   ),
+   stock: Math.max(0, Math.floor(toAdminNumber(variant?.stock, prod.stock || 0))),
+   active:
+    variant?.active === undefined
+     ? true
+     : variant.active === true ||
+       variant.active === "true" ||
+       variant.active === 1 ||
+       variant.active === "1",
+  }))
+  .filter((variant) => variant.weight);
+ if (variants.length) return variants;
+ return [
+  {
+   weight: prod.weight || "",
+   mrp: toAdminNumber(prod.mrp, prod.price || 0),
+   sale_price: toAdminNumber(prod.sale_price ?? prod.price, 0),
+   stock: Math.max(0, Math.floor(toAdminNumber(prod.stock, 0))),
+   active: true,
+  },
+ ];
+};
 
 export default function Admin() {
  const { user, login, logout } = useContext(AuthContext);
@@ -570,16 +657,25 @@ export default function Admin() {
 
  // Product Modal State
  const [isModalOpen, setIsModalOpen] = useState(false);
- const [modalMode, setModalMode] = useState("create");
+ const [modalMode, setModalMode] = useState("create"); // 'create' or 'edit'
  const [productForm, setProductForm] = useState({
   id: "",
   name: "",
   flavor: "",
   title: "",
   price: 0,
+  mrp: 0,
+  sale_price: 0,
+  stock: 0,
+  featured: false,
+  slug: "",
+  seo_title: "",
+  meta_description: "",
   image: "",
+  images: "",
   description: "",
   weight: "",
+  variants: [{ weight: "", mrp: 0, sale_price: 0, stock: 0, active: true }],
   benefits: "",
   benefits_image: "images/makhana_bowl_love.png",
   ingredients: [],
@@ -587,6 +683,7 @@ export default function Admin() {
   nutrition: {},
  });
 
+ // Styles Form State
  const [stylesForm, setStylesForm] = useState({
   colorBg: "#050505",
   colorGold: "#c9a84c",
@@ -643,74 +740,104 @@ export default function Admin() {
  const [ownerDashboard, setOwnerDashboard] = useState(null);
  const [firestoreStatus, setFirestoreStatus] = useState(null);
 
- const fetchCategories = async () => {
-  const data = await adminAPI.fetchCategories();
-  setCategories(data);
+ const fetchCategories = () => {
+  fetch("/api/categories")
+   .then((res) => res.json())
+   .then((data) => setCategories(data))
+   .catch((err) => console.error(err));
  };
- const fetchBanners = async () => {
-  const data = await adminAPI.fetchBanners();
-  setBanners(data);
+ const fetchBanners = () => {
+  fetch("/api/banners")
+   .then((res) => res.json())
+   .then((data) => setBanners(data))
+   .catch((err) => console.error(err));
  };
- const fetchMedia = async () => {
-  const data = await adminAPI.fetchMedia();
-  setMedia(data);
+ const fetchMedia = () => {
+  fetch("/api/media")
+   .then((res) => res.json())
+   .then((data) => setMedia(data))
+   .catch((err) => console.error(err));
  };
- const fetchTestimonials = async () => {
-  const data = await adminAPI.fetchTestimonials();
-  setTestimonials(data);
+ const fetchTestimonials = () => {
+  fetch("/api/testimonials")
+   .then((res) => res.json())
+   .then((data) => setTestimonials(data))
+   .catch((err) => console.error(err));
  };
- const fetchBlogs = async () => {
-  const data = await adminAPI.fetchBlogs();
-  setBlogs(data);
+ const fetchBlogs = () => {
+  fetch("/api/blog")
+   .then((res) => res.json())
+   .then((data) => setBlogs(data))
+   .catch((err) => console.error(err));
  };
- const fetchFaqs = async () => {
-  const data = await adminAPI.fetchFaqs();
-  setFaqs(data);
+ const fetchFaqs = () => {
+  fetch("/api/faqs")
+   .then((res) => res.json())
+   .then((data) => setFaqs(data))
+   .catch((err) => console.error(err));
  };
- const fetchEnquiries = async () => {
-  const data = await adminAPI.fetchEnquiries();
-  setEnquiries(data);
+ const fetchEnquiries = () => {
+  fetch("/api/enquiries")
+   .then((res) => res.json())
+   .then((data) => setEnquiries(data))
+   .catch((err) => console.error(err));
  };
- const fetchCoupons = async () => {
-  const data = await adminAPI.fetchCoupons();
-  setCoupons(data);
+ const fetchCoupons = () => {
+  fetch("/api/coupons")
+   .then((res) => res.json())
+   .then((data) => setCoupons(data))
+   .catch((err) => console.error(err));
  };
- const fetchNewsletter = async () => {
-  const data = await adminAPI.fetchNewsletter();
-  setNewsletterList(data);
+ const fetchNewsletter = () => {
+  fetch("/api/newsletter")
+   .then((res) => res.json())
+   .then((data) => setNewsletterList(data))
+   .catch((err) => console.error(err));
  };
- const fetchUsers = async () => {
-  const data = await adminAPI.fetchUsers();
-  setUsersList(data);
+ const fetchUsers = () => {
+  fetch("/api/users")
+   .then((res) => res.json())
+   .then((data) => setUsersList(data))
+   .catch((err) => console.error(err));
  };
-
- const fetchProducts = async () => {
-  const data = await adminAPI.fetchProducts();
-  setProducts(data);
+ const fetchSeoSettings = () => {
+  fetch("/api/settings/seo")
+   .then((res) => res.json())
+   .then((data) => setSeoSettings(data))
+   .catch((err) => console.error(err));
  };
-
- const fetchOrders = async () => {
-  const data = await adminAPI.fetchOrders();
-  setOrders(data);
+ const fetchPaymentSettings = () => {
+  fetch("/api/settings/payment")
+   .then((res) => res.json())
+   .then((data) => setPaymentSettings(data))
+   .catch((err) => console.error(err));
  };
-
- const fetchShippingSettings = async () => {
-  const data = await adminAPI.fetchShippingSettings();
-  setShippingSettings(data);
+ const fetchShippingSettings = () => {
+  fetch("/api/settings/shipping")
+   .then((res) => res.json())
+   .then((data) => setShippingSettings(data))
+   .catch((err) => console.error(err));
  };
- const fetchGatewaySettings = async () => {
-  const data = await adminAPI.fetchGatewaySettings();
-  setGatewaySettings(data);
+ const fetchGatewaySettings = () => {
+  fetch("/api/settings/gateway")
+   .then((res) => res.json())
+   .then((data) => setGatewaySettings(data))
+   .catch((err) => console.error(err));
  };
-
- const fetchOwnerDashboard = async () => {
-  const data = await adminAPI.fetchOwnerDashboard();
-  setOwnerDashboard(data);
-  setFirestoreStatus(data?.firestore || null);
+ const fetchOwnerDashboard = () => {
+  fetch("/api/owner/dashboard")
+   .then((res) => res.json())
+   .then((data) => {
+    setOwnerDashboard(data);
+    setFirestoreStatus(data.firestore || null);
+   })
+   .catch((err) => console.error(err));
  };
- const fetchFirestoreStatus = async () => {
-  const data = await adminAPI.fetchFirestoreStatus();
-  setFirestoreStatus(data);
+ const fetchFirestoreStatus = () => {
+  fetch("/api/firestore/status")
+   .then((res) => res.json())
+   .then((data) => setFirestoreStatus(data))
+   .catch((err) => console.error(err));
  };
 
  // Check role and login status
@@ -731,8 +858,18 @@ export default function Admin() {
  useEffect(() => {
   if (!isAdminLoggedIn) return;
 
-  fetchProducts();
-  fetchOrders();
+  // Fetch products
+  fetch("/api/products")
+   .then((res) => res.json())
+   .then((data) => setProducts(data))
+   .catch((err) => console.error(err));
+
+  // Fetch all orders
+  fetch("/api/orders")
+   .then((res) => res.json())
+   .then((data) => setOrders(data))
+   .catch((err) => console.error(err));
+
   fetchCategories();
   fetchBanners();
   fetchMedia();
@@ -743,7 +880,8 @@ export default function Admin() {
   fetchCoupons();
   fetchNewsletter();
   fetchUsers();
-  // These panels are supported by Admin.jsx. (No-op guards removed.)
+  fetchSeoSettings();
+  fetchPaymentSettings();
   fetchShippingSettings();
   fetchGatewaySettings();
   fetchOwnerDashboard();
@@ -785,12 +923,12 @@ export default function Admin() {
     ".gifting-title": getCMSValue(
      "index.html",
      ".gifting-title",
-     "Royal Corporate Gifting",
+     "Bulk Orders & Corporate Gifting",
     ),
     ".gifting-body": getCMSValue(
      "index.html",
      ".gifting-body",
-     "Present your clients and partners with custom, gold-embossed gourmet collections. Curated hampers featuring premium dry fruits and slow-roasted makhanas designed to project luxury, taste, and prestige.",
+     "Looking for healthy gifting solutions for your employees, clients, events, or special occasions? Rein Oro Foods offers premium makhana and dry fruit gift packs customized for bulk orders and corporate gifting.",
     ),
     ".gift-box-img": getCMSValue(
      "index.html",
@@ -828,7 +966,7 @@ export default function Admin() {
     ".about-hero-section p": getCMSValue(
      "about.html",
      ".about-hero-section p",
-     "At the House of Rein Oro, we view healthy snacking not as a compromise, but as a crowning luxury. Our journey began with a singular focus: to elevate standard dry fruits and lotus seeds into premium, culinary works of art.",
+     "Rein Oro Foods brings premium-quality makhana and dry fruits to customers who value purity, nutrition, freshness, and excellence.",
     ),
     ".about-hero-img": getCMSValue(
      "about.html",
@@ -863,7 +1001,7 @@ export default function Admin() {
     ".about-values-title": getCMSValue(
      "about.html",
      ".about-values-title",
-     "Royal Core Values",
+     "Our Core Values",
     ),
     ".about-values-body": getCMSValue(
      "about.html",
@@ -896,27 +1034,27 @@ export default function Admin() {
     ".contact-header h1": getCMSValue(
      "contact.html",
      ".contact-header h1",
-     "Contact Our House",
+     "Contact Rein Oro Foods",
     ),
     ".contact-header p": getCMSValue(
      "contact.html",
      ".contact-header p",
-     "Our concierge team is at your service for any inquiries, corporate commissions, or bespoke requests.",
+     "Have questions about our products, orders, wholesale inquiries, or partnerships? Our team is here to help. Reach out to us and we will get back to you as soon as possible.",
     ),
     ".contact-address": getCMSValue(
      "contact.html",
      ".contact-address",
-     "Rein Oro Foods Private Limited\n12-A Connaught Place, Block C\nNew Delhi, 110001, India",
+     "Business Name: Rein Oro Foods\nProprietor: Vaibhav Singh Panwar\nF-499/3, Gali No.-11,\nRajendranagar,\nRoorkee,\nDistrict Haridwar,\nUttarakhand - 247667,\nIndia",
     ),
     ".contact-email-1": getCMSValue(
      "contact.html",
      ".contact-email-1",
-     "concierge@reinoro.com",
+     "wecare.reinoro@gmail.com",
     ),
     ".contact-email-2": getCMSValue(
      "contact.html",
      ".contact-email-2",
-     "support@reinoro.com",
+     "wecare.reinoro@gmail.com",
     ),
     ".contact-phone-1": getCMSValue(
      "contact.html",
@@ -941,7 +1079,7 @@ export default function Admin() {
  const handleAdminGateSubmit = async (e) => {
   e.preventDefault();
   try {
-   const res = await fetch(apiUrl("/api/auth/login"), {
+   const res = await fetch("/api/auth/login", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email: authEmail, password: authPassword }),
@@ -973,18 +1111,24 @@ export default function Admin() {
     flavor: prod.flavor,
     title: prod.title,
     price: prod.price,
+    mrp: prod.mrp ?? prod.price,
+    sale_price: prod.sale_price ?? prod.price,
+    stock: prod.stock ?? 0,
+    featured: !!prod.featured,
+    slug: prod.slug || slugifyProduct(prod.title || prod.name || prod.id),
+    seo_title: prod.seo_title || "",
+    meta_description: prod.meta_description || "",
     image: prod.image,
+    images: toAdminArray(prod.images, []).join(", "),
     description: prod.description,
     weight: prod.weight,
-    benefits: Array.isArray(prod.benefits) ? prod.benefits.join(", ") : "",
+    variants: normalizeVariantRows(prod),
+    benefits: toAdminArray(prod.benefits, []).join(", "),
     benefits_image: prod.benefits_image,
-    ingredients: Array.isArray(prod.ingredients) ? prod.ingredients : [],
-    specs:
-     typeof prod.specs === "object" && prod.specs !== null ? prod.specs : {},
+    ingredients: toAdminArray(prod.ingredients, []),
+    specs: toAdminObject(prod.specs, {}),
     nutrition:
-     typeof prod.nutrition === "object" && prod.nutrition !== null
-      ? prod.nutrition
-      : {},
+     toAdminObject(prod.nutrition, {}),
    });
   } else {
    setProductForm({
@@ -993,9 +1137,18 @@ export default function Admin() {
     flavor: "",
     title: "",
     price: 0,
+    mrp: 0,
+    sale_price: 0,
+    stock: 0,
+    featured: false,
+    slug: "",
+    seo_title: "",
+    meta_description: "",
     image: "",
+    images: "",
     description: "",
     weight: "",
+    variants: [{ weight: "", mrp: 0, sale_price: 0, stock: 0, active: true }],
     benefits: "",
     benefits_image: "images/makhana_bowl_love.png",
     ingredients: [],
@@ -1023,9 +1176,35 @@ export default function Admin() {
 
  const handleProductSubmit = async (e) => {
   e.preventDefault();
-  const payload = {
+ const payload = {
    ...productForm,
-   price: parseInt(productForm.price),
+   price: toAdminNumber(productForm.sale_price || productForm.price),
+   mrp: toAdminNumber(productForm.mrp || productForm.price),
+   sale_price: toAdminNumber(productForm.sale_price || productForm.price),
+   stock: Math.max(0, Math.floor(toAdminNumber(productForm.stock, 0))),
+   featured: !!productForm.featured,
+   slug:
+    productForm.slug ||
+    slugifyProduct(productForm.title || productForm.name || productForm.id),
+   seo_title: productForm.seo_title,
+   meta_description: productForm.meta_description,
+   images: toAdminArray(productForm.images, []),
+   variants: (productForm.variants || [])
+    .map((variant) => ({
+     weight: String(variant.weight || "").trim(),
+     mrp: toAdminNumber(variant.mrp, productForm.mrp || productForm.price),
+     sale_price: toAdminNumber(
+      variant.sale_price,
+      productForm.sale_price || productForm.price,
+     ),
+     price: toAdminNumber(
+      variant.sale_price,
+      productForm.sale_price || productForm.price,
+     ),
+     stock: Math.max(0, Math.floor(toAdminNumber(variant.stock, 0))),
+     active: variant.active !== false,
+    }))
+    .filter((variant) => variant.weight),
    benefits: productForm.benefits
     .split(",")
     .map((b) => b.trim())
@@ -1034,12 +1213,28 @@ export default function Admin() {
    specs: productForm.specs,
    nutrition: productForm.nutrition,
   };
+  if (!payload.weight && payload.variants.length) {
+   payload.weight = payload.variants[0].weight;
+  }
 
   try {
-   if (modalMode === "create") {
-    await adminAPI.addProduct(payload);
-   } else {
-    await adminAPI.updateProduct(productForm.id, payload);
+   const method = modalMode === "create" ? "POST" : "PUT";
+   const endpoint =
+    modalMode === "create"
+     ? "/api/products"
+     : `/api/products/${productForm.id}`;
+   const res = await fetch(endpoint, {
+    method,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+   });
+
+   if (!res.ok) {
+    const data = await res.json();
+    const errorMsg = data.details && Array.isArray(data.details)
+     ? `${data.error}: ${data.details.join(", ")}`
+     : (data.error || "Product operation failed");
+    throw new Error(errorMsg);
    }
 
    alert(
@@ -1047,7 +1242,8 @@ export default function Admin() {
    );
    setIsModalOpen(false);
    // Reload products list
-   const updatedData = await adminAPI.fetchProducts();
+   const updatedRes = await fetch("/api/products");
+   const updatedData = await updatedRes.json();
    setProducts(updatedData);
   } catch (err) {
    alert(`Error: ${err.message}`);
@@ -1058,7 +1254,9 @@ export default function Admin() {
   if (!confirm("Are you sure you want to permanently delete this product?"))
    return;
   try {
-   await adminAPI.deleteProduct(id);
+   const res = await fetch(`/api/products/${id}`, { method: "DELETE" });
+   if (!res.ok) throw new Error("Deletion failed");
+
    alert("Product deleted successfully.");
    setProducts((prev) => prev.filter((p) => p.id !== id));
   } catch (err) {
@@ -1070,7 +1268,13 @@ export default function Admin() {
  const handleSaveStyles = async (e) => {
   e.preventDefault();
   try {
-   await adminAPI.saveCmsStyles(stylesForm);
+   const res = await fetch("/api/cms/styles", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(stylesForm),
+   });
+   if (!res.ok) throw new Error("Styles saving failed");
+
    alert("Styles and theme overrides saved successfully.");
    fetchCMSData(); // Refresh App state styles
   } catch (err) {
@@ -1081,7 +1285,17 @@ export default function Admin() {
  // --- Content Editor Handler ---
  const handleSaveContent = async (selector, value) => {
   try {
-   await adminAPI.saveCmsContent(selectedPage, selector, value);
+   const res = await fetch("/api/cms/content", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+     page_name: selectedPage,
+     selector,
+     content_value: value,
+    }),
+   });
+   if (!res.ok) throw new Error("Content saving failed");
+
    setContentForm((prev) => ({ ...prev, [selector]: value }));
    fetchCMSData(); // Refresh App context
   } catch (err) {
@@ -1093,12 +1307,17 @@ export default function Admin() {
  const handleSaveCategory = async (e) => {
   e.preventDefault();
   const isEdit = !!editingCategory.id;
+  const endpoint = isEdit
+   ? `/api/categories/${editingCategory.id}`
+   : "/api/categories";
+  const method = isEdit ? "PUT" : "POST";
   try {
-   if (isEdit) {
-    await adminAPI.updateCategory(editingCategory.id, editingCategory);
-   } else {
-    await adminAPI.addCategory(editingCategory);
-   }
+   const res = await fetch(endpoint, {
+    method,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(editingCategory),
+   });
+   if (!res.ok) throw new Error("Failed to save category");
    alert(`Category ${isEdit ? "updated" : "created"} successfully.`);
    setEditingCategory(null);
    fetchCategories();
@@ -1110,7 +1329,8 @@ export default function Admin() {
  const handleDeleteCategory = async (id) => {
   if (!confirm("Are you sure you want to delete this category?")) return;
   try {
-   await adminAPI.deleteCategory(id);
+   const res = await fetch(`/api/categories/${id}`, { method: "DELETE" });
+   if (!res.ok) throw new Error("Deletion failed");
    alert("Category deleted successfully.");
    fetchCategories();
   } catch (err) {
@@ -1122,12 +1342,15 @@ export default function Admin() {
  const handleSaveBanner = async (e) => {
   e.preventDefault();
   const isEdit = !!editingBanner.id;
+  const endpoint = isEdit ? `/api/banners/${editingBanner.id}` : "/api/banners";
+  const method = isEdit ? "PUT" : "POST";
   try {
-   if (isEdit) {
-    await adminAPI.updateBanner(editingBanner.id, editingBanner);
-   } else {
-    await adminAPI.addBanner(editingBanner);
-   }
+   const res = await fetch(endpoint, {
+    method,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(editingBanner),
+   });
+   if (!res.ok) throw new Error("Failed to save banner");
    alert(`Banner ${isEdit ? "updated" : "created"} successfully.`);
    setEditingBanner(null);
    fetchBanners();
@@ -1139,7 +1362,8 @@ export default function Admin() {
  const handleDeleteBanner = async (id) => {
   if (!confirm("Are you sure you want to delete this banner?")) return;
   try {
-   await adminAPI.deleteBanner(id);
+   const res = await fetch(`/api/banners/${id}`, { method: "DELETE" });
+   if (!res.ok) throw new Error("Deletion failed");
    alert("Banner deleted successfully.");
    fetchBanners();
   } catch (err) {
@@ -1151,7 +1375,12 @@ export default function Admin() {
  const handleSaveMedia = async (e) => {
   e.preventDefault();
   try {
-   await adminAPI.addMedia(mediaForm);
+   const res = await fetch("/api/media", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(mediaForm),
+   });
+   if (!res.ok) throw new Error("Failed to save media item");
    alert("Media item registered successfully.");
    setMediaForm({ name: "", url: "" });
    fetchMedia();
@@ -1163,7 +1392,8 @@ export default function Admin() {
  const handleDeleteMedia = async (id) => {
   if (!confirm("Are you sure you want to delete this media item?")) return;
   try {
-   await adminAPI.deleteMedia(id);
+   const res = await fetch(`/api/media/${id}`, { method: "DELETE" });
+   if (!res.ok) throw new Error("Deletion failed");
    alert("Media item deleted successfully.");
    fetchMedia();
   } catch (err) {
@@ -1175,12 +1405,17 @@ export default function Admin() {
  const handleSaveTestimonial = async (e) => {
   e.preventDefault();
   const isEdit = !!editingTestimonial.id;
+  const endpoint = isEdit
+   ? `/api/testimonials/${editingTestimonial.id}`
+   : "/api/testimonials";
+  const method = isEdit ? "PUT" : "POST";
   try {
-   if (isEdit) {
-    await adminAPI.updateTestimonial(editingTestimonial.id, editingTestimonial);
-   } else {
-    await adminAPI.addTestimonial(editingTestimonial);
-   }
+   const res = await fetch(endpoint, {
+    method,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(editingTestimonial),
+   });
+   if (!res.ok) throw new Error("Failed to save testimonial");
    alert(`Testimonial ${isEdit ? "updated" : "created"} successfully.`);
    setEditingTestimonial(null);
    fetchTestimonials();
@@ -1192,7 +1427,8 @@ export default function Admin() {
  const handleDeleteTestimonial = async (id) => {
   if (!confirm("Are you sure you want to delete this testimonial?")) return;
   try {
-   await adminAPI.deleteTestimonial(id);
+   const res = await fetch(`/api/testimonials/${id}`, { method: "DELETE" });
+   if (!res.ok) throw new Error("Deletion failed");
    alert("Testimonial deleted successfully.");
    fetchTestimonials();
   } catch (err) {
@@ -1204,12 +1440,15 @@ export default function Admin() {
  const handleSaveBlog = async (e) => {
   e.preventDefault();
   const isEdit = !!editingBlog.id;
+  const endpoint = isEdit ? `/api/blog/${editingBlog.id}` : "/api/blog";
+  const method = isEdit ? "PUT" : "POST";
   try {
-   if (isEdit) {
-    await adminAPI.updateBlog(editingBlog.id, editingBlog);
-   } else {
-    await adminAPI.addBlog(editingBlog);
-   }
+   const res = await fetch(endpoint, {
+    method,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(editingBlog),
+   });
+   if (!res.ok) throw new Error("Failed to save blog post");
    alert(`Blog post ${isEdit ? "updated" : "created"} successfully.`);
    setEditingBlog(null);
    fetchBlogs();
@@ -1221,7 +1460,8 @@ export default function Admin() {
  const handleDeleteBlog = async (id) => {
   if (!confirm("Are you sure you want to delete this blog post?")) return;
   try {
-   await adminAPI.deleteBlog(id);
+   const res = await fetch(`/api/blog/${id}`, { method: "DELETE" });
+   if (!res.ok) throw new Error("Deletion failed");
    alert("Blog post deleted successfully.");
    fetchBlogs();
   } catch (err) {
@@ -1233,12 +1473,15 @@ export default function Admin() {
  const handleSaveFaq = async (e) => {
   e.preventDefault();
   const isEdit = !!editingFaq.id;
+  const endpoint = isEdit ? `/api/faqs/${editingFaq.id}` : "/api/faqs";
+  const method = isEdit ? "PUT" : "POST";
   try {
-   if (isEdit) {
-    await adminAPI.updateFaq(editingFaq.id, editingFaq);
-   } else {
-    await adminAPI.addFaq(editingFaq);
-   }
+   const res = await fetch(endpoint, {
+    method,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(editingFaq),
+   });
+   if (!res.ok) throw new Error("Failed to save FAQ");
    alert(`FAQ ${isEdit ? "updated" : "created"} successfully.`);
    setEditingFaq(null);
    fetchFaqs();
@@ -1250,7 +1493,8 @@ export default function Admin() {
  const handleDeleteFaq = async (id) => {
   if (!confirm("Are you sure you want to delete this FAQ?")) return;
   try {
-   await adminAPI.deleteFaq(id);
+   const res = await fetch(`/api/faqs/${id}`, { method: "DELETE" });
+   if (!res.ok) throw new Error("Deletion failed");
    alert("FAQ deleted successfully.");
    fetchFaqs();
   } catch (err) {
@@ -1262,12 +1506,17 @@ export default function Admin() {
  const handleSaveCoupon = async (e) => {
   e.preventDefault();
   const isEdit = !!editingCoupon.originalCode;
+  const endpoint = isEdit
+   ? `/api/coupons/${editingCoupon.originalCode}`
+   : "/api/coupons";
+  const method = isEdit ? "PUT" : "POST";
   try {
-   if (isEdit) {
-    await adminAPI.updateCoupon(editingCoupon.originalCode, editingCoupon);
-   } else {
-    await adminAPI.addCoupon(editingCoupon);
-   }
+   const res = await fetch(endpoint, {
+    method,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(editingCoupon),
+   });
+   if (!res.ok) throw new Error("Failed to save coupon");
    alert(`Coupon ${isEdit ? "updated" : "created"} successfully.`);
    setEditingCoupon(null);
    fetchCoupons();
@@ -1279,7 +1528,8 @@ export default function Admin() {
  const handleDeleteCoupon = async (code) => {
   if (!confirm(`Are you sure you want to delete coupon ${code}?`)) return;
   try {
-   await adminAPI.deleteCoupon(code);
+   const res = await fetch(`/api/coupons/${code}`, { method: "DELETE" });
+   if (!res.ok) throw new Error("Deletion failed");
    alert("Coupon deleted successfully.");
    fetchCoupons();
   } catch (err) {
@@ -1290,7 +1540,12 @@ export default function Admin() {
  // --- Enquiries Handlers ---
  const handleUpdateEnquiryStatus = async (id, status) => {
   try {
-   await adminAPI.updateEnquiryStatus(id, status);
+   const res = await fetch(`/api/enquiries/${id}/status`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ status }),
+   });
+   if (!res.ok) throw new Error("Status update failed");
    alert(`Enquiry status updated to ${status}.`);
    fetchEnquiries();
   } catch (err) {
@@ -1301,7 +1556,8 @@ export default function Admin() {
  const handleDeleteEnquiry = async (id) => {
   if (!confirm("Are you sure you want to delete this enquiry log?")) return;
   try {
-   await adminAPI.deleteEnquiry(id);
+   const res = await fetch(`/api/enquiries/${id}`, { method: "DELETE" });
+   if (!res.ok) throw new Error("Deletion failed");
    alert("Enquiry deleted successfully.");
    fetchEnquiries();
   } catch (err) {
@@ -1313,7 +1569,8 @@ export default function Admin() {
  const handleDeleteNewsletter = async (id) => {
   if (!confirm("Remove this subscriber email from the list?")) return;
   try {
-   await adminAPI.deleteNewsletter(id);
+   const res = await fetch(`/api/newsletter/${id}`, { method: "DELETE" });
+   if (!res.ok) throw new Error("Deletion failed");
    alert("Subscriber email removed successfully.");
    fetchNewsletter();
   } catch (err) {
@@ -1324,7 +1581,12 @@ export default function Admin() {
  // --- User Handlers ---
  const handleUpdateUserRole = async (id, role) => {
   try {
-   await adminAPI.updateUserRole(id, role);
+   const res = await fetch(`/api/users/${id}/role`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ role }),
+   });
+   if (!res.ok) throw new Error("Role update failed");
    alert(`User role updated to ${role}.`);
    fetchUsers();
   } catch (err) {
@@ -1335,7 +1597,8 @@ export default function Admin() {
  const handleDeleteUser = async (id) => {
   if (!confirm("Permanently delete this user account?")) return;
   try {
-   await adminAPI.deleteUser(id);
+   const res = await fetch(`/api/users/${id}`, { method: "DELETE" });
+   if (!res.ok) throw new Error("Deletion failed");
    alert("User account deleted successfully.");
    fetchUsers();
   } catch (err) {
@@ -1347,7 +1610,7 @@ export default function Admin() {
  const handleSaveSeoSettings = async (e) => {
   e.preventDefault();
   try {
-   const res = await fetch(apiUrl("/api/settings/seo"), {
+   const res = await fetch("/api/settings/seo", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(seoSettings),
@@ -1363,7 +1626,7 @@ export default function Admin() {
  const handleSavePaymentSettings = async (methodName, enabled) => {
   try {
    const updated = { ...paymentSettings, [methodName]: enabled };
-   const res = await fetch(apiUrl("/api/settings/payment"), {
+   const res = await fetch("/api/settings/payment", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(updated),
@@ -1378,7 +1641,12 @@ export default function Admin() {
  const handleSaveShippingSettings = async (e) => {
   e.preventDefault();
   try {
-   await adminAPI.saveShippingSettings(shippingSettings);
+   const res = await fetch("/api/settings/shipping", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(shippingSettings),
+   });
+   if (!res.ok) throw new Error("Failed to save shipping settings");
    alert("Shipping settings saved successfully.");
    fetchShippingSettings();
   } catch (err) {
@@ -1389,7 +1657,12 @@ export default function Admin() {
  const handleSaveGatewaySettings = async (e) => {
   e.preventDefault();
   try {
-   await adminAPI.saveGatewaySettings(gatewaySettings);
+   const res = await fetch("/api/settings/gateway", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(gatewaySettings),
+   });
+   if (!res.ok) throw new Error("Gateway settings save failed");
    alert("Razorpay gateway keys updated successfully.");
    fetchGatewaySettings();
   } catch (err) {
@@ -1406,7 +1679,9 @@ export default function Admin() {
   )
    return;
   try {
-   await adminAPI.factoryReset();
+   const res = await fetch("/api/cms/reset", { method: "POST" });
+   if (!res.ok) throw new Error("Reset failed");
+
    alert("Factory reset completed successfully. Re-seeding tables...");
    window.location.reload();
   } catch (err) {
@@ -2071,7 +2346,7 @@ export default function Admin() {
               user: "Admin User",
              },
              {
-              title: "Contact Our House",
+              title: "Contact Rein Oro Foods",
               file: "contact.html",
               type: "Static Page",
               date: "Jun 08, 2026",
@@ -3314,7 +3589,7 @@ export default function Admin() {
            onChange={(e) =>
             setEditingBanner((prev) => ({ ...prev, title: e.target.value }))
            }
-           placeholder="e.g. Royal Gifting Box Collection"
+           placeholder="e.g. Premium Gifting Box Collection"
           />
          </div>
          <div className="contact-form-group">
@@ -4204,7 +4479,7 @@ export default function Admin() {
          className="admin-dash-widget-title"
          style={{ fontSize: "1.2rem", fontFamily: "var(--font-heading)" }}
         >
-         Contact & Concierge Enquiries
+         Contact & Customer Support Enquiries
         </h3>
        </div>
 
@@ -4400,7 +4675,14 @@ export default function Admin() {
              active: e.target.checked ? 1 : 0,
             }))
            }
-           style={{ accentColor: "var(--color-gold)" }}
+           style={{
+            accentColor: "var(--color-gold)",
+            opacity: 1,
+            position: "static",
+            height: "16px",
+            width: "16px",
+            cursor: "pointer",
+           }}
           />
           Coupon is currently active and can be used on checkout
          </label>
@@ -4689,6 +4971,7 @@ export default function Admin() {
            borderRadius: "6px",
            cursor: "pointer",
            backgroundColor: "rgba(255,255,255,0.01)",
+           paddingLeft: "1rem",
           }}
          >
           <input
@@ -4702,6 +4985,11 @@ export default function Admin() {
            }
            style={{
             accentColor: "var(--color-gold)",
+            opacity: 1,
+            position: "static",
+            height: "16px",
+            width: "16px",
+            cursor: "pointer",
             transform: "scale(1.15)",
            }}
           />
@@ -5062,7 +5350,7 @@ export default function Admin() {
           onChange={(e) =>
            setProductForm((prev) => ({ ...prev, title: e.target.value }))
           }
-          placeholder="e.g. Makhana Royal Saffron"
+          placeholder="e.g. Makhana Premium Saffron"
          />
         </div>
        </div>
@@ -5098,7 +5386,257 @@ export default function Admin() {
           }
           placeholder="e.g. 100g"
          />
+       </div>
+      </div>
+
+       <div
+        style={{
+         display: "grid",
+         gridTemplateColumns: "1fr 1fr 1fr",
+         gap: "1.2rem",
+        }}
+       >
+        <div className="contact-form-group">
+         <label className="contact-form-label">MRP (INR)</label>
+         <input
+          type="number"
+          className="contact-form-input"
+          value={productForm.mrp}
+          onChange={(e) =>
+           setProductForm((prev) => ({ ...prev, mrp: e.target.value }))
+          }
+          placeholder="e.g. 249"
+         />
         </div>
+        <div className="contact-form-group">
+         <label className="contact-form-label">Sale Price (INR)</label>
+         <input
+          type="number"
+          className="contact-form-input"
+          value={productForm.sale_price}
+          onChange={(e) =>
+           setProductForm((prev) => ({
+            ...prev,
+            sale_price: e.target.value,
+            price: e.target.value,
+           }))
+          }
+          placeholder="e.g. 199"
+         />
+        </div>
+        <div className="contact-form-group">
+         <label className="contact-form-label">Total Stock</label>
+         <input
+          type="number"
+          min="0"
+          className="contact-form-input"
+          value={productForm.stock}
+          onChange={(e) =>
+           setProductForm((prev) => ({ ...prev, stock: e.target.value }))
+          }
+          placeholder="e.g. 50"
+         />
+        </div>
+       </div>
+
+       <div
+        style={{
+         display: "grid",
+         gridTemplateColumns: "1fr 1fr",
+         gap: "1.2rem",
+        }}
+       >
+        <label
+         className="checkbox-label"
+         style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "0.6rem",
+          color: "var(--color-white)",
+          fontSize: "0.85rem",
+          paddingLeft: 0,
+         }}
+        >
+         <input
+          type="checkbox"
+          checked={!!productForm.featured}
+          onChange={(e) =>
+           setProductForm((prev) => ({ ...prev, featured: e.target.checked }))
+          }
+          style={{
+           accentColor: "var(--color-gold)",
+           opacity: 1,
+           position: "static",
+           height: "16px",
+           width: "16px",
+           cursor: "pointer",
+          }}
+         />
+         Show as Featured product on homepage
+        </label>
+        <div className="contact-form-group">
+         <label className="contact-form-label">Product URL Slug</label>
+         <input
+          type="text"
+          className="contact-form-input"
+          value={productForm.slug}
+          onChange={(e) =>
+           setProductForm((prev) => ({ ...prev, slug: e.target.value }))
+          }
+          placeholder="e.g. premium-makhana-250g"
+         />
+        </div>
+       </div>
+
+       <div className="contact-form-group" style={{ gridColumn: "span 2" }}>
+        <label className="contact-form-label">Weight Variants</label>
+        <div
+         style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: "0.8rem",
+          border: "1px solid rgba(255,255,255,0.05)",
+          borderRadius: "8px",
+          padding: "1rem",
+          backgroundColor: "rgba(0,0,0,0.22)",
+         }}
+        >
+         {(productForm.variants || []).map((variant, index) => (
+          <div
+           key={index}
+           style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr 1fr 1fr auto",
+            gap: "0.65rem",
+            alignItems: "center",
+           }}
+          >
+           <input
+            type="text"
+            className="contact-form-input"
+            placeholder="Weight e.g. 250g"
+            value={variant.weight || ""}
+            onChange={(e) => {
+             const variants = [...(productForm.variants || [])];
+             variants[index] = { ...variants[index], weight: e.target.value };
+             setProductForm((prev) => ({ ...prev, variants }));
+            }}
+           />
+           <input
+            type="number"
+            className="contact-form-input"
+            placeholder="MRP"
+            value={variant.mrp ?? ""}
+            onChange={(e) => {
+             const variants = [...(productForm.variants || [])];
+             variants[index] = { ...variants[index], mrp: e.target.value };
+             setProductForm((prev) => ({ ...prev, variants }));
+            }}
+           />
+           <input
+            type="number"
+            className="contact-form-input"
+            placeholder="Sale"
+            value={variant.sale_price ?? ""}
+            onChange={(e) => {
+             const variants = [...(productForm.variants || [])];
+             variants[index] = { ...variants[index], sale_price: e.target.value };
+             setProductForm((prev) => ({ ...prev, variants }));
+            }}
+           />
+           <input
+            type="number"
+            min="0"
+            className="contact-form-input"
+            placeholder="Stock"
+            value={variant.stock ?? ""}
+            onChange={(e) => {
+             const variants = [...(productForm.variants || [])];
+             variants[index] = { ...variants[index], stock: e.target.value };
+             setProductForm((prev) => ({ ...prev, variants }));
+            }}
+           />
+           <button
+            type="button"
+            onClick={() => {
+             const variants = (productForm.variants || []).filter((_, i) => i !== index);
+             setProductForm((prev) => ({ ...prev, variants }));
+            }}
+            className="admin-dash-action-btn delete"
+            title="Remove variant"
+           >
+            <IconDelete />
+           </button>
+          </div>
+         ))}
+         <button
+          type="button"
+          className="btn btn-outline"
+          onClick={() =>
+           setProductForm((prev) => ({
+            ...prev,
+            variants: [
+             ...(prev.variants || []),
+             { weight: "", mrp: prev.mrp || prev.price, sale_price: prev.sale_price || prev.price, stock: 0, active: true },
+            ],
+           }))
+          }
+          style={{ height: "34px", fontSize: "0.75rem", alignSelf: "flex-start" }}
+         >
+          + Add Weight Variant
+         </button>
+        </div>
+       </div>
+
+       <div
+        style={{
+         display: "grid",
+         gridTemplateColumns: "1fr 1fr",
+         gap: "1.2rem",
+        }}
+       >
+        <div className="contact-form-group">
+         <label className="contact-form-label">SEO Title</label>
+         <input
+          type="text"
+          className="contact-form-input"
+          value={productForm.seo_title}
+          onChange={(e) =>
+           setProductForm((prev) => ({ ...prev, seo_title: e.target.value }))
+          }
+          placeholder="Title shown in Google/browser"
+         />
+        </div>
+        <div className="contact-form-group">
+         <label className="contact-form-label">Meta Description</label>
+         <input
+          type="text"
+          className="contact-form-input"
+          value={productForm.meta_description}
+          onChange={(e) =>
+           setProductForm((prev) => ({
+            ...prev,
+            meta_description: e.target.value,
+           }))
+          }
+          placeholder="Short product summary for search engines"
+         />
+        </div>
+       </div>
+
+       <div className="contact-form-group" style={{ gridColumn: "span 2" }}>
+        <label className="contact-form-label">
+         Extra Product Images (comma separated)
+        </label>
+        <input
+         type="text"
+         className="contact-form-input"
+         value={productForm.images}
+         onChange={(e) =>
+          setProductForm((prev) => ({ ...prev, images: e.target.value }))
+         }
+         placeholder="images/makhana_classic.png, images/gift_box.png"
+        />
        </div>
 
        <div className="contact-form-group" style={{ gridColumn: "span 2" }}>

@@ -9,14 +9,14 @@ const POLICY_DATA = {
       { id: 'sec-data-use', label: '3. How We Use Data' },
       { id: 'sec-cookies', label: '4. Cookies & Trackers' },
       { id: 'sec-security', label: '5. Data Protection' },
-      { id: 'sec-concierge', label: '6. Contact Concierge' }
+      { id: 'sec-support', label: '6. Contact Support' }
     ],
     content: (
       <>
         <section className="policy-section" id="sec-intro">
           <h2>1. Introduction</h2>
           <p>Welcome to Rein Oro ("we," "our," "us"). We are dedicated to providing you with the highest quality gourmet dry fruits and makhanas while ensuring your personal information is protected with absolute discretion and luxury standards.</p>
-          <p>This Privacy Policy outlines how your personal data is collected, stored, processed, and secured when you visit our website, interact with our concierge desk, or purchase our premium products.</p>
+          <p>This Privacy Policy outlines how your personal data is collected, stored, processed, and secured when you visit our website, contact our support team, or purchase our premium products.</p>
         </section>
 
         <section className="policy-section" id="sec-data-collect">
@@ -59,11 +59,11 @@ const POLICY_DATA = {
           <p>We preserve records of your purchases solely for business compliance, order tracking, and loyalty rewards points management, and delete or anonymize data once it is no longer required.</p>
         </section>
 
-        <section className="policy-section" id="sec-concierge">
-          <h2>6. Contact Concierge</h2>
+        <section className="policy-section" id="sec-support">
+          <h2>6. Contact Support</h2>
           <p>If you have any questions regarding your digital records, wish to request account deletion, or seek details about our compliance standards, please reach out to our legal desk:</p>
           <p>
-            Email: <a href="mailto:concierge@reinoro.com" style={{ color: 'var(--color-gold)', textDecoration: 'none' }}>concierge@reinoro.com</a><br />
+            Email: <a href="mailto:wecare.reinoro@gmail.com" style={{ color: 'var(--color-gold)', textDecoration: 'none' }}>wecare.reinoro@gmail.com</a><br />
             Post: Rein Oro Privacy Department, 12-A Connaught Place, Block C, New Delhi, 110001, India
           </p>
         </section>
@@ -89,7 +89,7 @@ const POLICY_DATA = {
 
         <section className="policy-section" id="sec-intellectual">
           <h2>2. Intellectual Property</h2>
-          <p>All content available on this site, including logos, typography, visual designs, imagery, product configurations, and copy, is the exclusive property of Rein Oro Foods Private Limited and is protected by international copyright laws.</p>
+          <p>All content available on this site, including logos, typography, visual designs, imagery, product configurations, and copy, is the exclusive property of Rein Oro Foods and is protected by applicable copyright laws.</p>
           <p>No content may be reproduced, copied, or sold for commercial gains without explicit written authorization from our legal department.</p>
         </section>
 
@@ -101,7 +101,7 @@ const POLICY_DATA = {
 
         <section className="policy-section" id="sec-liability">
           <h2>4. Limitation of Liability</h2>
-          <p>Rein Oro Foods Private Limited and its directors shall not be held liable for any indirect, incidental, or consequential damages arising from the use of our products, delivery delays, or platform downtime.</p>
+          <p>Rein Oro Foods shall not be held liable for any indirect, incidental, or consequential damages arising from the use of our products, delivery delays, or platform downtime.</p>
           <p>Snack consumption details (allergens, ingredients) are clearly labeled on product packaging. Customers are advised to review ingredients to prevent allergic reactions.</p>
         </section>
 
@@ -126,7 +126,7 @@ const POLICY_DATA = {
         <section className="policy-section" id="sec-dispatch">
           <h2>1. Dispatch Timelines</h2>
           <p>All Rein Oro orders are prepared fresh and slow-roasted in small batches. Orders are processed and dispatched within 24 to 48 hours of order confirmation. We do not dispatch orders on Sundays or local public holidays.</p>
-          <p>During peak holiday seasons or corporate gifting events, processing times may extend slightly. Our concierge desk will notify you of any schedule alterations.</p>
+          <p>During peak holiday seasons or corporate gifting events, processing times may extend slightly. Our support team will notify you of any schedule alterations.</p>
         </section>
 
         <section className="policy-section" id="sec-rates">
@@ -187,7 +187,7 @@ const POLICY_DATA = {
 
         <section className="policy-section" id="sec-claims">
           <h2>5. Claims & Damages</h2>
-          <p>We are dedicated to transit safety. If your custom container is severely damaged or seals are broken upon delivery, please contact our concierge desk within 24 hours with photograph evidence to schedule a priority replacement.</p>
+          <p>We are dedicated to transit safety. If your package is severely damaged or seals are broken upon delivery, please contact our support team within 24 hours with photograph evidence to schedule a priority replacement.</p>
         </section>
       </>
     )
@@ -213,9 +213,9 @@ const POLICY_DATA = {
           <h2>2. Return Process</h2>
           <p>To initiate a returns courier collection, please perform the following steps:</p>
           <ul>
-            <li>Contact our concierge desk at <a href="mailto:support@reinoro.com" style={{ color: 'var(--color-gold)', textDecoration: 'none' }}>support@reinoro.com</a> detailing your order number and reasons for return.</li>
+            <li>Contact our support team at <a href="mailto:wecare.reinoro@gmail.com" style={{ color: 'var(--color-gold)', textDecoration: 'none' }}>wecare.reinoro@gmail.com</a> detailing your order number and reasons for return.</li>
             <li>Our partner logistics courier will schedule a pickup from your delivery address within 48 hours.</li>
-            <li>Affix the printed returns label sent by concierge on the outer box.</li>
+            <li>Affix the printed returns label sent by support on the outer box.</li>
           </ul>
         </section>
 

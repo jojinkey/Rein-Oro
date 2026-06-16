@@ -38,7 +38,7 @@ export default function Cart() {
           <div className="cart-table-container">
             {cart.map(item => (
               <div 
-                key={item.id} 
+                key={item.cartKey || `${item.id}::${item.weight || ''}`} 
                 className="cart-table-row" 
               >
                 {/* Thumbnail */}
@@ -54,7 +54,7 @@ export default function Cart() {
                   </p>
                   <div className="item-actions">
                     <button 
-                      onClick={() => removeFromCart(item.id)}
+                      onClick={() => removeFromCart(item.cartKey || `${item.id}::${item.weight || ''}`)}
                       className="btn-remove"
                     >
                       Delete
@@ -67,7 +67,7 @@ export default function Cart() {
                 <div className="qty-spinner">
                   <button 
                     className="qty-btn dec-qty" 
-                    onClick={() => updateQty(item.id, item.qty - 1)}
+                    onClick={() => updateQty(item.cartKey || `${item.id}::${item.weight || ''}`, item.qty - 1)}
                   >
                     -
                   </button>
@@ -76,7 +76,7 @@ export default function Cart() {
                   </span>
                   <button 
                     className="qty-btn inc-qty" 
-                    onClick={() => updateQty(item.id, item.qty + 1)}
+                    onClick={() => updateQty(item.cartKey || `${item.id}::${item.weight || ''}`, item.qty + 1)}
                   >
                     +
                   </button>

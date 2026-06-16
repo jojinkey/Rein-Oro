@@ -26,41 +26,141 @@ function cleanText(value) {
  return value === undefined || value === null ? "" : String(value).trim();
 }
 
+function parseJsonish(value, fallback) {
+ if (value === undefined || value === null || value === "") return fallback;
+ if (typeof value !== "string") return value;
+ try {
+  return JSON.parse(value);
+ } catch {
+  return value;
+ }
+}
+
+function toArray(value, fallback = []) {
+ const parsed = parseJsonish(value, fallback);
+ if (Array.isArray(parsed)) return parsed;
+ if (typeof parsed === "string") {
+  return parsed
+   .split(/[\n,]/)
+   .map((item) => item.trim())
+   .filter(Boolean);
+ }
+ return fallback;
+}
+
+function toObject(value, fallback = {}) {
+ const parsed = parseJsonish(value, fallback);
+ return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+  ? parsed
+  : fallback;
+}
+
+function toNumber(value, fallback = 0) {
+ const numeric = Number(value);
+ return Number.isFinite(numeric) ? numeric : fallback;
+}
+
+function toBoolean(value) {
+ return value === true || value === "true" || value === 1 || value === "1";
+}
+
+function normalizeVariant(variant, defaults = {}) {
+ const weight = cleanText(variant?.weight || defaults.weight);
+ if (!weight) return null;
+ const salePrice = toNumber(
+  variant?.sale_price ?? variant?.salePrice ?? variant?.price,
+  toNumber(defaults.sale_price ?? defaults.price, 0),
+ );
+ const mrp = toNumber(variant?.mrp, toNumber(defaults.mrp, salePrice));
+ return {
+  weight,
+  mrp,
+  sale_price: salePrice,
+  price: salePrice,
+  stock: Math.max(0, Math.floor(toNumber(variant?.stock, defaults.stock ?? 0))),
+  active: variant?.active === undefined ? true : toBoolean(variant.active),
+ };
+}
+
+function normalizeVariants(body, base) {
+ const incoming = toArray(body.variants, []);
+ const variants = incoming
+  .map((variant) => normalizeVariant(variant, base))
+  .filter(Boolean);
+ if (base.weight && !variants.some((v) => v.weight === base.weight)) {
+  const baseVariant = normalizeVariant(
+   {
+    weight: base.weight,
+    mrp: base.mrp,
+    sale_price: base.sale_price,
+    stock: base.stock,
+   },
+   base,
+  );
+  if (baseVariant) {
+   variants.unshift(baseVariant);
+  }
+ }
+ if (variants.length) return variants;
+ const fallback = normalizeVariant(
+  {
+   weight: body.weight,
+   mrp: body.mrp,
+   sale_price: body.sale_price ?? body.price,
+   stock: body.stock,
+  },
+  base,
+ );
+ return fallback ? [fallback] : [];
+}
+
+function slugify(value) {
+ return cleanText(value)
+  .toLowerCase()
+  .replace(/[^a-z0-9]+/g, "-")
+  .replace(/^-+|-+$/g, "");
+}
+
 function normalizeProductPayload(body, keepId = true) {
+ const salePrice = toNumber(body.sale_price ?? body.salePrice ?? body.price, 0);
+ const mrp = toNumber(body.mrp, salePrice);
+ const stock = Math.max(0, Math.floor(toNumber(body.stock, 0)));
+ const base = {
+  price: salePrice,
+  sale_price: salePrice,
+  mrp,
+  stock,
+  weight: cleanText(body.weight),
+ };
+ const variants = normalizeVariants(body, base);
+ const primaryVariant = variants[0] || {};
+ const images = [
+  cleanText(body.image),
+  ...toArray(body.images, []).map(cleanText),
+ ].filter(Boolean);
  return {
   id: keepId ? cleanText(body.id) : undefined,
   name: cleanText(body.name),
   flavor: cleanText(body.flavor),
   title: cleanText(body.title),
-  price: Number.isFinite(Number(body.price)) ? Number(body.price) : 0,
+  price: salePrice,
+  mrp,
+  sale_price: salePrice,
+  stock,
+  featured: toBoolean(body.featured),
+  slug: cleanText(body.slug) || slugify(body.title || body.name || body.id),
   image: cleanText(body.image),
+  images,
   description: cleanText(body.description),
-  weight: cleanText(body.weight),
-  benefits:
-   typeof body.benefits === "string"
-    ? body.benefits.trim()
-    : body.benefits != null
-      ? JSON.stringify(body.benefits)
-      : "",
+  weight: cleanText(body.weight) || cleanText(primaryVariant.weight),
+  variants,
+  benefits: toArray(body.benefits, []),
   benefits_image: cleanText(body.benefits_image),
-  ingredients:
-   typeof body.ingredients === "string"
-    ? body.ingredients.trim()
-    : body.ingredients != null
-      ? JSON.stringify(body.ingredients)
-      : "",
-  specs:
-   typeof body.specs === "string"
-    ? body.specs.trim()
-    : body.specs != null
-      ? JSON.stringify(body.specs)
-      : "",
-  nutrition:
-   typeof body.nutrition === "string"
-    ? body.nutrition.trim()
-    : body.nutrition != null
-      ? JSON.stringify(body.nutrition)
-      : "",
+  ingredients: toArray(body.ingredients, []),
+  specs: toObject(body.specs, {}),
+  nutrition: toObject(body.nutrition, {}),
+  seo_title: cleanText(body.seo_title || body.seoTitle),
+  meta_description: cleanText(body.meta_description || body.metaDescription),
  };
 }
 
@@ -74,7 +174,11 @@ function validateProductPayload(product, isUpdate = false) {
   if (
    product[field] === undefined ||
    product[field] === null ||
-   product[field] === ""
+   product[field] === "" ||
+   (!["benefits", "ingredients"].includes(field) && Array.isArray(product[field]) && product[field].length === 0) ||
+   (!["specs", "nutrition"].includes(field) && typeof product[field] === "object" &&
+    !Array.isArray(product[field]) &&
+    Object.keys(product[field]).length === 0)
   ) {
    errors.push(`${field} is required`);
   }

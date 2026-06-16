@@ -42,16 +42,16 @@ function validateCouponPayload(payload, isUpdate = false) {
 
 export async function getCoupons(req, res) {
  try {
-  const where = [];
-  if (req.query.active !== undefined) {
-   const active = normalizeBoolean(req.query.active);
-   where.push(["active", "==", active]);
-  }
+  const activeFilter =
+   req.query.active !== undefined ? normalizeBoolean(req.query.active) : null;
   const coupons = await queryFirestoreCollection(COUPON_COLLECTION, {
-   where,
    orderBy: [["code", "asc"]],
   });
-  res.json(coupons);
+  const filteredCoupons =
+   activeFilter === null
+    ? coupons
+    : coupons.filter((coupon) => normalizeBoolean(coupon.active) === activeFilter);
+  res.json(filteredCoupons);
  } catch (err) {
   res.status(500).json({ error: err.message });
  }

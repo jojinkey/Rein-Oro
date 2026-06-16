@@ -49,7 +49,7 @@ export default function Preloader() {
       }}
     >
       <div className="preloader-content">
-        <img src="images/logo.png" alt="Rein Oro Logo" className="preloader-logo-img" />
+        <img src="images/logo.png" alt="Rein Oro Foods Logo" className="preloader-logo-img" />
         <div className="preloader-subtitle">CRAFTED FOR THE DISCERNING</div>
         <div className="preloader-bar-container">
           <div className="preloader-bar" style={{ width: `${progress}%` }}></div>

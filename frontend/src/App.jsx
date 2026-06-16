@@ -4,7 +4,7 @@ import Header from "./components/Header.jsx";
 import Footer from "./components/Footer.jsx";
 import Preloader from "./components/Preloader.jsx";
 import ExitIntentModal from "./components/ExitIntentModal.jsx";
-import { apiUrl } from "./config/api.js";
+import WhatsAppFloat from "./components/WhatsAppFloat.jsx";
 
 // Pages
 import Home from "./pages/Home.jsx";
@@ -24,6 +24,11 @@ import Policy from "./pages/Policy.jsx";
 export const CartContext = createContext();
 export const AuthContext = createContext();
 export const CMSContext = createContext();
+
+function getCartItemKey(item) {
+ const weight = item?.selectedVariant?.weight || item?.weight || "";
+ return item?.cartKey || `${item?.id || "item"}::${weight}`;
+}
 
 // Scroll to top on route change
 function ScrollToTop() {
@@ -65,24 +70,19 @@ export default function App() {
   localStorage.setItem("rein_oro_promo", appliedPromo);
  }, [appliedPromo]);
 
- useEffect(() => {
+  useEffect(() => {
   const fetchCoupons = async () => {
    try {
-    const res = await fetch(apiUrl("/api/coupons"));
-
+    const res = await fetch("/api/coupons?active=true");
     const data = await res.json();
-    setCoupons(data);
+    setCoupons(Array.isArray(data) ? data.filter((coupon) => coupon.active) : []);
 
     // Revalidate localStorage promo code
     const savedPromo = localStorage.getItem("rein_oro_promo") || "";
     if (savedPromo) {
-     const matched = data.find(
-      (c) =>
-       c.code === savedPromo &&
-       (c.active === true || c.active === 1 || c.active === "true"),
-     );
+     const matched = (Array.isArray(data) ? data : []).find((c) => c.code === savedPromo && c.active);
      if (matched) {
-      setDiscountRate(Number(matched.discount_rate) || 0);
+      setDiscountRate(matched.discount_rate);
      } else {
       setAppliedPromo("");
       setDiscountRate(0.0);
@@ -98,30 +98,31 @@ export default function App() {
 
  const addToCart = (product, qty = 1) => {
   setCart((prevCart) => {
-   const idx = prevCart.findIndex((item) => item.id === product.id);
+   const cartKey = getCartItemKey(product);
+   const idx = prevCart.findIndex((item) => getCartItemKey(item) === cartKey);
    if (idx > -1) {
     const newCart = [...prevCart];
     newCart[idx].qty += qty;
     return newCart;
    } else {
-    return [...prevCart, { ...product, qty }];
+    return [...prevCart, { ...product, cartKey, qty }];
    }
   });
   setIsCartOpen(true);
  };
 
- const updateQty = (id, qty) => {
+ const updateQty = (itemKey, qty) => {
   if (qty <= 0) {
-   removeFromCart(id);
+   removeFromCart(itemKey);
    return;
   }
   setCart((prev) =>
-   prev.map((item) => (item.id === id ? { ...item, qty } : item)),
+   prev.map((item) => (getCartItemKey(item) === itemKey ? { ...item, qty } : item)),
   );
  };
 
- const removeFromCart = (id) => {
-  setCart((prev) => prev.filter((item) => item.id !== id));
+ const removeFromCart = (itemKey) => {
+  setCart((prev) => prev.filter((item) => getCartItemKey(item) !== itemKey));
  };
 
  const clearCart = () => {
@@ -136,11 +137,7 @@ export default function App() {
 
  const applyPromoCode = (code) => {
   const uppercaseCode = code.trim().toUpperCase();
-  const matched = coupons.find(
-   (c) =>
-    c.code === uppercaseCode &&
-    (c.active === true || c.active === 1 || c.active === "true"),
-  );
+  const matched = coupons.find((c) => c.code === uppercaseCode && c.active);
   if (matched) {
    setAppliedPromo(uppercaseCode);
    setDiscountRate(matched.discount_rate);
@@ -198,13 +195,11 @@ export default function App() {
 
  const fetchCMSData = async () => {
   try {
-   const contentRes = await fetch(apiUrl("/api/cms/content"));
-
+   const contentRes = await fetch("/api/cms/content");
    const content = await contentRes.json();
    setCmsContent(content);
 
-   const stylesRes = await fetch(apiUrl("/api/cms/styles"));
-
+   const stylesRes = await fetch("/api/cms/styles");
    const styles = await stylesRes.json();
    setCmsStyles(styles);
    applyGlobalStyles(styles);
@@ -355,6 +350,7 @@ function LayoutWrapper({ children }) {
    <Preloader />
    {!isAdminPath && <Header />}
    {children}
+   {!isAdminPath && <WhatsAppFloat />}
    {!isAdminPath && <Footer />}
   </>
  );

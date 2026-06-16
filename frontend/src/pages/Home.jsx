@@ -29,8 +29,9 @@ export default function Home() {
     fetch('/api/products')
       .then(res => res.json())
       .then(data => {
-        // Only show a select list for signature collection (e.g. first 4 items)
-        setProducts(data.slice(0, 4));
+        const list = Array.isArray(data) ? data : [];
+        const featured = list.filter((product) => product.featured);
+        setProducts((featured.length ? featured : list).slice(0, 4));
       })
       .catch(err => console.error('Failed to load products:', err));
   }, []);

@@ -227,6 +227,7 @@ export default function Checkout() {
    total: totalAmount,
    items: cart.map((item) => ({
     id: item.id,
+    cart_key: item.cartKey || `${item.id}::${item.weight || ''}`,
     name: item.name,
     flavor: item.flavor,
     weight: item.weight,
@@ -965,7 +966,7 @@ export default function Checkout() {
       >
        {cart.map((item) => (
         <div
-         key={item.id}
+         key={item.cartKey || `${item.id}::${item.weight || ''}`}
          style={{ display: "flex", gap: "1rem", alignItems: "center" }}
         >
          <div

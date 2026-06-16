@@ -41,7 +41,7 @@ export default function Shop() {
     }
 
     // 2. Price Filter
-    result = result.filter(p => p.price <= priceMax);
+    result = result.filter(p => Number(p.sale_price ?? p.price ?? 0) <= priceMax);
 
     // 3. Flavor Filter (Fast Taste checkboxes)
     if (selectedFlavors.length > 0) {
@@ -51,10 +51,12 @@ export default function Shop() {
     }
 
     // 4. Sorting
-    if (sortBy === 'Price: Low to High') {
-      result.sort((a, b) => a.price - b.price);
+    if (sortBy === 'Featured') {
+      result.sort((a, b) => Number(!!b.featured) - Number(!!a.featured));
+    } else if (sortBy === 'Price: Low to High') {
+      result.sort((a, b) => Number(a.sale_price ?? a.price ?? 0) - Number(b.sale_price ?? b.price ?? 0));
     } else if (sortBy === 'Price: High to Low') {
-      result.sort((a, b) => b.price - a.price);
+      result.sort((a, b) => Number(b.sale_price ?? b.price ?? 0) - Number(a.sale_price ?? a.price ?? 0));
     } else if (sortBy === 'Customer Rating') {
       // Simulate rating sorting by ID
       result.sort((a, b) => b.id.localeCompare(a.id));

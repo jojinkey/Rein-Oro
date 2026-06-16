@@ -3,14 +3,29 @@ import React, { useState, useEffect } from 'react';
 export default function ExitIntentModal() {
   const [isOpen, setIsOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [coupon, setCoupon] = useState(null);
 
   useEffect(() => {
-    // Check if exit intent was already shown in this session
+    let isMounted = true;
+    fetch('/api/coupons?active=true')
+      .then((res) => res.json())
+      .then((data) => {
+        if (!isMounted) return;
+        const activeCoupons = Array.isArray(data) ? data.filter((item) => item.active) : [];
+        setCoupon(activeCoupons[0] || null);
+      })
+      .catch((err) => console.warn('Failed to load active exit coupon', err));
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!coupon) return;
     const shown = sessionStorage.getItem('rein_oro_exit_intent');
     if (shown === 'true') return;
 
     const handleMouseLeave = (e) => {
-      // Trigger when mouse leaves the top of the viewport (indicating tab close or address bar focus)
       if (e.clientY < 20 && window.innerWidth > 768) {
         setIsOpen(true);
         sessionStorage.setItem('rein_oro_exit_intent', 'true');
@@ -21,18 +36,19 @@ export default function ExitIntentModal() {
     return () => {
       document.removeEventListener('mouseleave', handleMouseLeave);
     };
-  }, []);
+  }, [coupon]);
 
   const handleCopyCode = () => {
-    navigator.clipboard.writeText('GOLDEN');
+    if (!coupon?.code) return;
+    navigator.clipboard.writeText(coupon.code);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
-  if (!isOpen) return null;
+  if (!isOpen || !coupon) return null;
 
   return (
-    <div 
+    <div
       className="exit-intent-overlay"
       style={{
         position: 'fixed',
@@ -46,7 +62,7 @@ export default function ExitIntentModal() {
         padding: '2rem'
       }}
     >
-      <div 
+      <div
         className="exit-intent-card"
         style={{
           border: '1px solid var(--color-gold-border)',
@@ -64,8 +80,7 @@ export default function ExitIntentModal() {
           gap: '1.2rem'
         }}
       >
-        {/* Close Button */}
-        <button 
+        <button
           onClick={() => setIsOpen(false)}
           style={{
             position: 'absolute',
@@ -83,9 +98,8 @@ export default function ExitIntentModal() {
           &times;
         </button>
 
-        {/* Crown Icon */}
         <div style={{ color: 'var(--rein-gold-primary)', fontSize: '2.5rem', lineHeight: 1 }}>
-          👑
+          *
         </div>
 
         <div>
@@ -93,16 +107,15 @@ export default function ExitIntentModal() {
             Before You Leave
           </span>
           <h2 style={{ fontFamily: 'var(--font-heading)', fontSize: '2.2rem', fontWeight: 300, color: 'var(--color-white)', lineHeight: 1.15 }}>
-            Wait — Here's 10% Off Your First Order
+            Claim Your Active Rein Oro Offer
           </h2>
         </div>
 
         <p style={{ fontSize: '0.85rem', color: 'var(--rein-gray-light)', lineHeight: 1.6, maxWidth: '340px' }}>
-          Indulge in India's finest slow-roasted lotuses and double-sorted select nuts with an exclusive royal welcome.
+          Use the current active coupon on premium makhana, dry fruits, and curated gift boxes.
         </p>
 
-        {/* Coupon Code Block */}
-        <div 
+        <div
           style={{
             border: '1px dashed var(--rein-gold-dim)',
             borderRadius: '4px',
@@ -117,13 +130,16 @@ export default function ExitIntentModal() {
         >
           <div>
             <span style={{ fontSize: '0.62rem', color: 'var(--rein-gray-light)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', textAlign: 'left' }}>
-              Your Coupon Code
+              Active Coupon
             </span>
             <span style={{ fontSize: '1.25rem', fontFamily: 'var(--font-accent)', color: 'var(--rein-gold-primary)', fontWeight: 600, letterSpacing: '0.08em' }}>
-              GOLDEN
+              {coupon.code}
+            </span>
+            <span style={{ display: 'block', fontSize: '0.72rem', color: 'var(--rein-gray-light)', marginTop: '0.25rem' }}>
+              {Math.round(Number(coupon.discount_rate || 0) * 100)}% off
             </span>
           </div>
-          <button 
+          <button
             onClick={handleCopyCode}
             className="btn btn-outline"
             style={{
@@ -136,7 +152,7 @@ export default function ExitIntentModal() {
           </button>
         </div>
 
-        <button 
+        <button
           className="btn btn-primary"
           onClick={() => setIsOpen(false)}
           style={{
@@ -146,12 +162,8 @@ export default function ExitIntentModal() {
             marginTop: '0.5rem'
           }}
         >
-          Claim My Discount
+          Continue Shopping
         </button>
-
-        <span style={{ fontSize: '0.65rem', color: 'var(--rein-gray-mid)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-          *Valid on all signature collections
-        </span>
       </div>
     </div>
   );

@@ -561,6 +561,78 @@ const IconEye = () => (
  </svg>
 );
 
+const parseJsonishAdmin = (value, fallback) => {
+ if (value === undefined || value === null || value === "") return fallback;
+ if (typeof value !== "string") return value;
+ try {
+  return JSON.parse(value);
+ } catch {
+  return value;
+ }
+};
+
+const toAdminArray = (value, fallback = []) => {
+ const parsed = parseJsonishAdmin(value, fallback);
+ if (Array.isArray(parsed)) return parsed;
+ if (typeof parsed === "string") {
+  return parsed
+   .split(/[\n,]/)
+   .map((item) => item.trim())
+   .filter(Boolean);
+ }
+ return fallback;
+};
+
+const toAdminObject = (value, fallback = {}) => {
+ const parsed = parseJsonishAdmin(value, fallback);
+ return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+  ? parsed
+  : fallback;
+};
+
+const toAdminNumber = (value, fallback = 0) => {
+ const numeric = Number(value);
+ return Number.isFinite(numeric) ? numeric : fallback;
+};
+
+const slugifyProduct = (value) =>
+ String(value || "")
+  .trim()
+  .toLowerCase()
+  .replace(/[^a-z0-9]+/g, "-")
+  .replace(/^-+|-+$/g, "");
+
+const normalizeVariantRows = (prod = {}) => {
+ const variants = toAdminArray(prod.variants, [])
+  .map((variant) => ({
+   weight: String(variant?.weight || "").trim(),
+   mrp: toAdminNumber(variant?.mrp, toAdminNumber(prod.mrp, prod.price || 0)),
+   sale_price: toAdminNumber(
+    variant?.sale_price ?? variant?.salePrice ?? variant?.price,
+    toAdminNumber(prod.sale_price ?? prod.price, 0),
+   ),
+   stock: Math.max(0, Math.floor(toAdminNumber(variant?.stock, prod.stock || 0))),
+   active:
+    variant?.active === undefined
+     ? true
+     : variant.active === true ||
+       variant.active === "true" ||
+       variant.active === 1 ||
+       variant.active === "1",
+  }))
+  .filter((variant) => variant.weight);
+ if (variants.length) return variants;
+ return [
+  {
+   weight: prod.weight || "",
+   mrp: toAdminNumber(prod.mrp, prod.price || 0),
+   sale_price: toAdminNumber(prod.sale_price ?? prod.price, 0),
+   stock: Math.max(0, Math.floor(toAdminNumber(prod.stock, 0))),
+   active: true,
+  },
+ ];
+};
+
 export default function Admin() {
  const { user, login, logout } = useContext(AuthContext);
  const { cmsContent, cmsStyles, fetchCMSData, getCMSValue } =
@@ -592,9 +664,18 @@ export default function Admin() {
   flavor: "",
   title: "",
   price: 0,
+  mrp: 0,
+  sale_price: 0,
+  stock: 0,
+  featured: false,
+  slug: "",
+  seo_title: "",
+  meta_description: "",
   image: "",
+  images: "",
   description: "",
   weight: "",
+  variants: [{ weight: "", mrp: 0, sale_price: 0, stock: 0, active: true }],
   benefits: "",
   benefits_image: "images/makhana_bowl_love.png",
   ingredients: [],
@@ -1030,18 +1111,24 @@ export default function Admin() {
     flavor: prod.flavor,
     title: prod.title,
     price: prod.price,
+    mrp: prod.mrp ?? prod.price,
+    sale_price: prod.sale_price ?? prod.price,
+    stock: prod.stock ?? 0,
+    featured: !!prod.featured,
+    slug: prod.slug || slugifyProduct(prod.title || prod.name || prod.id),
+    seo_title: prod.seo_title || "",
+    meta_description: prod.meta_description || "",
     image: prod.image,
+    images: toAdminArray(prod.images, []).join(", "),
     description: prod.description,
     weight: prod.weight,
-    benefits: Array.isArray(prod.benefits) ? prod.benefits.join(", ") : "",
+    variants: normalizeVariantRows(prod),
+    benefits: toAdminArray(prod.benefits, []).join(", "),
     benefits_image: prod.benefits_image,
-    ingredients: Array.isArray(prod.ingredients) ? prod.ingredients : [],
-    specs:
-     typeof prod.specs === "object" && prod.specs !== null ? prod.specs : {},
+    ingredients: toAdminArray(prod.ingredients, []),
+    specs: toAdminObject(prod.specs, {}),
     nutrition:
-     typeof prod.nutrition === "object" && prod.nutrition !== null
-      ? prod.nutrition
-      : {},
+     toAdminObject(prod.nutrition, {}),
    });
   } else {
    setProductForm({
@@ -1050,9 +1137,18 @@ export default function Admin() {
     flavor: "",
     title: "",
     price: 0,
+    mrp: 0,
+    sale_price: 0,
+    stock: 0,
+    featured: false,
+    slug: "",
+    seo_title: "",
+    meta_description: "",
     image: "",
+    images: "",
     description: "",
     weight: "",
+    variants: [{ weight: "", mrp: 0, sale_price: 0, stock: 0, active: true }],
     benefits: "",
     benefits_image: "images/makhana_bowl_love.png",
     ingredients: [],
@@ -1080,9 +1176,35 @@ export default function Admin() {
 
  const handleProductSubmit = async (e) => {
   e.preventDefault();
-  const payload = {
+ const payload = {
    ...productForm,
-   price: parseInt(productForm.price),
+   price: toAdminNumber(productForm.sale_price || productForm.price),
+   mrp: toAdminNumber(productForm.mrp || productForm.price),
+   sale_price: toAdminNumber(productForm.sale_price || productForm.price),
+   stock: Math.max(0, Math.floor(toAdminNumber(productForm.stock, 0))),
+   featured: !!productForm.featured,
+   slug:
+    productForm.slug ||
+    slugifyProduct(productForm.title || productForm.name || productForm.id),
+   seo_title: productForm.seo_title,
+   meta_description: productForm.meta_description,
+   images: toAdminArray(productForm.images, []),
+   variants: (productForm.variants || [])
+    .map((variant) => ({
+     weight: String(variant.weight || "").trim(),
+     mrp: toAdminNumber(variant.mrp, productForm.mrp || productForm.price),
+     sale_price: toAdminNumber(
+      variant.sale_price,
+      productForm.sale_price || productForm.price,
+     ),
+     price: toAdminNumber(
+      variant.sale_price,
+      productForm.sale_price || productForm.price,
+     ),
+     stock: Math.max(0, Math.floor(toAdminNumber(variant.stock, 0))),
+     active: variant.active !== false,
+    }))
+    .filter((variant) => variant.weight),
    benefits: productForm.benefits
     .split(",")
     .map((b) => b.trim())
@@ -1091,6 +1213,9 @@ export default function Admin() {
    specs: productForm.specs,
    nutrition: productForm.nutrition,
   };
+  if (!payload.weight && payload.variants.length) {
+   payload.weight = payload.variants[0].weight;
+  }
 
   try {
    const method = modalMode === "create" ? "POST" : "PUT";
@@ -5245,7 +5370,249 @@ export default function Admin() {
           }
           placeholder="e.g. 100g"
          />
+       </div>
+      </div>
+
+       <div
+        style={{
+         display: "grid",
+         gridTemplateColumns: "1fr 1fr 1fr",
+         gap: "1.2rem",
+        }}
+       >
+        <div className="contact-form-group">
+         <label className="contact-form-label">MRP (INR)</label>
+         <input
+          type="number"
+          className="contact-form-input"
+          value={productForm.mrp}
+          onChange={(e) =>
+           setProductForm((prev) => ({ ...prev, mrp: e.target.value }))
+          }
+          placeholder="e.g. 249"
+         />
         </div>
+        <div className="contact-form-group">
+         <label className="contact-form-label">Sale Price (INR)</label>
+         <input
+          type="number"
+          className="contact-form-input"
+          value={productForm.sale_price}
+          onChange={(e) =>
+           setProductForm((prev) => ({
+            ...prev,
+            sale_price: e.target.value,
+            price: e.target.value,
+           }))
+          }
+          placeholder="e.g. 199"
+         />
+        </div>
+        <div className="contact-form-group">
+         <label className="contact-form-label">Total Stock</label>
+         <input
+          type="number"
+          min="0"
+          className="contact-form-input"
+          value={productForm.stock}
+          onChange={(e) =>
+           setProductForm((prev) => ({ ...prev, stock: e.target.value }))
+          }
+          placeholder="e.g. 50"
+         />
+        </div>
+       </div>
+
+       <div
+        style={{
+         display: "grid",
+         gridTemplateColumns: "1fr 1fr",
+         gap: "1.2rem",
+        }}
+       >
+        <label
+         className="checkbox-label"
+         style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "0.6rem",
+          color: "var(--color-white)",
+          fontSize: "0.85rem",
+         }}
+        >
+         <input
+          type="checkbox"
+          checked={!!productForm.featured}
+          onChange={(e) =>
+           setProductForm((prev) => ({ ...prev, featured: e.target.checked }))
+          }
+          style={{ accentColor: "var(--color-gold)" }}
+         />
+         Show as Featured product on homepage
+        </label>
+        <div className="contact-form-group">
+         <label className="contact-form-label">Product URL Slug</label>
+         <input
+          type="text"
+          className="contact-form-input"
+          value={productForm.slug}
+          onChange={(e) =>
+           setProductForm((prev) => ({ ...prev, slug: e.target.value }))
+          }
+          placeholder="e.g. premium-makhana-250g"
+         />
+        </div>
+       </div>
+
+       <div className="contact-form-group" style={{ gridColumn: "span 2" }}>
+        <label className="contact-form-label">Weight Variants</label>
+        <div
+         style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: "0.8rem",
+          border: "1px solid rgba(255,255,255,0.05)",
+          borderRadius: "8px",
+          padding: "1rem",
+          backgroundColor: "rgba(0,0,0,0.22)",
+         }}
+        >
+         {(productForm.variants || []).map((variant, index) => (
+          <div
+           key={index}
+           style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr 1fr 1fr auto",
+            gap: "0.65rem",
+            alignItems: "center",
+           }}
+          >
+           <input
+            type="text"
+            className="contact-form-input"
+            placeholder="Weight e.g. 250g"
+            value={variant.weight || ""}
+            onChange={(e) => {
+             const variants = [...(productForm.variants || [])];
+             variants[index] = { ...variants[index], weight: e.target.value };
+             setProductForm((prev) => ({ ...prev, variants }));
+            }}
+           />
+           <input
+            type="number"
+            className="contact-form-input"
+            placeholder="MRP"
+            value={variant.mrp ?? ""}
+            onChange={(e) => {
+             const variants = [...(productForm.variants || [])];
+             variants[index] = { ...variants[index], mrp: e.target.value };
+             setProductForm((prev) => ({ ...prev, variants }));
+            }}
+           />
+           <input
+            type="number"
+            className="contact-form-input"
+            placeholder="Sale"
+            value={variant.sale_price ?? ""}
+            onChange={(e) => {
+             const variants = [...(productForm.variants || [])];
+             variants[index] = { ...variants[index], sale_price: e.target.value };
+             setProductForm((prev) => ({ ...prev, variants }));
+            }}
+           />
+           <input
+            type="number"
+            min="0"
+            className="contact-form-input"
+            placeholder="Stock"
+            value={variant.stock ?? ""}
+            onChange={(e) => {
+             const variants = [...(productForm.variants || [])];
+             variants[index] = { ...variants[index], stock: e.target.value };
+             setProductForm((prev) => ({ ...prev, variants }));
+            }}
+           />
+           <button
+            type="button"
+            onClick={() => {
+             const variants = (productForm.variants || []).filter((_, i) => i !== index);
+             setProductForm((prev) => ({ ...prev, variants }));
+            }}
+            className="admin-dash-action-btn delete"
+            title="Remove variant"
+           >
+            <IconDelete />
+           </button>
+          </div>
+         ))}
+         <button
+          type="button"
+          className="btn btn-outline"
+          onClick={() =>
+           setProductForm((prev) => ({
+            ...prev,
+            variants: [
+             ...(prev.variants || []),
+             { weight: "", mrp: prev.mrp || prev.price, sale_price: prev.sale_price || prev.price, stock: 0, active: true },
+            ],
+           }))
+          }
+          style={{ height: "34px", fontSize: "0.75rem", alignSelf: "flex-start" }}
+         >
+          + Add Weight Variant
+         </button>
+        </div>
+       </div>
+
+       <div
+        style={{
+         display: "grid",
+         gridTemplateColumns: "1fr 1fr",
+         gap: "1.2rem",
+        }}
+       >
+        <div className="contact-form-group">
+         <label className="contact-form-label">SEO Title</label>
+         <input
+          type="text"
+          className="contact-form-input"
+          value={productForm.seo_title}
+          onChange={(e) =>
+           setProductForm((prev) => ({ ...prev, seo_title: e.target.value }))
+          }
+          placeholder="Title shown in Google/browser"
+         />
+        </div>
+        <div className="contact-form-group">
+         <label className="contact-form-label">Meta Description</label>
+         <input
+          type="text"
+          className="contact-form-input"
+          value={productForm.meta_description}
+          onChange={(e) =>
+           setProductForm((prev) => ({
+            ...prev,
+            meta_description: e.target.value,
+           }))
+          }
+          placeholder="Short product summary for search engines"
+         />
+        </div>
+       </div>
+
+       <div className="contact-form-group" style={{ gridColumn: "span 2" }}>
+        <label className="contact-form-label">
+         Extra Product Images (comma separated)
+        </label>
+        <input
+         type="text"
+         className="contact-form-input"
+         value={productForm.images}
+         onChange={(e) =>
+          setProductForm((prev) => ({ ...prev, images: e.target.value }))
+         }
+         placeholder="images/makhana_classic.png, images/gift_box.png"
+        />
        </div>
 
        <div className="contact-form-group" style={{ gridColumn: "span 2" }}>

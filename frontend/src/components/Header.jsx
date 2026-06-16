@@ -193,7 +193,7 @@ export default function Header() {
               {/* Cart items list */}
               <div id="cart-items-list" className="cart-items-list" style={{ display: 'block' }}>
                 {cart.map(item => (
-                  <div key={item.id} className="cart-item-card">
+                  <div key={item.cartKey || `${item.id}::${item.weight || ''}`} className="cart-item-card">
                     <div className="cart-item-img-frame">
                       <img src={item.image} alt={item.title} />
                     </div>
@@ -202,14 +202,14 @@ export default function Header() {
                       <p className="cart-item-flavor">{item.flavor} &bull; {item.weight}</p>
                       <div className="cart-item-qty-row">
                         <div className="cart-item-qty-spinner">
-                          <button className="cart-item-qty-btn dec-qty" onClick={() => updateQty(item.id, item.qty - 1)}>-</button>
+                          <button className="cart-item-qty-btn dec-qty" onClick={() => updateQty(item.cartKey || `${item.id}::${item.weight || ''}`, item.qty - 1)}>-</button>
                           <span className="cart-item-qty-input">{item.qty}</span>
-                          <button className="cart-item-qty-btn inc-qty" onClick={() => updateQty(item.id, item.qty + 1)}>+</button>
+                          <button className="cart-item-qty-btn inc-qty" onClick={() => updateQty(item.cartKey || `${item.id}::${item.weight || ''}`, item.qty + 1)}>+</button>
                         </div>
                       </div>
                     </div>
                     <div className="cart-item-price">₹{item.price * item.qty}</div>
-                    <button className="btn-remove-cart-item" onClick={() => removeFromCart(item.id)} aria-label="Remove item">
+                    <button className="btn-remove-cart-item" onClick={() => removeFromCart(item.cartKey || `${item.id}::${item.weight || ''}`)} aria-label="Remove item">
                       <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                     </button>
                   </div>

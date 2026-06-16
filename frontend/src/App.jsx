@@ -25,6 +25,11 @@ export const CartContext = createContext();
 export const AuthContext = createContext();
 export const CMSContext = createContext();
 
+function getCartItemKey(item) {
+ const weight = item?.selectedVariant?.weight || item?.weight || "";
+ return item?.cartKey || `${item?.id || "item"}::${weight}`;
+}
+
 // Scroll to top on route change
 function ScrollToTop() {
  const { pathname } = useLocation();
@@ -65,17 +70,17 @@ export default function App() {
   localStorage.setItem("rein_oro_promo", appliedPromo);
  }, [appliedPromo]);
 
- useEffect(() => {
+  useEffect(() => {
   const fetchCoupons = async () => {
    try {
-    const res = await fetch("/api/coupons");
+    const res = await fetch("/api/coupons?active=true");
     const data = await res.json();
-    setCoupons(data);
+    setCoupons(Array.isArray(data) ? data.filter((coupon) => coupon.active) : []);
 
     // Revalidate localStorage promo code
     const savedPromo = localStorage.getItem("rein_oro_promo") || "";
     if (savedPromo) {
-     const matched = data.find((c) => c.code === savedPromo && c.active);
+     const matched = (Array.isArray(data) ? data : []).find((c) => c.code === savedPromo && c.active);
      if (matched) {
       setDiscountRate(matched.discount_rate);
      } else {
@@ -93,30 +98,31 @@ export default function App() {
 
  const addToCart = (product, qty = 1) => {
   setCart((prevCart) => {
-   const idx = prevCart.findIndex((item) => item.id === product.id);
+   const cartKey = getCartItemKey(product);
+   const idx = prevCart.findIndex((item) => getCartItemKey(item) === cartKey);
    if (idx > -1) {
     const newCart = [...prevCart];
     newCart[idx].qty += qty;
     return newCart;
    } else {
-    return [...prevCart, { ...product, qty }];
+    return [...prevCart, { ...product, cartKey, qty }];
    }
   });
   setIsCartOpen(true);
  };
 
- const updateQty = (id, qty) => {
+ const updateQty = (itemKey, qty) => {
   if (qty <= 0) {
-   removeFromCart(id);
+   removeFromCart(itemKey);
    return;
   }
   setCart((prev) =>
-   prev.map((item) => (item.id === id ? { ...item, qty } : item)),
+   prev.map((item) => (getCartItemKey(item) === itemKey ? { ...item, qty } : item)),
   );
  };
 
- const removeFromCart = (id) => {
-  setCart((prev) => prev.filter((item) => item.id !== id));
+ const removeFromCart = (itemKey) => {
+  setCart((prev) => prev.filter((item) => getCartItemKey(item) !== itemKey));
  };
 
  const clearCart = () => {

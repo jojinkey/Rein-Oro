@@ -3,6 +3,88 @@ import { useParams, Link } from 'react-router-dom';
 import { CartContext } from '../App.jsx';
 import useSEO from '../hooks/useSEO.js';
 
+function parseJsonish(value, fallback) {
+  if (value === undefined || value === null || value === '') return fallback;
+  if (typeof value !== 'string') return value;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return value;
+  }
+}
+
+function toArray(value, fallback = []) {
+  const parsed = parseJsonish(value, fallback);
+  if (Array.isArray(parsed)) return parsed;
+  if (typeof parsed === 'string') {
+    return parsed
+      .split(/[\n,]/)
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+  return fallback;
+}
+
+function toObject(value, fallback = {}) {
+  const parsed = parseJsonish(value, fallback);
+  return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : fallback;
+}
+
+function toNumber(value, fallback = 0) {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : fallback;
+}
+
+function normalizeProduct(product) {
+  if (!product) return null;
+  const benefits = toArray(product.benefits, []);
+  const ingredients = toArray(product.ingredients, []).map((item) =>
+    typeof item === 'string' ? { name: item, img: 'images/ingredient_makhana.png' } : item
+  );
+  const variants = toArray(product.variants, [])
+    .map((variant) => {
+      const weight = String(variant?.weight || product.weight || '').trim();
+      if (!weight) return null;
+      const salePrice = toNumber(variant?.sale_price ?? variant?.salePrice ?? variant?.price, toNumber(product.sale_price ?? product.price, 0));
+      return {
+        weight,
+        mrp: toNumber(variant?.mrp, toNumber(product.mrp, salePrice)),
+        sale_price: salePrice,
+        price: salePrice,
+        stock: Math.max(0, Math.floor(toNumber(variant?.stock, product.stock ?? 0))),
+        active: variant?.active === undefined ? true : variant.active === true || variant.active === 'true' || variant.active === 1 || variant.active === '1',
+      };
+    })
+    .filter(Boolean);
+  if (!variants.length && product.weight) {
+    const salePrice = toNumber(product.sale_price ?? product.price, 0);
+    variants.push({
+      weight: product.weight,
+      mrp: toNumber(product.mrp, salePrice),
+      sale_price: salePrice,
+      price: salePrice,
+      stock: Math.max(0, Math.floor(toNumber(product.stock, 0))),
+      active: true,
+    });
+  }
+  const images = Array.from(new Set([
+    product.image,
+    ...toArray(product.images, []),
+    product.benefits_image,
+  ].filter(Boolean)));
+  return {
+    ...product,
+    benefits,
+    ingredients,
+    specs: toObject(product.specs, {}),
+    nutrition: toObject(product.nutrition, {}),
+    variants,
+    images,
+    stock: Math.max(0, Math.floor(toNumber(product.stock, variants.reduce((sum, variant) => sum + toNumber(variant.stock, 0), 0)))),
+    slug: product.slug || product.id,
+  };
+}
+
 export default function ProductDetails() {
   const { id } = useParams();
   const { addToCart } = useContext(CartContext);
@@ -22,20 +104,22 @@ export default function ProductDetails() {
     fetch('/api/products')
       .then(res => res.json())
       .then(data => {
-        setProducts(data);
-        const found = data.find(p => p.id === id);
+        const normalizedProducts = Array.isArray(data) ? data.map(normalizeProduct) : [];
+        setProducts(normalizedProducts);
+        const decodedId = decodeURIComponent(id || '');
+        const found = normalizedProducts.find(p => p.id === decodedId || p.slug === decodedId || p.title === decodedId);
         if (found) {
           setProduct(found);
-          setSelectedImg(found.image);
-          setSelectedWeight(found.weight);
+          setSelectedImg(found.image || found.images?.[0] || '');
+          setSelectedWeight(found.variants?.[0]?.weight || found.weight || '');
         }
       })
       .catch(err => console.error('Failed to load products:', err));
   }, [id]);
 
   useEffect(() => {
-    fetch(`/api/products/${id}/reviews`)
-      .then(res => res.json())
+    fetch(`/api/products/${encodeURIComponent(id || '')}/reviews`)
+      .then(res => (res.ok ? res.json() : { reviews: [], summary: { total: 0, average: 0, breakdown: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 } } }))
       .then(data => {
         setReviews(data.reviews || []);
         setReviewSummary(data.summary || { total: 0, average: 0, breakdown: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 } });
@@ -55,7 +139,14 @@ export default function ProductDetails() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  const getVariantForWeight = (weight) => {
+    if (!product?.variants?.length) return null;
+    return product.variants.find((variant) => variant.weight === weight) || product.variants[0];
+  };
+
   const getPriceForWeight = (basePrice, weight) => {
+    const variant = getVariantForWeight(weight);
+    if (variant) return toNumber(variant.sale_price ?? variant.price, basePrice);
     if (!weight) return basePrice;
     const w = weight.toLowerCase();
     if (w === '100g') return Math.round(basePrice * 0.5);
@@ -65,6 +156,10 @@ export default function ProductDetails() {
     return basePrice;
   };
   const displayPrice = product ? getPriceForWeight(product.price, selectedWeight) : 0;
+  const selectedVariant = product ? getVariantForWeight(selectedWeight) : null;
+  const displayMrp = selectedVariant ? toNumber(selectedVariant.mrp, displayPrice) : toNumber(product?.mrp, displayPrice);
+  const displayStock = selectedVariant ? toNumber(selectedVariant.stock, product?.stock) : toNumber(product?.stock, 0);
+  const isOutOfStock = displayStock <= 0;
 
   // SEO dynamic meta tags
   useSEO({
@@ -96,7 +191,7 @@ export default function ProductDetails() {
         "@type": "Offer",
         "priceCurrency": "INR",
         "price": displayPrice,
-        "availability": product.stock && product.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+        "availability": displayStock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
         "url": window.location.href
       },
       "aggregateRating": {
@@ -112,7 +207,7 @@ export default function ProductDetails() {
       const tag = document.getElementById('ld-json-product');
       if (tag) tag.remove();
     };
-  }, [product, displayPrice, reviewSummary]);
+  }, [product, displayPrice, displayStock, reviewSummary]);
 
   if (!product) {
     return (
@@ -124,20 +219,25 @@ export default function ProductDetails() {
   }
 
   // Gallery images collection
-  const gallery = [
+  const gallery = Array.from(new Set([
+    ...(product.images || []),
     product.image,
     product.benefits_image || 'images/makhana_bowl_love.png',
-    product.image.includes('makhana') ? 'images/makhana_classic.png' : 'images/almonds_california.png',
+    product.image?.includes('makhana') ? 'images/makhana_classic.png' : 'images/almonds_california.png',
     product.ingredients.length > 1 ? product.ingredients[1].img : product.image
-  ];
+  ].filter(Boolean)));
 
   const handleAddToCart = (e) => {
     e.preventDefault();
     const productToCart = {
       ...product,
       weight: selectedWeight,
-      price: displayPrice
+      price: displayPrice,
+      mrp: displayMrp,
+      stock: displayStock,
+      selectedVariant
     };
+    if (isOutOfStock) return;
     addToCart(productToCart, qty);
   };
 
@@ -195,6 +295,22 @@ export default function ProductDetails() {
             <div className="product-detail-price" style={{ fontSize: '1.8rem', color: 'var(--color-gold)', fontFamily: 'var(--font-body)', fontWeight: 500 }}>
               ₹{displayPrice}
             </div>
+            {displayMrp > displayPrice && (
+              <div style={{ fontSize: '1rem', color: 'var(--color-muted)', textDecoration: 'line-through' }}>
+                Rs. {displayMrp}
+              </div>
+            )}
+            <div style={{
+              border: displayStock > 0 ? '1px solid rgba(74, 124, 89, 0.35)' : '1px solid rgba(255, 107, 107, 0.35)',
+              color: displayStock > 0 ? '#dff7e5' : '#ffb4b4',
+              background: displayStock > 0 ? 'rgba(74, 124, 89, 0.14)' : 'rgba(255, 107, 107, 0.12)',
+              borderRadius: '20px',
+              padding: '0.3rem 0.8rem',
+              fontSize: '0.75rem',
+              fontWeight: 700
+            }}>
+              {displayStock > 0 ? `${displayStock} in stock` : 'Out of stock'}
+            </div>
             <div style={{ 
               backgroundColor: 'rgba(255, 107, 107, 0.1)', 
               border: '1px solid rgba(255, 107, 107, 0.2)', 
@@ -219,7 +335,7 @@ export default function ProductDetails() {
           <div className="weight-selector-row" style={{ display: 'flex', alignItems: 'center', gap: '1rem', borderTop: '1px solid rgba(255,255,255,0.05)', borderBottom: '1px solid rgba(255,255,255,0.05)', padding: '1rem 0' }}>
             <span style={{ fontSize: '0.78rem', textTransform: 'uppercase', color: 'var(--color-muted)', letterSpacing: '0.05em' }}>Weight:</span>
             <div style={{ display: 'flex', gap: '0.5rem' }}>
-              {['100g', '250g', '500g', '1kg'].map(w => (
+              {(product.variants?.length ? product.variants.map(v => v.weight) : ['100g', '250g', '500g', '1kg']).map(w => (
                 <button
                   key={w}
                   type="button"
@@ -270,9 +386,10 @@ export default function ProductDetails() {
             <button 
               className="btn btn-primary add-to-cart-action" 
               onClick={handleAddToCart}
-              style={{ flex: 1, height: '48px', padding: 0 }}
+              disabled={isOutOfStock}
+              style={{ flex: 1, height: '48px', padding: 0, opacity: isOutOfStock ? 0.55 : 1, cursor: isOutOfStock ? 'not-allowed' : 'pointer' }}
             >
-              Add to Bag
+              {isOutOfStock ? 'Out of Stock' : 'Add to Bag'}
             </button>
           </div>
 
@@ -447,18 +564,18 @@ export default function ProductDetails() {
         <h2 style={{ fontFamily: 'var(--font-heading)', fontSize: '2rem', fontWeight: 300, color: 'var(--color-white)', marginBottom: '2rem', textAlign: 'center' }}>You May Also Love</h2>
         <div className="products-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '2rem' }}>
           {products
-            .filter(p => p.id !== id)
+            .filter(p => p.id !== id && p.slug !== id)
             .slice(0, 4)
             .map(p => (
               <div key={p.id} className="product-card" style={{ border: '1px solid rgba(201,168,76,0.12)', borderRadius: '4px', overflow: 'hidden', backgroundColor: '#141414', display: 'flex', flexDirection: 'column' }}>
-                <Link to={`/product/${p.id}`} style={{ textDecoration: 'none' }}>
+                <Link to={`/product/${encodeURIComponent(p.slug || p.id)}`} style={{ textDecoration: 'none' }}>
                   <div style={{ height: '220px', backgroundColor: '#1C1A16', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <img src={p.image} alt={p.title} style={{ maxHeight: '80%', maxWidth: '80%', objectFit: 'contain' }} />
                   </div>
                 </Link>
                 <div style={{ padding: '1.5rem', textAlign: 'center', display: 'flex', flexDirection: 'column', flex: 1, justifyContent: 'space-between' }}>
                   <div>
-                    <Link to={`/product/${p.id}`} style={{ textDecoration: 'none' }}>
+                    <Link to={`/product/${encodeURIComponent(p.slug || p.id)}`} style={{ textDecoration: 'none' }}>
                       <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '1.2rem', color: 'var(--color-white)', marginBottom: '0.4rem' }}>{p.title}</h3>
                     </Link>
                     <p style={{ fontSize: '0.78rem', color: 'var(--color-gold)', textTransform: 'uppercase', marginBottom: '0.5rem' }}>{p.flavor} &bull; {p.weight}</p>
@@ -468,9 +585,10 @@ export default function ProductDetails() {
                     <button 
                       className="btn btn-primary"
                       onClick={() => addToCart(p, 1)}
-                      style={{ width: '100%', height: '40px', padding: 0 }}
+                      disabled={Number(p.stock || 0) <= 0}
+                      style={{ width: '100%', height: '40px', padding: 0, opacity: Number(p.stock || 0) <= 0 ? 0.55 : 1, cursor: Number(p.stock || 0) <= 0 ? 'not-allowed' : 'pointer' }}
                     >
-                      Add to Bag
+                      {Number(p.stock || 0) <= 0 ? 'Out of Stock' : 'Add to Bag'}
                     </button>
                   </div>
                 </div>
@@ -511,9 +629,10 @@ export default function ProductDetails() {
             <button 
               onClick={handleAddToCart}
               className="btn btn-primary"
-              style={{ height: '40px', padding: '0 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              disabled={isOutOfStock}
+              style={{ height: '40px', padding: '0 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: isOutOfStock ? 0.55 : 1, cursor: isOutOfStock ? 'not-allowed' : 'pointer' }}
             >
-              Add to Bag
+              {isOutOfStock ? 'Out of Stock' : 'Add to Bag'}
             </button>
           </div>
         </div>

@@ -1231,7 +1231,10 @@ export default function Admin() {
 
    if (!res.ok) {
     const data = await res.json();
-    throw new Error(data.error || "Product operation failed");
+    const errorMsg = data.details && Array.isArray(data.details)
+     ? `${data.error}: ${data.details.join(", ")}`
+     : (data.error || "Product operation failed");
+    throw new Error(errorMsg);
    }
 
    alert(
@@ -4672,7 +4675,14 @@ export default function Admin() {
              active: e.target.checked ? 1 : 0,
             }))
            }
-           style={{ accentColor: "var(--color-gold)" }}
+           style={{
+            accentColor: "var(--color-gold)",
+            opacity: 1,
+            position: "static",
+            height: "16px",
+            width: "16px",
+            cursor: "pointer",
+           }}
           />
           Coupon is currently active and can be used on checkout
          </label>
@@ -4961,6 +4971,7 @@ export default function Admin() {
            borderRadius: "6px",
            cursor: "pointer",
            backgroundColor: "rgba(255,255,255,0.01)",
+           paddingLeft: "1rem",
           }}
          >
           <input
@@ -4974,6 +4985,11 @@ export default function Admin() {
            }
            style={{
             accentColor: "var(--color-gold)",
+            opacity: 1,
+            position: "static",
+            height: "16px",
+            width: "16px",
+            cursor: "pointer",
             transform: "scale(1.15)",
            }}
           />
@@ -5438,6 +5454,7 @@ export default function Admin() {
           gap: "0.6rem",
           color: "var(--color-white)",
           fontSize: "0.85rem",
+          paddingLeft: 0,
          }}
         >
          <input
@@ -5446,7 +5463,14 @@ export default function Admin() {
           onChange={(e) =>
            setProductForm((prev) => ({ ...prev, featured: e.target.checked }))
           }
-          style={{ accentColor: "var(--color-gold)" }}
+          style={{
+           accentColor: "var(--color-gold)",
+           opacity: 1,
+           position: "static",
+           height: "16px",
+           width: "16px",
+           cursor: "pointer",
+          }}
          />
          Show as Featured product on homepage
         </label>

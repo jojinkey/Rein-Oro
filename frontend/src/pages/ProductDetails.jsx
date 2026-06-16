@@ -57,6 +57,17 @@ function normalizeProduct(product) {
       };
     })
     .filter(Boolean);
+  if (product.weight && !variants.some(v => v.weight === product.weight)) {
+    const salePrice = toNumber(product.sale_price ?? product.price, 0);
+    variants.unshift({
+      weight: product.weight,
+      mrp: toNumber(product.mrp, salePrice),
+      sale_price: salePrice,
+      price: salePrice,
+      stock: Math.max(0, Math.floor(toNumber(product.stock, 0))),
+      active: true,
+    });
+  }
   if (!variants.length && product.weight) {
     const salePrice = toNumber(product.sale_price ?? product.price, 0);
     variants.push({

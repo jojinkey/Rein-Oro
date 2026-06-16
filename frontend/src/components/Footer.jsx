@@ -1,5 +1,5 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React from "react";
+import { Link } from "react-router-dom";
 
 const SUPPORT_EMAIL = 'wecare.reinoro@gmail.com';
 const WHATSAPP_URL = 'https://wa.me/916397003303';

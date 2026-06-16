@@ -8,8 +8,8 @@ export default function Shop() {
   const categoryParam = searchParams.get('category') || 'All';
 
   useSEO({
-    title: 'Shop Gourmet Collection | Rein Oro',
-    description: 'Explore the full catalog of royal health snacks, including slow-roasted Flavored Makhanas, Premium Cashews, California Almonds, and Luxury Gift Hampers.',
+    title: 'Shop Premium Makhana & Dry Fruits | Rein Oro Foods',
+    description: 'Explore Rein Oro Foods premium makhana, dry fruits, healthy snacks, and gift packs.',
     image: 'images/makhana_cheese_onion.png',
     path: '/shop'
   });
@@ -182,9 +182,9 @@ export default function Shop() {
 
         {/* Product Grid */}
         <section className="products-catalog">
-          <div className="section-header" style={{ marginBottom: '2.5rem', textAlign: 'left' }}>
-            <span className="section-subtitle" style={{ fontSize: '0.72rem' }}>Royal Selection</span>
-            <h1 className="section-title" style={{ fontSize: '2.2rem' }}>Gourmet Offerings</h1>
+          <div className="section-header shop-catalog-header">
+            <span className="section-subtitle">Premium Selection</span>
+            <h1 className="section-title">Shop Rein Oro Foods</h1>
             <p style={{ fontSize: '0.85rem', color: 'var(--color-muted)', marginTop: '0.4rem' }}>
               Showing {filteredProducts.length} premium products
             </p>

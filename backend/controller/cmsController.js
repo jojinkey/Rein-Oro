@@ -355,15 +355,37 @@ export async function getEnquiries(req, res) {
  }
 }
 export async function addEnquiry(req, res) {
- const { name, email, subject, message } = req.body;
+ const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || "wecare.reinoro@gmail.com";
+ const name = String(req.body.name || "").trim();
+ const email = String(req.body.email || "").trim().toLowerCase();
+ const phone = String(req.body.phone || "").trim();
+ const subject = String(req.body.subject || "").trim();
+ const message = String(req.body.message || "").trim();
+ const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
  try {
+  if (name.length < 2) {
+   return res.status(400).json({ error: "Name is required" });
+  }
+  if (!emailPattern.test(email)) {
+   return res.status(400).json({ error: "Valid email is required" });
+  }
+  if (subject.length < 3) {
+   return res.status(400).json({ error: "Subject is required" });
+  }
+  if (message.length < 10) {
+   return res.status(400).json({ error: "Message must be at least 10 characters" });
+  }
+
   const id = makeId("enq_");
   await mirrorToFirestore("enquiries", id, {
    id,
    name,
    email,
+   phone,
    subject,
    message,
+   recipient_email: SUPPORT_EMAIL,
+   source: req.body.source || "website_contact_form",
    date: new Date().toISOString(),
    status: "New",
   });

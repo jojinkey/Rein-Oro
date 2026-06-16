@@ -3,150 +3,132 @@ import { useNavigate } from 'react-router-dom';
 import { CMSContext } from '../App.jsx';
 import useSEO from '../hooks/useSEO.js';
 
+const missionItems = [
+  'Deliver premium-quality makhana and dry fruits.',
+  'Maintain strict quality and hygiene standards.',
+  'Support healthy snacking habits.',
+  'Build long-term customer trust through consistency and transparency.',
+  'Promote Indian-grown products and local sourcing wherever possible.'
+];
+
+const trustBadges = [
+  'FSSAI Certified',
+  'Premium Quality Makhana',
+  'Made in India',
+  'Healthy Snacking',
+  'Hygienically Packed',
+  'Quality Assured'
+];
+
 export default function About() {
   const navigate = useNavigate();
   const { getCMSValue } = useContext(CMSContext);
 
   useSEO({
-    title: 'Our Story & Heritage | Rein Oro',
-    description: 'Learn about the House of Rein Oro. Our journey of sourcing organic lotus seeds from pristine wetlands, slow-roasting in controlled dry pans, and double-sorting for elite quality.',
+    title: 'About Rein Oro Foods | Premium Makhana & Dry Fruits',
+    description: 'Discover Rein Oro Foods, founded by Vaibhav Singh Panwar in Roorkee, Uttarakhand, with a commitment to premium makhana, dry fruits, purity, nutrition, and hygiene.',
     image: 'images/finest_selection.png',
     path: '/about'
   });
 
   return (
-    <main className="cart-page-main">
-      {/* Visual Split Hero */}
+    <main className="cart-page-main about-page-main">
       <section className="about-hero-section">
-        <div>
-          <span style={{ fontSize: '0.7rem', color: 'var(--color-gold)', letterSpacing: '0.22em', textTransform: 'uppercase', marginBottom: '1rem', display: 'inline-block' }}>Our Heritage</span>
-          <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: 'clamp(2.5rem, 5vw, 4rem)', fontWeight: 300, color: 'var(--color-white)', marginBottom: '1.2rem', lineHeight: 1.1 }}>
-            {getCMSValue('about.html', '.about-hero-section h1', 'Purity, Tradition. Timeless Taste.')}
+        <div className="about-hero-content">
+          <span className="about-hero-eyebrow">About Rein Oro Foods</span>
+          <h1 className="about-hero-title text-glow">
+            {getCMSValue('about.html', '.about-hero-section h1', 'Premium Makhana and Dry Fruits, Packed With Trust.')}
           </h1>
-          <p style={{ fontSize: '0.95rem', color: 'var(--color-muted)', lineHeight: 1.6, marginBottom: '2rem', maxWidth: '500px' }}>
-            {getCMSValue('about.html', '.about-hero-section p', 'At the House of Rein Oro, we view healthy snacking not as a compromise, but as a crowning luxury. Our journey began with a singular focus: to elevate standard dry fruits and lotus seeds into premium, culinary works of art.')}
+          <p className="about-hero-desc text-readable">
+            {getCMSValue('about.html', '.about-hero-section p', 'Rein Oro Foods brings premium-quality makhana and dry fruits to customers who value purity, nutrition, freshness, and excellence.')}
           </p>
-          <button className="btn btn-primary" onClick={() => navigate('/shop')}>Explore Collection</button>
+          <button className="btn btn-primary" onClick={() => navigate('/shop')}>Explore Products</button>
         </div>
         <div className="about-hero-visual-frame">
-          <img src={getCMSValue('about.html', '.about-hero-img', 'images/finest_selection.png')} alt="Rein Oro Assortment" className="about-hero-img" />
+          <img src={getCMSValue('about.html', '.about-hero-img', 'images/finest_selection.png')} alt="Premium Rein Oro Foods assortment" className="about-hero-img" />
         </div>
       </section>
 
-      {/* Bento Grid System */}
-      <section className="about-bento-grid">
-        
-        {/* Row 1: Story & Promises */}
+      <section className="about-bento-grid about-content-grid">
         <div className="about-bento-row-1">
-          
-          {/* Our Story Cell */}
-          <div className="about-bento-card">
-            <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '1.8rem', fontWeight: 300, color: 'var(--color-white)', marginBottom: '1.2rem' }}>
-              {getCMSValue('about.html', '.about-sourcing-title', 'Our Sourcing Philosophy')}
-            </h3>
-            <p style={{ fontSize: '0.9rem', color: 'var(--color-muted)', lineHeight: 1.6, marginBottom: '2rem' }}>
-              {getCMSValue('about.html', '.about-sourcing-body', 'We source our raw lotus seeds from clean, organic wetlands, double-sorting them to verify uniform quality and maximum size. Our dry fruits—from California almonds to Iranian pistachios—are select harvests sourced directly from global vineyards and orchards.')}
+          <article className="about-bento-card about-story-card">
+            <span className="cell-eyebrow">Our Journey</span>
+            <h2 className="text-glow">
+              {getCMSValue('about.html', '.about-sourcing-title', 'Our Journey')}
+            </h2>
+            <p>
+              Founded by Vaibhav Singh Panwar, Rein Oro Foods was established with a simple vision-to bring premium-quality makhana and dry fruits to customers who value purity, nutrition, and excellence.
             </p>
-            <div className="about-sourcing-grid">
-              <div style={{ display: 'flex', gap: '0.8rem', alignItems: 'center' }}>
-                <span style={{ color: 'var(--color-gold)' }}>👑</span>
-                <span style={{ fontSize: '0.85rem', color: 'var(--color-white)', fontWeight: 500 }}>Double-Sorted Selection</span>
-              </div>
-              <div style={{ display: 'flex', gap: '0.8rem', alignItems: 'center' }}>
-                <span style={{ color: 'var(--color-gold)' }}>🌿</span>
-                <span style={{ fontSize: '0.85rem', color: 'var(--color-white)', fontWeight: 500 }}>100% Organic Sourcing</span>
-              </div>
-              <div style={{ display: 'flex', gap: '0.8rem', alignItems: 'center' }}>
-                <span style={{ color: 'var(--color-gold)' }}>📦</span>
-                <span style={{ fontSize: '0.85rem', color: 'var(--color-white)', fontWeight: 500 }}>Vacuum Sealed Packaging</span>
-              </div>
-              <div style={{ display: 'flex', gap: '0.8rem', alignItems: 'center' }}>
-                <span style={{ color: 'var(--color-gold)' }}>✨</span>
-                <span style={{ fontSize: '0.85rem', color: 'var(--color-white)', fontWeight: 500 }}>Royal Quality Guarantee</span>
-              </div>
-            </div>
-          </div>
+            <p>
+              Based in Roorkee, Uttarakhand, Rein Oro Foods began its journey with a commitment to sourcing the finest products from trusted farmers and suppliers across India. We believe that healthy snacking should never compromise on quality, taste, or freshness.
+            </p>
+            <p>
+              Every product is carefully selected, quality-checked, and hygienically packed to ensure that customers receive only the best. Our focus is on delivering natural, wholesome, and nutritious products that fit modern lifestyles while maintaining traditional values of trust and authenticity.
+            </p>
+            <p>
+              As a proudly Indian brand, Rein Oro Foods aims to build a trusted name in the premium dry fruits and healthy snacks segment by consistently delivering products that meet the highest standards of quality and customer satisfaction.
+            </p>
+          </article>
 
-          {/* Core Guarantees Cell */}
-          <div className="about-guarantees-card">
-            <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '1.5rem', fontWeight: 300, color: 'var(--color-white)', textAlign: 'center' }}>Our Royal Guarantees</h3>
-            {[
-              { label: 'Finest Ingredients', desc: 'Sourced globally from premier crops.' },
-              { label: 'Artisanal Prep', desc: 'Slow roasted in small batches.' },
-              { label: 'Discerning Taste', desc: 'Unique gourmet seasoning selections.' }
-            ].map((g, idx) => (
-              <div key={idx} style={{ borderBottom: idx === 2 ? 'none' : '1px solid rgba(255,255,255,0.04)', paddingBottom: idx === 2 ? 0 : '1rem' }}>
-                <h4 style={{ fontSize: '0.9rem', color: 'var(--color-gold)', fontWeight: 600, marginBottom: '0.2rem' }}>{g.label}</h4>
-                <p style={{ fontSize: '0.78rem', color: 'var(--color-muted)' }}>{g.desc}</p>
-              </div>
+          <aside className="about-guarantees-card about-founder-card">
+            <span className="cell-eyebrow">Founder</span>
+            <h3 className="text-glow">Vaibhav Singh Panwar</h3>
+            <p className="founder-role">Founder &amp; Proprietor</p>
+            <p>
+              Driven by a passion for quality food products and entrepreneurship, Vaibhav Singh Panwar founded Rein Oro Foods with the goal of creating a premium Indian brand focused on purity, nutrition, and customer satisfaction.
+            </p>
+          </aside>
+        </div>
+
+        <div className="about-bento-row-2">
+          <article className="about-bento-card">
+            <span className="cell-eyebrow">Our Vision</span>
+            <h3 className="text-glow">{getCMSValue('about.html', '.about-craft-title', 'Our Vision')}</h3>
+            <p>
+              To become one of India's most trusted premium dry fruits and healthy snacks brands by offering high-quality, naturally sourced, and hygienically packed products that promote healthy living.
+            </p>
+            <div className="about-image-strip">
+              <img src={getCMSValue('about.html', '.about-sourcing-img', 'images/slow_roasted.png')} alt="Naturally sourced Rein Oro makhana" />
+            </div>
+          </article>
+
+          <article className="about-bento-card">
+            <span className="cell-eyebrow">Our Mission</span>
+            <h3 className="text-glow">{getCMSValue('about.html', '.about-values-title', 'Our Mission')}</h3>
+            <ul className="about-mission-list">
+              {missionItems.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+          </article>
+        </div>
+
+        <section className="about-trust-section">
+          <div className="section-header compact">
+            <span className="section-subtitle">Trust Badges</span>
+            <h2 className="section-title text-glow">Quality You Can Count On</h2>
+          </div>
+          <div className="trust-badges-grid">
+            {trustBadges.map((badge) => (
+              <div key={badge} className="trust-badge-pill">{badge}</div>
             ))}
           </div>
+        </section>
 
-        </div>
-
-        {/* Row 2: Craftsmanship Detail */}
-        <div className="about-bento-row-2">
-          
-          {/* Craftsmanship & Quality Cell */}
-          <div className="about-bento-card" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-            <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '1.8rem', fontWeight: 300, color: 'var(--color-white)' }}>
-              {getCMSValue('about.html', '.about-craft-title', 'Craftsmanship & Quality')}
-            </h3>
-            <p style={{ fontSize: '0.9rem', color: 'var(--color-muted)', lineHeight: 1.6 }}>
-              {getCMSValue('about.html', '.about-craft-body', 'Our signature lotus seeds are processed under clean temperature monitors and slow-roasted without oil. We season them with pure rock salts and organic spices to lock in nutritional wellness, ensuring each seed delivers a signature high-density crunch.')}
-            </p>
-            <div style={{ marginTop: '1rem', border: '1px solid rgba(255,255,255,0.04)', borderRadius: '6px', overflow: 'hidden' }}>
-              <img src={getCMSValue('about.html', '.about-sourcing-img', 'images/slow_roasted.png')} alt="Roasting Quality" style={{ width: '100%', height: '180px', objectFit: 'cover' }} />
-            </div>
-          </div>
-
-          {/* Our Core Values Cell */}
-          <div className="about-bento-card" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-            <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '1.8rem', fontWeight: 300, color: 'var(--color-white)' }}>
-              {getCMSValue('about.html', '.about-values-title', 'Royal Core Values')}
-            </h3>
-            <p style={{ fontSize: '0.9rem', color: 'var(--color-muted)', lineHeight: 1.6 }}>
-              {getCMSValue('about.html', '.about-values-body', 'Purity is not a covenant, it is our covenant. We believe in providing natural, health-focused alternatives to processed snacks while retaining absolute gourmet taste and presentation aesthetics.')}
-            </p>
-            <div style={{ marginTop: '1rem', border: '1px solid rgba(255,255,255,0.04)', borderRadius: '6px', overflow: 'hidden' }}>
-              <img src={getCMSValue('about.html', '.about-values-img', 'images/makhana_bowl_love.png')} alt="Wellness Bowl" style={{ width: '100%', height: '180px', objectFit: 'cover' }} />
-            </div>
-          </div>
-
-        </div>
-
-        {/* Row 3: Stats Summary */}
-        <div className="about-stats-row">
-          {[
-            { metric: '100%', label: 'Naturally Sourced' },
-            { metric: '50k+', label: 'Delighted Royals' },
-            { metric: '12+', label: 'Unique Flavors' },
-            { metric: '0%', label: 'Preservatives' },
-            { metric: '100%', label: 'Hygienic Chambers' }
-          ].map((stat, idx) => (
-            <div key={idx} className="about-stat-item">
-              <h4 style={{ fontSize: '1.8rem', color: 'var(--color-gold)', fontWeight: 600 }}>{stat.metric}</h4>
-              <p style={{ fontSize: '0.72rem', color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: '0.3rem' }}>{stat.label}</p>
-            </div>
-          ))}
-        </div>
-
-        {/* Row 4: Call to Action Cell */}
         <div className="about-cta-container">
           <div>
-            <h2 style={{ fontFamily: 'var(--font-heading)', fontSize: '2.2rem', fontWeight: 300, color: 'var(--color-white)', marginBottom: '1rem', lineHeight: 1.2 }}>
-              {getCMSValue('about.html', '.about-cta-title', 'Experience Gourmet Magnificence')}
+            <h2 className="text-glow">
+              {getCMSValue('about.html', '.about-cta-title', 'Healthy Snacking, Made Premium.')}
             </h2>
-            <p style={{ fontSize: '0.9rem', color: 'var(--color-muted)', lineHeight: 1.6, marginBottom: '2rem' }}>
-              {getCMSValue('about.html', '.about-cta-body', 'Treat yourself or surprise a partner with our signature gift assortments, packed inside gold-embossed chambers to preserve natural flavors.')}
+            <p>
+              {getCMSValue('about.html', '.about-cta-body', 'Explore premium makhana, dry fruits, and wholesome snacks from Rein Oro Foods.')}
             </p>
-            <button className="btn btn-primary" onClick={() => navigate('/shop')}>Shop Selection</button>
+            <button className="btn btn-primary" onClick={() => navigate('/shop')}>Shop Now</button>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'center' }}>
-            <img src={getCMSValue('about.html', '.about-cta-img', 'images/gift_box.png')} alt="Royal Gift Assortment" style={{ maxHeight: '200px', objectFit: 'contain' }} />
+          <div className="about-cta-image">
+            <img src={getCMSValue('about.html', '.about-cta-img', 'images/gift_box.png')} alt="Rein Oro Foods gift assortment" />
           </div>
         </div>
-
       </section>
     </main>
   );

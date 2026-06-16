@@ -1297,28 +1297,28 @@ body {
     }
 }
 
-/* Brand Logo Images (White background keyed out) */
+/* Brand Logo Images */
 .brand-logo-img,
 .preloader-logo-img,
 .footer-logo-img {
     height: 46px;
     object-fit: contain;
-    filter: invert(1) hue-rotate(180deg) brightness(1.6) contrast(1.2);
-    mix-blend-mode: screen;
+    filter: drop-shadow(0 0 10px rgba(201, 168, 76, 0.45));
+    mix-blend-mode: normal;
     display: block;
     transition: var(--transition-smooth);
 }
 
 .brand-logo-img:hover,
 .footer-logo-img:hover {
-    filter: invert(1) hue-rotate(180deg) brightness(1.9) contrast(1.3);
+    filter: drop-shadow(0 0 14px rgba(201, 168, 76, 0.65));
     transform: scale(1.02);
 }
 
 .preloader-logo-img {
     height: 90px;
     margin-bottom: 2rem;
-    filter: invert(1) hue-rotate(180deg) brightness(1.8) contrast(1.2);
+    filter: drop-shadow(0 0 16px rgba(201, 168, 76, 0.62));
 }
 
 .footer-logo-img {
@@ -9040,6 +9040,745 @@ body.login-page-body .login-card-footer {
     
     .timeline-step div {
         text-align: left;
+    }
+}
+
+/* ==================================================
+   REIN ORO FOODS CONTENT, CONTRAST & LAYOUT FIXES
+   ================================================== */
+
+:root {
+    --rein-cream: #ffffff;
+    --color-white: #ffffff;
+    --color-muted: #d8d1bf;
+}
+
+html {
+    scroll-padding-top: 118px;
+}
+
+body {
+    color: #ffffff;
+}
+
+.home-page-main {
+    overflow-x: clip;
+    background: var(--color-bg);
+}
+
+.home-page-main > section {
+    scroll-margin-top: 118px;
+}
+
+#main-nav {
+    height: 80px;
+}
+
+.nav-container {
+    max-width: 1280px;
+}
+
+.nav-logo {
+    display: flex;
+    align-items: center;
+    min-width: 178px;
+    min-height: 100%;
+}
+
+.brand-logo-img,
+.preloader-logo-img,
+.footer-logo-img {
+    object-fit: contain;
+    object-position: center;
+    filter: drop-shadow(0 0 12px rgba(201, 168, 76, 0.58)) !important;
+    mix-blend-mode: normal !important;
+}
+
+.brand-logo-img {
+    height: 72px !important;
+    width: auto;
+    max-width: 226px;
+}
+
+.footer-logo-img {
+    height: 58px !important;
+    width: auto;
+    max-width: 210px;
+}
+
+.preloader-logo-img {
+    height: 116px !important;
+    max-width: min(360px, 78vw);
+}
+
+#hero-container {
+    height: 520vh;
+    min-height: 520vh;
+    isolation: isolate;
+    overflow: visible;
+    scroll-margin-top: 0;
+}
+
+.sticky-wrapper {
+    height: 100svh;
+    min-height: 640px;
+    contain: layout paint;
+}
+
+#hero-canvas {
+    backface-visibility: hidden;
+    will-change: transform;
+}
+
+.scenes-container {
+    contain: layout paint;
+}
+
+.scene {
+    min-height: 100svh;
+    padding-top: 104px;
+    padding-bottom: 3rem;
+}
+
+.cinematic-overlay {
+    background:
+        linear-gradient(90deg, rgba(0, 0, 0, 0.74) 0%, rgba(0, 0, 0, 0.32) 42%, rgba(0, 0, 0, 0.76) 100%),
+        radial-gradient(circle at center, rgba(0, 0, 0, 0.18) 0%, rgba(0, 0, 0, 0.55) 62%, rgba(0, 0, 0, 0.96) 100%);
+}
+
+.scene-content {
+    position: relative;
+    isolation: isolate;
+    padding-top: 2.2rem;
+    padding-bottom: 2.2rem;
+}
+
+.scene-content::before {
+    content: "";
+    position: absolute;
+    inset: -1.6rem -2rem;
+    z-index: -1;
+    border-radius: 8px;
+    background:
+        radial-gradient(circle at center, rgba(0, 0, 0, 0.82) 0%, rgba(0, 0, 0, 0.58) 54%, rgba(0, 0, 0, 0) 76%),
+        linear-gradient(135deg, rgba(201, 168, 76, 0.08), rgba(0, 0, 0, 0));
+    filter: blur(0.2px);
+    pointer-events: none;
+}
+
+.text-glow,
+.headline,
+.section-title,
+.gifting-title,
+.about-hero-title,
+.about-bento-card h2,
+.about-bento-card h3,
+.about-guarantees-card h3,
+.contact-header h1 {
+    color: #ffffff !important;
+    text-shadow:
+        0 0 18px rgba(0, 0, 0, 1),
+        0 0 34px rgba(0, 0, 0, 0.92),
+        0 0 22px rgba(201, 168, 76, 0.2);
+    letter-spacing: 0;
+}
+
+.headline {
+    font-size: 4rem;
+    line-height: 1.08;
+}
+
+.body-text,
+.text-readable,
+.gifting-body,
+.craft-desc,
+.feature-text p,
+.about-hero-desc,
+.about-bento-card p,
+.about-guarantees-card p,
+.contact-header p,
+.contact-info-details p {
+    color: #f7f7f7 !important;
+    text-shadow:
+        0 2px 10px rgba(0, 0, 0, 1),
+        0 0 18px rgba(0, 0, 0, 0.82);
+}
+
+.eyebrow,
+.section-subtitle,
+.cell-eyebrow {
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.96);
+}
+
+.features-bar,
+.signature-collection,
+.gifting-promo,
+.finest-craft,
+.trust-bar,
+.footer-section {
+    position: relative;
+    z-index: 20;
+    clear: both;
+}
+
+.signature-collection,
+.finest-craft {
+    padding-top: 6.5rem;
+    padding-bottom: 6.5rem;
+}
+
+.gifting-promo {
+    overflow: hidden;
+    margin: 0 auto;
+}
+
+.gifting-container {
+    min-height: 520px;
+}
+
+.gifting-text-col {
+    position: relative;
+    z-index: 2;
+}
+
+.gifting-title {
+    font-size: 3rem;
+    line-height: 1.12;
+}
+
+.gifting-body {
+    font-weight: 400;
+}
+
+#hero-container.scroll-fallback {
+    height: auto !important;
+    min-height: 0 !important;
+}
+
+#hero-container.scroll-fallback .sticky-wrapper {
+    position: relative;
+    height: auto;
+    min-height: 0;
+    padding: 7.5rem 0 3rem 0;
+    overflow: hidden;
+}
+
+#hero-container.scroll-fallback #hero-canvas {
+    position: absolute;
+    inset: 0;
+    transform: none;
+    width: 100% !important;
+    height: 100% !important;
+    opacity: 0.34;
+}
+
+#hero-container.scroll-fallback .cinematic-overlay {
+    background: rgba(0, 0, 0, 0.82);
+}
+
+#hero-container.scroll-fallback .scroll-indicator {
+    display: none;
+}
+
+#hero-container.scroll-fallback .scenes-container {
+    position: relative;
+    inset: auto;
+    display: grid;
+    gap: 1.5rem;
+    padding: 0 1rem;
+}
+
+#hero-container.scroll-fallback .scene {
+    position: relative;
+    inset: auto;
+    min-height: auto;
+    visibility: visible !important;
+    opacity: 1 !important;
+    padding: 0;
+}
+
+#hero-container.scroll-fallback .scene-content,
+#hero-container.scroll-fallback .scene-content.text-left,
+#hero-container.scroll-fallback .scene-content.text-right,
+#hero-container.scroll-fallback .scene-content.text-center {
+    max-width: 760px;
+    margin: 0 auto !important;
+    text-align: center;
+    align-items: center;
+    padding: 1.4rem 1rem;
+}
+
+#hero-container.scroll-fallback .headline {
+    font-size: clamp(2rem, 7vw, 3.1rem);
+}
+
+.about-page-main,
+.contact-page-main {
+    padding-top: 9rem;
+}
+
+.about-page-main .about-hero-section {
+    padding-top: 2rem;
+}
+
+.about-content-grid {
+    display: flex !important;
+    flex-direction: column;
+    gap: 2rem;
+    border: 0 !important;
+    background: transparent !important;
+}
+
+.about-bento-card,
+.about-guarantees-card,
+.about-trust-section {
+    border: 1px solid rgba(201, 168, 76, 0.18);
+    border-radius: 8px;
+    background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.01)),
+        rgba(10, 10, 10, 0.72);
+    padding: 2.5rem;
+    min-width: 0;
+}
+
+.about-bento-card h2,
+.about-bento-card h3,
+.about-guarantees-card h3 {
+    font-family: var(--font-heading);
+    font-weight: 300;
+    margin-bottom: 1rem;
+    line-height: 1.18;
+}
+
+.about-bento-card h2 {
+    font-size: 2.25rem;
+}
+
+.about-bento-card h3,
+.about-guarantees-card h3 {
+    font-size: 1.8rem;
+}
+
+.about-bento-card p,
+.about-guarantees-card p {
+    font-size: 0.95rem;
+    line-height: 1.75;
+    margin-bottom: 1rem;
+}
+
+.founder-role {
+    color: var(--color-gold) !important;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.about-image-strip {
+    margin-top: 1.6rem;
+    border: 1px solid rgba(201, 168, 76, 0.14);
+    border-radius: 8px;
+    overflow: hidden;
+    background: rgba(0, 0, 0, 0.28);
+}
+
+.about-image-strip img {
+    width: 100%;
+    height: 220px;
+    object-fit: cover;
+    display: block;
+}
+
+.about-mission-list {
+    list-style: none;
+    display: grid;
+    gap: 0.9rem;
+}
+
+.about-mission-list li {
+    position: relative;
+    padding-left: 1.3rem;
+    color: #f7f7f7;
+    line-height: 1.55;
+}
+
+.about-mission-list li::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0.55rem;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--color-gold);
+    box-shadow: 0 0 12px rgba(201, 168, 76, 0.65);
+}
+
+.about-trust-section {
+    padding: 3rem 2.5rem;
+}
+
+.section-header.compact {
+    margin-bottom: 2rem;
+}
+
+.trust-badges-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+}
+
+.trust-badge-pill {
+    border: 1px solid rgba(201, 168, 76, 0.24);
+    border-radius: 6px;
+    padding: 1rem;
+    color: #ffffff;
+    text-align: center;
+    background: rgba(201, 168, 76, 0.06);
+    font-size: 0.82rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.about-cta-container h2 {
+    font-family: var(--font-heading);
+    font-size: 2.4rem;
+    font-weight: 300;
+    margin-bottom: 1rem;
+    line-height: 1.15;
+}
+
+.about-cta-container p {
+    color: #f7f7f7;
+    line-height: 1.65;
+    margin-bottom: 2rem;
+}
+
+.about-cta-image {
+    display: flex;
+    justify-content: center;
+}
+
+.about-cta-image img {
+    max-height: 220px;
+    max-width: 100%;
+    object-fit: contain;
+}
+
+.contact-page-main .contact-header {
+    max-width: 780px;
+    margin: 0 auto 4rem auto;
+}
+
+.contact-page-main .contact-header p {
+    line-height: 1.75;
+}
+
+.contact-info-card,
+.contact-form-card {
+    border-radius: 8px;
+    background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.01)),
+        rgba(10, 10, 10, 0.76);
+}
+
+.form-status-message {
+    border-radius: 6px;
+    padding: 0.95rem 1rem;
+    font-size: 0.86rem;
+    line-height: 1.5;
+}
+
+.form-status-message.success {
+    border: 1px solid rgba(74, 124, 89, 0.45);
+    color: #dff7e5;
+    background: rgba(74, 124, 89, 0.16);
+}
+
+.form-status-message.error {
+    border: 1px solid rgba(139, 58, 58, 0.48);
+    color: #ffdede;
+    background: rgba(139, 58, 58, 0.16);
+}
+
+.footer-compliance {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.75rem 1.25rem;
+    margin: 1rem auto 1.2rem auto;
+    color: rgba(255, 255, 255, 0.72);
+    font-size: 0.72rem;
+}
+
+.footer-bottom-payments {
+    display: flex;
+    gap: 0.6rem;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-muted);
+    margin-top: 1rem;
+}
+
+.footer-bottom-payments span {
+    font-size: 0.65rem;
+    border: 1px solid rgba(255,255,255,0.12);
+    padding: 2px 6px;
+    border-radius: 3px;
+    letter-spacing: 0.05em;
+    font-weight: 600;
+    opacity: 0.72;
+}
+
+.whatsapp-float {
+    position: fixed;
+    right: 1.35rem;
+    bottom: 1.35rem;
+    z-index: 9996;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    min-height: 48px;
+    padding: 0 1rem;
+    border-radius: 999px;
+    background: #18a957;
+    color: #ffffff;
+    text-decoration: none;
+    font-family: var(--font-body);
+    font-size: 0.82rem;
+    font-weight: 700;
+    box-shadow: 0 16px 32px rgba(0, 0, 0, 0.38), 0 0 20px rgba(24, 169, 87, 0.34);
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.whatsapp-float:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 20px 38px rgba(0, 0, 0, 0.46), 0 0 26px rgba(24, 169, 87, 0.48);
+}
+
+.products-catalog {
+    min-width: 0;
+    position: relative;
+    z-index: 2;
+}
+
+.shop-catalog-header {
+    position: relative;
+    z-index: 3;
+    margin: 0 0 2.8rem 0 !important;
+    padding: 1.1rem 1.25rem 1.25rem 1.25rem;
+    text-align: left !important;
+    border: 1px solid rgba(201, 168, 76, 0.16);
+    border-radius: 8px;
+    background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.01)),
+        rgba(8, 8, 8, 0.78);
+    overflow: hidden;
+}
+
+.shop-catalog-header .section-subtitle {
+    display: block;
+    font-size: 0.72rem;
+    margin-bottom: 0.35rem;
+}
+
+.shop-catalog-header .section-title {
+    font-size: clamp(1.75rem, 3vw, 2.45rem) !important;
+    line-height: 1.1;
+    margin: 0;
+}
+
+@media (max-width: 991px) {
+    .mobile-menu-drawer {
+        top: 110px;
+        max-height: calc(100vh - 110px);
+    }
+
+    .headline {
+        font-size: 3.15rem;
+    }
+
+    .gifting-container {
+        min-height: auto;
+    }
+
+    .gifting-title {
+        font-size: 2.35rem;
+    }
+
+    .trust-badges-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 576px) {
+    html {
+        scroll-padding-top: 106px;
+    }
+
+    #main-nav {
+        height: 76px;
+    }
+
+    .nav-logo {
+        min-width: 152px;
+    }
+
+    .brand-logo-img {
+        height: 58px !important;
+        max-width: 174px;
+    }
+
+    .mobile-menu-drawer {
+        top: 106px;
+        max-height: calc(100vh - 106px);
+    }
+
+    .footer-logo-img {
+        height: 44px !important;
+    }
+
+    #hero-container {
+        min-height: 460vh;
+    }
+
+    .sticky-wrapper {
+        min-height: 620px;
+    }
+
+    .scene-content,
+    .scene-content.text-left,
+    .scene-content.text-right,
+    .scene-content.text-center {
+        max-width: calc(100% - 2rem);
+        margin-left: 1rem !important;
+        margin-right: 1rem !important;
+        padding: 1.4rem 1rem;
+        text-align: center;
+        align-items: center;
+    }
+
+    .scene-content::before {
+        inset: -0.8rem;
+        background: rgba(0, 0, 0, 0.72);
+    }
+
+    .headline {
+        font-size: 2.35rem;
+        line-height: 1.12;
+    }
+
+    .body-text {
+        font-size: 0.94rem;
+        line-height: 1.58;
+    }
+
+    .signature-collection,
+    .finest-craft {
+        padding-top: 4.5rem;
+        padding-bottom: 4.5rem;
+    }
+
+    .about-bento-card,
+    .about-guarantees-card,
+    .about-trust-section {
+        padding: 1.6rem;
+    }
+
+    .trust-badges-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .contact-page-main .contact-header {
+        margin-bottom: 2.5rem;
+    }
+
+    .whatsapp-float {
+        right: 1rem;
+        bottom: 1rem;
+        min-height: 46px;
+        padding: 0 0.9rem;
+    }
+
+    .whatsapp-float span {
+        display: none;
+    }
+}
+
+/* Final homepage scroll guard for phones, short screens, and reduced motion. */
+@media (max-width: 767px), (max-height: 620px), (prefers-reduced-motion: reduce) {
+    #hero-container {
+        height: auto !important;
+        min-height: 0 !important;
+        overflow: hidden;
+    }
+
+    #hero-container .sticky-wrapper {
+        position: relative !important;
+        top: auto !important;
+        height: auto !important;
+        min-height: 0 !important;
+        padding: 7.25rem 0 3rem 0;
+    }
+
+    #hero-container #hero-canvas {
+        position: absolute !important;
+        inset: 0 !important;
+        transform: none !important;
+        width: 100% !important;
+        height: 100% !important;
+        opacity: 0.34;
+    }
+
+    #hero-container .cinematic-overlay {
+        background: rgba(0, 0, 0, 0.82) !important;
+    }
+
+    #hero-container .scroll-indicator {
+        display: none !important;
+    }
+
+    #hero-container .scenes-container {
+        position: relative !important;
+        inset: auto !important;
+        height: auto !important;
+        display: grid;
+        gap: 1.45rem;
+        padding: 0 1rem;
+    }
+
+    #hero-container .scene {
+        position: relative !important;
+        inset: auto !important;
+        height: auto !important;
+        min-height: auto !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+        transform: none !important;
+        filter: none !important;
+        padding: 0 !important;
+    }
+
+    #hero-container .scene-content,
+    #hero-container .scene-content.text-left,
+    #hero-container .scene-content.text-right,
+    #hero-container .scene-content.text-center {
+        width: 100%;
+        max-width: 680px;
+        margin: 0 auto !important;
+        text-align: center !important;
+        align-items: center !important;
+        padding: 1.35rem 1rem;
+    }
+
+    #hero-container .headline {
+        font-size: clamp(2rem, 10vw, 2.8rem) !important;
+    }
+
+    #hero-container .body-text {
+        max-width: 560px;
+        margin-left: auto;
+        margin-right: auto;
     }
 }
 

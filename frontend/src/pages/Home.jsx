@@ -10,8 +10,8 @@ export default function Home() {
   const { getCMSValue } = useContext(CMSContext);
 
   useSEO({
-    title: 'Rein Oro | Luxury Gourmet Dry Fruits & Makhanas',
-    description: 'Experience the gold standard of healthy snacking. Organic, slow-roasted, and double-sorted makhana and dry fruits fit for royalty.',
+    title: 'Rein Oro Foods | Premium Makhana & Dry Fruits',
+    description: 'Experience premium healthy snacking with naturally sourced makhana and dry fruits from Rein Oro Foods.',
     image: 'images/makhana_cheese_onion.png',
     path: '/'
   });
@@ -47,6 +47,13 @@ export default function Home() {
     let localScrollTrigger = null;
     let imagesLoaded = false;
     let gsapLoaded = false;
+    let isAnimationsSetup = false;
+    let scene1Entrance = null;
+    let mainTimeline = null;
+    let navTrigger = null;
+
+    imagesRef.current = [];
+    airpodsRef.current.frame = 0;
 
     // Helpers
     const getFramePath = (index) => {
@@ -82,7 +89,7 @@ export default function Home() {
       canvas.height = window.innerHeight * devicePixelRatio;
       canvas.style.width = `${window.innerWidth}px`;
       canvas.style.height = `${window.innerHeight}px`;
-      context.scale(devicePixelRatio, devicePixelRatio);
+      context.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
 
       const currentFrameImg = imagesRef.current[airpodsRef.current.frame];
       if (currentFrameImg) {
@@ -91,7 +98,8 @@ export default function Home() {
     };
 
     const checkAndInit = () => {
-      if (imagesLoaded && gsapLoaded && isComponentMounted) {
+      if (imagesLoaded && gsapLoaded && isComponentMounted && !isAnimationsSetup) {
+        isAnimationsSetup = true;
         setupAnimations();
       }
     };
@@ -129,6 +137,20 @@ export default function Home() {
       resizeCanvas();
       window.addEventListener('resize', resizeCanvas);
 
+      const useScrollFallback =
+        window.matchMedia('(max-width: 767px), (max-height: 620px), (prefers-reduced-motion: reduce)').matches;
+
+      if (useScrollFallback) {
+        containerRef.current?.classList.add('scroll-fallback');
+        localGsap.set(['#scene-1', '#scene-2', '#scene-3', '#scene-4', '#scene-5'], {
+          autoAlpha: 1,
+          x: 0,
+          y: 0,
+          filter: 'none'
+        });
+        return;
+      }
+
       // Draw initial frame
       if (imagesRef.current[0]) {
         drawCanvasFrame(imagesRef.current[0]);
@@ -147,7 +169,6 @@ export default function Home() {
       localGsap.set('#scene-1', { autoAlpha: 0, y: 50, filter: 'blur(12px)' });
 
       // Entrance animation
-      let scene1Entrance = null;
       if (window.scrollY < 50) {
         scene1Entrance = localGsap.to('#scene-1', {
           autoAlpha: 1,
@@ -162,7 +183,7 @@ export default function Home() {
       }
 
       // Nav bar transitions
-      localScrollTrigger.create({
+      navTrigger = localScrollTrigger.create({
         trigger: containerRef.current,
         start: 'top+=40 top',
         onEnter: () => {
@@ -174,7 +195,7 @@ export default function Home() {
       });
 
       // Scroll timeline
-      const mainTimeline = localGsap.timeline({
+      mainTimeline = localGsap.timeline({
         scrollTrigger: {
           trigger: containerRef.current,
           start: 'top top',
@@ -277,6 +298,8 @@ export default function Home() {
         duration: 7,
         ease: 'power2.out'
       }, 86);
+
+      localScrollTrigger.refresh();
     };
 
     // Load GSAP & ScrollTrigger dynamically
@@ -296,14 +319,20 @@ export default function Home() {
     return () => {
       isComponentMounted = false;
       window.removeEventListener('resize', resizeCanvas);
-      if (localScrollTrigger) {
-        localScrollTrigger.getAll().forEach(trigger => trigger.kill());
+      scene1Entrance?.kill();
+      mainTimeline?.kill();
+      navTrigger?.kill();
+      containerRef.current?.classList.remove('scroll-fallback');
+      if (localScrollTrigger && containerRef.current) {
+        localScrollTrigger.getAll().forEach(trigger => {
+          if (trigger.vars?.trigger === containerRef.current) trigger.kill();
+        });
       }
     };
   }, []);
 
   return (
-    <main>
+    <main className="home-page-main">
       {/* GSAP Scroll Animation Area */}
       <div id="hero-container" ref={containerRef}>
         <div className="sticky-wrapper">
@@ -339,9 +368,9 @@ export default function Home() {
             {/* Scene 3 */}
             <div id="scene-3" className="scene">
               <div className="scene-content text-right">
-                <span className="eyebrow">{getCMSValue('index.html', '#scene-3 .eyebrow', 'Royal Heritage')}</span>
-                <h2 className="headline">{getCMSValue('index.html', '#scene-3 h2', 'A Royal Heritage of Culinary Excellence.')}</h2>
-                <p className="body-text">{getCMSValue('index.html', '#scene-3 p', 'Inspired by ancient wellness diets, curated to satisfy the modern gourmet palate.')}</p>
+                <span className="eyebrow">{getCMSValue('index.html', '#scene-3 .eyebrow', 'Indian Wellness')}</span>
+                <h2 className="headline">{getCMSValue('index.html', '#scene-3 h2', 'Traditional Goodness for Modern Lifestyles.')}</h2>
+                <p className="body-text">{getCMSValue('index.html', '#scene-3 p', 'Inspired by Indian healthy snacking habits and crafted for everyday nutrition.')}</p>
               </div>
             </div>
 
@@ -349,7 +378,7 @@ export default function Home() {
             <div id="scene-4" className="scene">
               <div className="scene-content text-left">
                 <span className="eyebrow">{getCMSValue('index.html', '#scene-4 .eyebrow', 'Pure Wellness')}</span>
-                <h2 className="headline">{getCMSValue('index.html', '#scene-4 h2', 'Nourishment Fit for Royalty.')}</h2>
+                <h2 className="headline">{getCMSValue('index.html', '#scene-4 h2', 'Nourishment Made for Everyday Wellness.')}</h2>
                 <p className="body-text">{getCMSValue('index.html', '#scene-4 p', 'Packed with antioxidants, high protein, and zero compromises on taste.')}</p>
               </div>
             </div>
@@ -357,9 +386,9 @@ export default function Home() {
             {/* Scene 5 */}
             <div id="scene-5" className="scene">
               <div className="scene-content text-center">
-                <span className="eyebrow">{getCMSValue('index.html', '#scene-5 .eyebrow', 'Rein Oro House')}</span>
+                <span className="eyebrow">{getCMSValue('index.html', '#scene-5 .eyebrow', 'Rein Oro Foods')}</span>
                 <h2 className="headline">{getCMSValue('index.html', '#scene-5 h2', 'Purity Crowned in Gold.')}</h2>
-                <p className="body-text">{getCMSValue('index.html', '#scene-5 p', 'Experience gourmet dry fruits and makhanas prepared for the royal in you.')}</p>
+                <p className="body-text">{getCMSValue('index.html', '#scene-5 p', 'Experience premium dry fruits and makhana prepared with purity, nutrition, and care.')}</p>
                 <div className="cta-group">
                   <button className="btn btn-primary" onClick={() => navigate('/shop')}>Shop Collection</button>
                   <button className="btn btn-outline" onClick={() => navigate('/about')}>Our Story</button>
@@ -375,7 +404,7 @@ export default function Home() {
         <div className="features-container">
           <div className="feature-item">
             <span className="feature-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><circle cx="12" cy="11" r="3"/></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><circle cx="12" cy="11" r="3"/></svg>
             </span>
             <div className="feature-text">
               <h4>100% Organic</h4>
@@ -384,7 +413,7 @@ export default function Home() {
           </div>
           <div className="feature-item">
             <span className="feature-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></svg>
             </span>
             <div className="feature-text">
               <h4>Gluten-Free</h4>
@@ -393,7 +422,7 @@ export default function Home() {
           </div>
           <div className="feature-item">
             <span className="feature-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
             </span>
             <div className="feature-text">
               <h4>Quality Assured</h4>
@@ -423,12 +452,12 @@ export default function Home() {
       <section className="gifting-promo" id="gifting-section">
         <div className="gifting-container">
           <div className="gifting-text-col">
-            <h2 className="gifting-title">{getCMSValue('index.html', '.gifting-title', 'Royal Corporate Gifting')}</h2>
-            <p className="gifting-body">{getCMSValue('index.html', '.gifting-body', 'Present your clients and partners with custom, gold-embossed gourmet collections. Curated hampers featuring premium dry fruits and slow-roasted makhanas designed to project luxury, taste, and prestige.')}</p>
-            <button className="btn btn-primary" onClick={() => navigate('/contact')}>Request Concierge</button>
+            <h2 className="gifting-title">{getCMSValue('index.html', '.gifting-title', 'Bulk Orders & Corporate Gifting')}</h2>
+            <p className="gifting-body">{getCMSValue('index.html', '.gifting-body', 'Looking for healthy gifting solutions for your employees, clients, events, or special occasions? Rein Oro Foods offers premium makhana and dry fruit gift packs customized for bulk orders and corporate gifting.')}</p>
+            <button className="btn btn-primary" onClick={() => navigate('/contact')}>Send Inquiry</button>
           </div>
           <div className="gifting-image-col">
-            <img src={getCMSValue('index.html', '.gift-box-img', 'images/gift_box.png')} alt="Rein Oro Royal Gift Box" className="gift-box-img" />
+            <img src={getCMSValue('index.html', '.gift-box-img', 'images/gift_box.png')} alt="Rein Oro Foods makhana gift hamper for bulk orders and corporate gifting" className="gift-box-img" />
           </div>
         </div>
       </section>

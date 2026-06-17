@@ -47,7 +47,12 @@ app.get("*", (req, res, next) => {
  ) {
   return next();
  }
- res.sendFile(path.join(__dirname, "../frontend/dist", "index.html"));
+  const indexPath = path.join(__dirname, "../frontend/dist", "index.html");
+  res.sendFile(indexPath, (err) => {
+    if (err) {
+      res.status(404).send("Frontend static assets not found. Please ensure the frontend has been built successfully.");
+    }
+  });
 });
 
 app.get("/api", (req, res) => {

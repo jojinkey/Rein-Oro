@@ -276,7 +276,7 @@ export default function Header() {
                 </div>
                 {discount > 0 && (
                   <div className="summary-row" id="discount-row">
-                    <span className="discount-label">Discount (10% Off)</span>
+                    <span className="discount-label">Discount ({Math.round(discountRate * 100)}% Off)</span>
                     <span id="cart-summary-discount" className="discount-value">-₹{discount}</span>
                   </div>
                 )}

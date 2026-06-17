@@ -72,30 +72,42 @@ export default function App() {
  }, [appliedPromo]);
 
   useEffect(() => {
-  const fetchCoupons = async () => {
-   try {
-    const res = await fetch(apiUrl("/api/coupons?active=true"));
-    const data = await res.json();
-    setCoupons(Array.isArray(data) ? data.filter((coupon) => coupon.active) : []);
+   const fetchCoupons = async () => {
+    try {
+     const res = await fetch(apiUrl("/api/coupons?active=true"));
+     const data = await res.json();
+     setCoupons(Array.isArray(data) ? data.filter((coupon) => coupon.active) : []);
 
-    // Revalidate localStorage promo code
-    const savedPromo = localStorage.getItem("rein_oro_promo") || "";
-    if (savedPromo) {
-     const matched = (Array.isArray(data) ? data : []).find((c) => c.code === savedPromo && c.active);
-     if (matched) {
-      setDiscountRate(matched.discount_rate);
-     } else {
-      setAppliedPromo("");
-      setDiscountRate(0.0);
-      localStorage.removeItem("rein_oro_promo");
+     // Revalidate localStorage promo code
+     const savedPromo = localStorage.getItem("rein_oro_promo") || "";
+     if (savedPromo) {
+      const matched = (Array.isArray(data) ? data : []).find((c) => c.code === savedPromo && c.active);
+      if (matched) {
+       setDiscountRate(matched.discount_rate);
+      } else {
+       setAppliedPromo("");
+       setDiscountRate(0.0);
+       localStorage.removeItem("rein_oro_promo");
+      }
      }
+    } catch (err) {
+     console.warn("Failed to load coupons from API", err);
     }
-   } catch (err) {
-    console.warn("Failed to load coupons from API", err);
-   }
-  };
-  fetchCoupons();
- }, []);
+   };
+
+   // Run the coupon fetch in the background after a 2s delay to not compete with critical home page resources
+   const delayTimer = setTimeout(() => {
+    if (window.requestIdleCallback) {
+     window.requestIdleCallback(() => {
+      fetchCoupons();
+     });
+    } else {
+     fetchCoupons();
+    }
+   }, 2000);
+
+   return () => clearTimeout(delayTimer);
+  }, []);
 
  const addToCart = (product, qty = 1) => {
   setCart((prevCart) => {

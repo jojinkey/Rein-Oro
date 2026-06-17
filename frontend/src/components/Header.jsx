@@ -29,9 +29,9 @@ export default function Header() {
   const handleOpenDrawer = () => setIsDrawerOpen(true);
   const handleCloseDrawer = () => setIsDrawerOpen(false);
 
-  const handleApplyPromo = () => {
+  const handleApplyPromo = async () => {
     if (!promoInput.trim()) return;
-    const res = applyPromoCode(promoInput);
+    const res = await applyPromoCode(promoInput);
     if (res.success) {
       setPromoMessage({ text: res.message, error: false });
     } else {

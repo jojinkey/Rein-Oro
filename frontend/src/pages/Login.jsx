@@ -69,28 +69,43 @@ export default function Login() {
   }
  };
 
- const handleOTPLogin = () => {
-  const mobile = prompt(
-   "Enter your mobile number to receive a one-time passcode:",
-  );
-  if (mobile) {
-   if (!/^[+0-9\s-]{10,15}$/.test(mobile.trim())) {
-    alert("Please enter a valid mobile number.");
+  const [showOtpModal, setShowOtpModal] = useState(false);
+  const [otpStep, setOtpStep] = useState(1); // 1 = enter mobile, 2 = enter otp code
+  const [otpMobile, setOtpMobile] = useState("");
+  const [otpCode, setOtpCode] = useState("");
+  const [otpError, setOtpError] = useState("");
+
+  const handleOpenOtpModal = () => {
+   setOtpMobile("");
+   setOtpCode("");
+   setOtpStep(1);
+   setOtpError("");
+   setShowOtpModal(true);
+  };
+
+  const handleSendOtp = (e) => {
+   e.preventDefault();
+   if (!/^[+0-9\s-]{10,15}$/.test(otpMobile.trim())) {
+    setOtpError("Please enter a valid mobile number.");
     return;
    }
-   alert(`A simulated 6-digit OTP code has been sent to ${mobile.trim()}.`);
-   const code = prompt("Enter the 6-digit OTP sent to your phone:");
-   if (code) {
-    if (code.trim().length === 6) {
-     login("royal.guest@reinoro.com", "user");
-     alert("Simulated authentication successful! Welcome to Rein Oro Foods.");
-     navigate(getPostLoginPath("user"), { replace: true });
-    } else {
-     alert("Invalid OTP length. Code must be 6 digits.");
-    }
+   setOtpError("");
+   alert(`A simulated 6-digit OTP code has been sent to ${otpMobile.trim()}.`);
+   setOtpStep(2);
+  };
+
+  const handleVerifyOtp = (e) => {
+   e.preventDefault();
+   if (otpCode.trim().length !== 6) {
+    setOtpError("Invalid OTP length. Code must be 6 digits.");
+    return;
    }
-  }
- };
+   setOtpError("");
+   login("royal.guest@reinoro.com", "user");
+   alert("Simulated authentication successful! Welcome to Rein Oro Foods.");
+   setShowOtpModal(false);
+   navigate(getPostLoginPath("user"), { replace: true });
+  };
 
  return (
   <main className="login-main-section">
@@ -306,7 +321,7 @@ export default function Login() {
        <button
         type="button"
         className="btn btn-outline"
-        onClick={handleOTPLogin}
+        onClick={handleOpenOtpModal}
         style={{ width: "100%", height: "44px", padding: 0 }}
        >
         SIGN IN WITH OTP
@@ -395,6 +410,152 @@ export default function Login() {
      </p>
     </div>
    </section>
+
+   {showOtpModal && (
+    <div
+     style={{
+      position: "fixed",
+      top: 0,
+      left: 0,
+      width: "100%",
+      height: "100%",
+      backgroundColor: "rgba(0, 0, 0, 0.85)",
+      backdropFilter: "blur(8px)",
+      zIndex: 9999,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+     }}
+    >
+     <div
+      style={{
+       width: "100%",
+       maxWidth: "420px",
+       backgroundColor: "#0B0B0B",
+       border: "1px solid rgba(201, 168, 76, 0.25)",
+       borderRadius: "8px",
+       padding: "2.5rem",
+       boxShadow: "0 10px 50px rgba(0,0,0,0.8)",
+      }}
+     >
+      <h3
+       style={{
+        fontFamily: "var(--font-heading)",
+        fontSize: "1.5rem",
+        color: "var(--color-white)",
+        fontWeight: 400,
+        marginBottom: "1rem",
+        textAlign: "center",
+       }}
+      >
+       OTP Authentication
+      </h3>
+      <p
+       style={{
+        fontSize: "0.82rem",
+        color: "var(--color-muted)",
+        textAlign: "center",
+        lineHeight: 1.5,
+        marginBottom: "1.8rem",
+       }}
+      >
+       {otpStep === 1
+        ? "Access your royal account using a temporary passcode sent to your device."
+        : `Enter the simulated 6-digit OTP code sent to your number: ${otpMobile}`}
+      </p>
+
+      {otpError && (
+       <div
+        style={{
+         backgroundColor: "rgba(255, 80, 80, 0.1)",
+         border: "1px solid rgba(255, 80, 80, 0.2)",
+         color: "#ff5050",
+         fontSize: "0.78rem",
+         padding: "0.6rem 1rem",
+         borderRadius: "4px",
+         marginBottom: "1.2rem",
+         textAlign: "center",
+        }}
+       >
+        {otpError}
+       </div>
+      )}
+
+      {otpStep === 1 ? (
+       <form onSubmit={handleSendOtp} style={{ display: "flex", flexDirection: "column", gap: "1.2rem" }}>
+        <div className="contact-form-group">
+         <label htmlFor="otpMobileInput" className="contact-form-label">
+          Mobile Number
+         </label>
+         <input
+          type="tel"
+          id="otpMobileInput"
+          className="contact-form-input"
+          placeholder="e.g. +91 99999 99999"
+          required
+          value={otpMobile}
+          onChange={(e) => setOtpMobile(e.target.value)}
+          autoFocus
+         />
+        </div>
+        <div style={{ display: "flex", gap: "1rem", marginTop: "0.5rem" }}>
+         <button
+          type="submit"
+          className="btn btn-primary"
+          style={{ flex: 1, height: "42px", fontWeight: "bold" }}
+         >
+          SEND OTP CODE
+         </button>
+         <button
+          type="button"
+          className="btn btn-outline"
+          onClick={() => setShowOtpModal(false)}
+          style={{ flex: 1, height: "42px" }}
+         >
+          CANCEL
+         </button>
+        </div>
+       </form>
+      ) : (
+       <form onSubmit={handleVerifyOtp} style={{ display: "flex", flexDirection: "column", gap: "1.2rem" }}>
+        <div className="contact-form-group">
+         <label htmlFor="otpCodeInput" className="contact-form-label">
+          Enter 6-Digit Code
+         </label>
+         <input
+          type="text"
+          id="otpCodeInput"
+          className="contact-form-input"
+          placeholder="e.g. 123456"
+          required
+          maxLength={6}
+          value={otpCode}
+          onChange={(e) => setOtpCode(e.target.value)}
+          autoFocus
+         />
+        </div>
+        <div style={{ display: "flex", gap: "1rem", marginTop: "0.5rem" }}>
+         <button
+          type="submit"
+          className="btn btn-primary"
+          style={{ flex: 1, height: "42px", fontWeight: "bold" }}
+         >
+          VERIFY CODE
+         </button>
+         <button
+          type="button"
+          className="btn btn-outline"
+          onClick={() => setOtpStep(1)}
+          style={{ flex: 1, height: "42px" }}
+         >
+          BACK
+         </button>
+        </div>
+       </form>
+      )}
+     </div>
+    </div>
+   )}
   </main>
  );
 }

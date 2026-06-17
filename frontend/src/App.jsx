@@ -5,6 +5,7 @@ import Footer from "./components/Footer.jsx";
 import Preloader from "./components/Preloader.jsx";
 import ExitIntentModal from "./components/ExitIntentModal.jsx";
 import WhatsAppFloat from "./components/WhatsAppFloat.jsx";
+import { apiUrl } from "./config/api.js";
 
 // Pages
 import Home from "./pages/Home.jsx";
@@ -73,7 +74,7 @@ export default function App() {
   useEffect(() => {
   const fetchCoupons = async () => {
    try {
-    const res = await fetch("/api/coupons?active=true");
+    const res = await fetch(apiUrl("/api/coupons?active=true"));
     const data = await res.json();
     setCoupons(Array.isArray(data) ? data.filter((coupon) => coupon.active) : []);
 
@@ -195,11 +196,11 @@ export default function App() {
 
  const fetchCMSData = async () => {
   try {
-   const contentRes = await fetch("/api/cms/content");
+   const contentRes = await fetch(apiUrl("/api/cms/content"));
    const content = await contentRes.json();
    setCmsContent(content);
 
-   const stylesRes = await fetch("/api/cms/styles");
+   const stylesRes = await fetch(apiUrl("/api/cms/styles"));
    const styles = await stylesRes.json();
    setCmsStyles(styles);
    applyGlobalStyles(styles);
@@ -313,7 +314,7 @@ export default function App() {
       setIsCartOpen,
      }}
     >
-     <HashRouter>
+     <HashRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <LayoutWrapper>
        <Routes>
         <Route path="/" element={<Home />} />

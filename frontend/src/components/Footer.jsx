@@ -1,5 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
+import { apiUrl } from "../config/api.js";
 
 const SUPPORT_EMAIL = 'wecare.reinoro@gmail.com';
 const WHATSAPP_URL = 'https://wa.me/916397003303';
@@ -13,7 +14,7 @@ export default function Footer() {
     if (!email) return;
 
     try {
-      const res = await fetch('/api/newsletter', {
+      const res = await fetch(apiUrl('/api/newsletter'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email })

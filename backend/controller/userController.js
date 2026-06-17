@@ -66,3 +66,49 @@ export async function deleteUser(req, res) {
   res.status(400).json({ error: err.message });
  }
 }
+
+export async function getUserAddresses(req, res) {
+ const { email } = req.query;
+ if (!email) {
+  return res.status(400).json({ error: "Email parameter is required" });
+ }
+ try {
+  const users = await queryFirestoreCollection("users", {
+   where: [["email", "==", email.trim().toLowerCase()]],
+  });
+  if (!users || users.length === 0) {
+   return res.status(404).json({ error: "User profile not found" });
+  }
+  const addresses = users[0].addresses || [];
+  res.json(addresses);
+ } catch (err) {
+  res.status(500).json({ error: err.message });
+ }
+}
+
+export async function updateUserAddresses(req, res) {
+ const { email, addresses } = req.body;
+ if (!email) {
+  return res.status(400).json({ error: "Email is required" });
+ }
+ if (!Array.isArray(addresses)) {
+  return res.status(400).json({ error: "Addresses must be an array" });
+ }
+ try {
+  const users = await queryFirestoreCollection("users", {
+   where: [["email", "==", email.trim().toLowerCase()]],
+  });
+  if (!users || users.length === 0) {
+   return res.status(404).json({ error: "User profile not found" });
+  }
+  const userDoc = users[0];
+  const docId = userDoc.id;
+  await mirrorToFirestore("users", docId, {
+   ...userDoc,
+   addresses,
+  });
+  res.json({ success: true, addresses });
+ } catch (err) {
+  res.status(500).json({ error: err.message });
+ }
+}

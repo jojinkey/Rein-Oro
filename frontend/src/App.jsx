@@ -136,20 +136,40 @@ export default function App() {
   localStorage.removeItem("rein_oro_gift_note");
  };
 
- const applyPromoCode = (code) => {
-  const uppercaseCode = code.trim().toUpperCase();
-  const matched = coupons.find((c) => c.code === uppercaseCode && c.active);
-  if (matched) {
-   setAppliedPromo(uppercaseCode);
-   setDiscountRate(matched.discount_rate);
-   return {
-    success: true,
-    message: `Promo code applied successfully (${Math.round(matched.discount_rate * 100)}% Off)!`,
-   };
-  } else {
-   return { success: false, message: "Invalid promo code" };
-  }
- };
+  const applyPromoCode = async (code) => {
+   const uppercaseCode = code.trim().toUpperCase();
+   try {
+    const res = await fetch(apiUrl(`/api/coupons/${encodeURIComponent(uppercaseCode)}`));
+    if (!res.ok) {
+     return { success: false, message: "Invalid promo code" };
+    }
+    const coupon = await res.json();
+    const isActive = coupon && (coupon.active === true || coupon.active === "true" || coupon.active === 1 || coupon.active === "1");
+    if (isActive) {
+     setAppliedPromo(uppercaseCode);
+     setDiscountRate(Number(coupon.discount_rate) || 0.0);
+     return {
+      success: true,
+      message: `Promo code applied successfully (${Math.round((Number(coupon.discount_rate) || 0.0) * 100)}% Off)!`,
+     };
+    } else {
+     return { success: false, message: "Promo code is inactive" };
+    }
+   } catch (err) {
+    console.warn("Failed to validate promo code live:", err);
+    const matched = coupons.find((c) => c.code === uppercaseCode && c.active);
+    if (matched) {
+     setAppliedPromo(uppercaseCode);
+     setDiscountRate(matched.discount_rate);
+     return {
+      success: true,
+      message: `Promo code applied successfully (${Math.round(matched.discount_rate * 100)}% Off)!`,
+     };
+    } else {
+     return { success: false, message: "Invalid promo code" };
+    }
+   }
+  };
 
  const removePromoCode = () => {
   setAppliedPromo("");

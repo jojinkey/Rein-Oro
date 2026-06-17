@@ -116,7 +116,7 @@ export default function Cart() {
             </div>
             {discount > 0 && (
               <div className="summary-row">
-                <span className="discount-label">Discount (10% Off)</span>
+                <span className="discount-label">Discount ({Math.round(discountRate * 100)}% Off)</span>
                 <span className="discount-value">-₹{discount}</span>
               </div>
             )}

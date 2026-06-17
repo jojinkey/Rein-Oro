@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { apiUrl } from '../config/api.js';
 
 export default function ExitIntentModal() {
   const [isOpen, setIsOpen] = useState(false);
@@ -7,7 +8,7 @@ export default function ExitIntentModal() {
 
   useEffect(() => {
     let isMounted = true;
-    fetch('/api/coupons?active=true')
+    fetch(apiUrl('/api/coupons?active=true'))
       .then((res) => res.json())
       .then((data) => {
         if (!isMounted) return;

@@ -1,6 +1,7 @@
 import React, { useContext, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { CartContext, AuthContext } from "../App.jsx";
+import { apiUrl } from "../config/api.js";
 
 export default function Checkout() {
  const {
@@ -51,7 +52,7 @@ export default function Checkout() {
  }, [user]);
 
  React.useEffect(() => {
-  fetch("/api/settings/payment")
+  fetch(apiUrl("/api/settings/payment"))
    .then((res) => res.json())
    .then((data) => {
     setEnabledPayments(data);
@@ -128,7 +129,7 @@ export default function Checkout() {
   localOrderId,
   amount,
  }) => {
-  const response = await fetch("/api/payments/razorpay/verify", {
+  const response = await fetch(apiUrl("/api/payments/razorpay/verify"), {
    method: "POST",
    headers: { "Content-Type": "application/json" },
    body: JSON.stringify({
@@ -147,7 +148,7 @@ export default function Checkout() {
  };
 
  const saveOrderToDB = async (payload) => {
-  const response = await fetch("/api/orders", {
+  const response = await fetch(apiUrl("/api/orders"), {
    method: "POST",
    headers: { "Content-Type": "application/json" },
    body: JSON.stringify(payload),
@@ -239,7 +240,7 @@ export default function Checkout() {
 
   if (paymentMethod === "razorpay") {
    try {
-    const orderRes = await fetch("/api/payments/razorpay/order", {
+    const orderRes = await fetch(apiUrl("/api/payments/razorpay/order"), {
      method: "POST",
      headers: { "Content-Type": "application/json" },
      body: JSON.stringify({ amount: totalAmount, receipt: orderId }),

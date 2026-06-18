@@ -67,6 +67,7 @@ export async function createOrder(req, res) {
    total,
    items,
    status: "Processing",
+   created_at: new Date().toISOString(),
   });
   res.json({ success: true, orderId: id });
  } catch (err) {
@@ -186,6 +187,28 @@ export async function verifyRazorpayPayment(req, res) {
  }
 }
 
+function getOrderCreationTime(order) {
+ if (order.created_at) {
+  return new Date(order.created_at).getTime();
+ }
+ if (order.date) {
+  const cleanDate = order.date.replace(" at ", " ");
+  const parsed = Date.parse(cleanDate);
+  if (!isNaN(parsed)) {
+   return parsed;
+  }
+ }
+ if (order.firestore_updated_at) {
+  if (typeof order.firestore_updated_at.toDate === "function") {
+   return order.firestore_updated_at.toDate().getTime();
+  }
+  if (order.firestore_updated_at._seconds) {
+   return order.firestore_updated_at._seconds * 1000;
+  }
+ }
+ return Date.now();
+}
+
 export async function updateOrderStatus(req, res) {
  const orderId = String(req.params.id || "").trim();
  if (!orderId) {
@@ -200,6 +223,15 @@ export async function updateOrderStatus(req, res) {
   if (!existing) {
    return res.status(404).json({ error: "Order not found" });
   }
+
+  if (status === "Cancelled") {
+   const creationTime = getOrderCreationTime(existing);
+   const sixHoursInMs = 6 * 60 * 60 * 1000;
+   if (Date.now() - creationTime > sixHoursInMs) {
+    return res.status(400).json({ error: "the order can't be cancelled after 6 hours of placing the order." });
+   }
+  }
+
   await mirrorToFirestore("orders", orderId, { status });
   res.json({ success: true, status });
  } catch (err) {

@@ -7,6 +7,7 @@ import {
 import {
  mirrorToFirestore,
  queryFirestoreCollection,
+ getFirestoreDocument,
 } from "../util/firestore.js";
 
 export async function getOrders(req, res) {
@@ -184,3 +185,25 @@ export async function verifyRazorpayPayment(req, res) {
   res.status(500).json({ error: err.message });
  }
 }
+
+export async function updateOrderStatus(req, res) {
+ const orderId = String(req.params.id || "").trim();
+ if (!orderId) {
+  return res.status(400).json({ error: "Order id is required" });
+ }
+ const status = String(req.body.status || "").trim();
+ if (!status) {
+  return res.status(400).json({ error: "status is required" });
+ }
+ try {
+  const existing = await getFirestoreDocument("orders", orderId);
+  if (!existing) {
+   return res.status(404).json({ error: "Order not found" });
+  }
+  await mirrorToFirestore("orders", orderId, { status });
+  res.json({ success: true, status });
+ } catch (err) {
+  res.status(500).json({ error: err.message });
+ }
+}
+

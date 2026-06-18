@@ -137,9 +137,35 @@ export default function Login() {
    </section>
 
    {/* Middle Column: Login Form */}
-   <section style={{ display: "flex", justifyContent: "center" }}>
-    <div className="login-card">
-     <div style={{ textAlign: "center", marginBottom: "2rem" }}>
+    <section style={{ display: "flex", justifyContent: "center" }}>
+     <div className="login-card" style={{ position: "relative" }}>
+      <button
+       type="button"
+       onClick={() => navigate("/")}
+       style={{
+        position: "absolute",
+        top: "20px",
+        right: "20px",
+        background: "transparent",
+        border: "none",
+        color: "var(--color-muted)",
+        cursor: "pointer",
+        fontSize: "1.5rem",
+        lineHeight: 1,
+        padding: "4px",
+        transition: "color 0.2s",
+       }}
+       aria-label="Close"
+       onMouseEnter={(e) => {
+         e.currentTarget.style.color = "var(--color-white)";
+       }}
+       onMouseLeave={(e) => {
+         e.currentTarget.style.color = "var(--color-muted)";
+       }}
+      >
+       &times;
+      </button>
+      <div style={{ textAlign: "center", marginBottom: "2rem" }}>
       <img
        src="images/logo.png"
        alt="Rein Oro Crown"

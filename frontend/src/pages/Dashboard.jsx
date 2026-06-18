@@ -26,6 +26,7 @@ export default function Dashboard() {
  const [addressLoading, setAddressLoading] = useState(false);
  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
  const [addressToDelete, setAddressToDelete] = useState(null);
+ const [orderToCancel, setOrderToCancel] = useState(null);
 
  const executeDeleteAddress = async () => {
   if (!addressToDelete) return;
@@ -182,6 +183,26 @@ export default function Dashboard() {
   }
  };
 
+ const executeCancelOrder = async () => {
+  if (!orderToCancel) return;
+  try {
+   const res = await fetch(apiUrl(`/api/orders/${orderToCancel}/status`), {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ status: "Cancelled" }),
+   });
+   if (!res.ok) throw new Error("Order cancellation failed");
+   alert("Your order has been cancelled.");
+   setOrders((prev) =>
+    prev.map((o) => (o.id === orderToCancel ? { ...o, status: "Cancelled" } : o))
+   );
+  } catch (err) {
+   alert(err.message);
+  } finally {
+   setOrderToCancel(null);
+  }
+ };
+
  // Route Guard
  useEffect(() => {
   if (!user) {
@@ -235,9 +256,8 @@ export default function Dashboard() {
  const getTrackingSteps = (status = "Processing") => {
   const steps = [
    "Processing",
-   "Packed",
+   "Confirmed",
    "Shipped",
-   "Out for Delivery",
    "Delivered",
   ];
   const normalizedStatus = String(status || "Processing").toLowerCase();
@@ -248,7 +268,7 @@ export default function Dashboard() {
 
   return steps.map((step, index) => ({
    label: step,
-   done: index <= currentIndex,
+   done: index <= currentIndex && normalizedStatus !== "cancelled",
   }));
  };
 
@@ -878,38 +898,70 @@ export default function Dashboard() {
              borderTop: "1px solid rgba(255,255,255,0.03)",
             }}
            >
-            <p
-             style={{
-              fontSize: "0.75rem",
-              color: "var(--color-muted)",
-              marginBottom: "0.8rem",
-             }}
-            >
-             Estimated Delivery:{" "}
-             <strong style={{ color: "var(--color-gold)" }}>
-              {order.est_delivery || "Updating soon"}
-             </strong>
-            </p>
-            <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-             {getTrackingSteps(order.status).map((step) => (
-              <span
-               key={step.label}
+            {order.status !== "Cancelled" && (
+             <p
+              style={{
+               fontSize: "0.75rem",
+               color: "var(--color-muted)",
+               marginBottom: "0.8rem",
+              }}
+             >
+              Estimated Delivery:{" "}
+              <strong style={{ color: "var(--color-gold)" }}>
+               {order.est_delivery || "Updating soon"}
+              </strong>
+             </p>
+            )}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "1rem" }}>
+             <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+              {order.status === "Cancelled" ? (
+               <span style={{ color: "#ff5050", fontSize: "0.75rem", fontWeight: 600, textTransform: "uppercase" }}>Order Cancelled</span>
+              ) : (
+               getTrackingSteps(order.status).map((step) => (
+                <span
+                 key={step.label}
+                 style={{
+                  fontSize: "0.68rem",
+                  padding: "0.25rem 0.55rem",
+                  borderRadius: "999px",
+                  backgroundColor: step.done
+                   ? "rgba(201,168,76,0.16)"
+                   : "rgba(255,255,255,0.05)",
+                  color: step.done ? "var(--color-gold)" : "var(--color-muted)",
+                  border: step.done
+                   ? "1px solid rgba(201,168,76,0.35)"
+                   : "1px solid rgba(255,255,255,0.06)",
+                 }}
+                >
+                 {step.label}
+                </span>
+               ))
+              )}
+             </div>
+             
+             {order.status !== "Delivered" && order.status !== "Cancelled" && (
+              <button
+               className="btn btn-outline"
+               onClick={() => setOrderToCancel(order.id)}
                style={{
-                fontSize: "0.68rem",
-                padding: "0.25rem 0.55rem",
-                borderRadius: "999px",
-                backgroundColor: step.done
-                 ? "rgba(201,168,76,0.16)"
-                 : "rgba(255,255,255,0.05)",
-                color: step.done ? "var(--color-gold)" : "var(--color-muted)",
-                border: step.done
-                 ? "1px solid rgba(201,168,76,0.35)"
-                 : "1px solid rgba(255,255,255,0.06)",
+                height: "30px",
+                padding: "0 1rem",
+                fontSize: "0.72rem",
+                borderColor: "rgba(255,80,80,0.3)",
+                color: "#ff5050",
+               }}
+               onMouseEnter={(e) => {
+                 e.currentTarget.style.backgroundColor = "rgba(255,80,80,0.1)";
+                 e.currentTarget.style.borderColor = "#ff5050";
+               }}
+               onMouseLeave={(e) => {
+                 e.currentTarget.style.backgroundColor = "transparent";
+                 e.currentTarget.style.borderColor = "rgba(255,80,80,0.3)";
                }}
               >
-               {step.label}
-              </span>
-             ))}
+               CANCEL ORDER
+              </button>
+             )}
             </div>
            </div>
           </div>
@@ -1484,6 +1536,94 @@ export default function Dashboard() {
         }}
        >
         CANCEL
+       </button>
+      </div>
+     </div>
+    </div>
+   )}
+
+   {/* Custom Order Cancellation Confirmation Dialog Modal */}
+   {orderToCancel && (
+    <div
+     style={{
+      position: "fixed",
+      top: 0,
+      left: 0,
+      width: "100%",
+      height: "100%",
+      backgroundColor: "rgba(0, 0, 0, 0.8)",
+      backdropFilter: "blur(6px)",
+      zIndex: 99999,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+     }}
+    >
+     <div
+      style={{
+       width: "100%",
+       maxWidth: "400px",
+       backgroundColor: "#0B0B0B",
+       border: "1px solid rgba(255, 80, 80, 0.25)",
+       borderRadius: "8px",
+       padding: "2.2rem",
+       textAlign: "center",
+       boxShadow: "0 10px 45px rgba(0,0,0,0.8)",
+      }}
+     >
+      <div style={{ fontSize: "2rem", marginBottom: "0.8rem" }}>⚠️</div>
+      <h3
+       style={{
+        fontFamily: "var(--font-heading)",
+        fontSize: "1.4rem",
+        color: "var(--color-white)",
+        fontWeight: 400,
+        marginBottom: "0.8rem",
+       }}
+      >
+       Cancel Order
+      </h3>
+      <p
+       style={{
+        fontSize: "0.85rem",
+        color: "var(--color-muted)",
+        lineHeight: 1.5,
+        marginBottom: "1.8rem",
+       }}
+      >
+       Are you sure you want to cancel this order? This action will set the status of your order to Cancelled.
+      </p>
+      <div style={{ display: "flex", gap: "1rem" }}>
+       <button
+        className="btn btn-primary"
+        onClick={executeCancelOrder}
+        style={{
+         flex: 1,
+         height: "40px",
+         backgroundColor: "#ff5050",
+         color: "#fff",
+         border: "none",
+         fontWeight: "bold",
+         cursor: "pointer",
+         borderRadius: "4px",
+        }}
+       >
+        YES, CANCEL ORDER
+       </button>
+       <button
+        className="btn btn-outline"
+        onClick={() => setOrderToCancel(null)}
+        style={{
+         flex: 1,
+         height: "40px",
+         backgroundColor: "transparent",
+         color: "var(--color-white)",
+         border: "1px solid rgba(255,255,255,0.2)",
+         cursor: "pointer",
+         borderRadius: "4px",
+        }}
+       >
+        NO, KEEP IT
        </button>
       </div>
      </div>

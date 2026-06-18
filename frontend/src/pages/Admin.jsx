@@ -1558,7 +1558,25 @@ export default function Admin() {
    });
   };
 
- // --- Enquiries Handlers ---
+  // --- Orders Handlers ---
+  const handleUpdateOrderStatus = async (id, status) => {
+   try {
+    const res = await fetch(`/api/orders/${id}/status`, {
+     method: "PUT",
+     headers: { "Content-Type": "application/json" },
+     body: JSON.stringify({ status }),
+    });
+    if (!res.ok) throw new Error("Status update failed");
+    alert(`Order status updated to ${status}.`);
+    setOrders((prev) =>
+     prev.map((o) => (o.id === id ? { ...o, status } : o))
+    );
+   } catch (err) {
+    alert(err.message);
+   }
+  };
+
+  // --- Enquiries Handlers ---
  const handleUpdateEnquiryStatus = async (id, status) => {
   try {
    const res = await fetch(`/api/enquiries/${id}/status`, {
@@ -3245,12 +3263,35 @@ export default function Admin() {
               ₹{o.total}
              </td>
              <td>
-              <span
-               className={`admin-dash-status-badge ${o.status === "Delivered" ? "published" : "pending"}`}
-              >
-               {o.status || "Processing"}
-              </span>
-             </td>
+               <select
+                value={o.status || "Processing"}
+                onChange={(e) =>
+                 handleUpdateOrderStatus(o.id, e.target.value)
+                }
+                style={{
+                 backgroundColor: "#050505",
+                 color:
+                  o.status === "Delivered"
+                   ? "#10b981"
+                   : o.status === "Cancelled"
+                     ? "#ef4444"
+                     : o.status === "Shipped"
+                       ? "#3b82f6"
+                       : "#c9a84c",
+                 border: "1px solid rgba(255,255,255,0.08)",
+                 borderRadius: "4px",
+                 fontSize: "0.75rem",
+                 padding: "2px 4px",
+                 cursor: "pointer",
+                }}
+               >
+                <option value="Processing" style={{ backgroundColor: "#050505", color: "#c9a84c" }}>Processing</option>
+                <option value="Confirmed" style={{ backgroundColor: "#050505", color: "#c9a84c" }}>Confirmed</option>
+                <option value="Shipped" style={{ backgroundColor: "#050505", color: "#3b82f6" }}>Shipped</option>
+                <option value="Delivered" style={{ backgroundColor: "#050505", color: "#10b981" }}>Delivered</option>
+                <option value="Cancelled" style={{ backgroundColor: "#050505", color: "#ef4444" }}>Cancelled</option>
+               </select>
+              </td>
             </tr>
            ))
           )}

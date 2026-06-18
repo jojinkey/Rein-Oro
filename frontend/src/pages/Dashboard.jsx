@@ -20,6 +20,7 @@ export default function Dashboard() {
   fullName: "",
   street: "",
   city: "",
+  state: "",
   pincode: "",
   country: "India",
  });
@@ -77,7 +78,7 @@ export default function Dashboard() {
    });
  }, [user]);
 
- // Auto-fill City via India Post Pincode API
+ // Auto-fill City & State via India Post Pincode API
  useEffect(() => {
   const pincode = addressForm.pincode.trim();
   if (pincode.length === 6 && /^\d+$/.test(pincode)) {
@@ -90,6 +91,7 @@ export default function Dashboard() {
        setAddressForm((prev) => ({
         ...prev,
         city: postOffice.District || postOffice.Block || prev.city,
+        state: postOffice.State || prev.state,
        }));
       }
      }
@@ -103,6 +105,7 @@ export default function Dashboard() {
    fullName: "",
    street: "",
    city: "",
+   state: "",
    pincode: "",
    country: "India",
   });
@@ -115,6 +118,7 @@ export default function Dashboard() {
    fullName: addr.fullName || "",
    street: addr.street || "",
    city: addr.city || "",
+   state: addr.state || "",
    pincode: addr.pincode || "",
    country: addr.country || "India",
   });
@@ -128,6 +132,7 @@ export default function Dashboard() {
    !addressForm.fullName.trim() ||
    !addressForm.street.trim() ||
    !addressForm.city.trim() ||
+   !addressForm.state.trim() ||
    !addressForm.pincode.trim() ||
    !addressForm.country.trim()
   ) {
@@ -191,7 +196,10 @@ export default function Dashboard() {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ status: "Cancelled" }),
    });
-   if (!res.ok) throw new Error("Order cancellation failed");
+   if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || "Order cancellation failed");
+   }
    alert("Your order has been cancelled.");
    setOrders((prev) =>
     prev.map((o) => (o.id === orderToCancel ? { ...o, status: "Cancelled" } : o))
@@ -270,6 +278,24 @@ export default function Dashboard() {
    label: step,
    done: index <= currentIndex && normalizedStatus !== "cancelled",
   }));
+ };
+
+ const isOrderCancelable = (order) => {
+  if (order.status === "Delivered" || order.status === "Cancelled") {
+   return false;
+  }
+  let creationTime = null;
+  if (order.created_at) {
+   creationTime = new Date(order.created_at).getTime();
+  } else if (order.date) {
+   const cleanDate = order.date.replace(" at ", " ");
+   creationTime = Date.parse(cleanDate);
+  }
+  if (!creationTime || isNaN(creationTime)) {
+   return true; // Fallback if no valid date found
+  }
+  const sixHoursInMs = 6 * 60 * 60 * 1000;
+  return (Date.now() - creationTime) <= sixHoursInMs;
  };
 
  return (
@@ -942,21 +968,28 @@ export default function Dashboard() {
              {order.status !== "Delivered" && order.status !== "Cancelled" && (
               <button
                className="btn btn-outline"
+               disabled={!isOrderCancelable(order)}
                onClick={() => setOrderToCancel(order.id)}
                style={{
                 height: "30px",
                 padding: "0 1rem",
                 fontSize: "0.72rem",
-                borderColor: "rgba(255,80,80,0.3)",
-                color: "#ff5050",
+                borderColor: isOrderCancelable(order) ? "rgba(255,80,80,0.3)" : "rgba(255,255,255,0.05)",
+                color: isOrderCancelable(order) ? "#ff5050" : "var(--color-muted)",
+                cursor: isOrderCancelable(order) ? "pointer" : "not-allowed",
+                opacity: isOrderCancelable(order) ? 1 : 0.5,
                }}
                onMouseEnter={(e) => {
-                 e.currentTarget.style.backgroundColor = "rgba(255,80,80,0.1)";
-                 e.currentTarget.style.borderColor = "#ff5050";
+                 if (isOrderCancelable(order)) {
+                   e.currentTarget.style.backgroundColor = "rgba(255,80,80,0.1)";
+                   e.currentTarget.style.borderColor = "#ff5050";
+                 }
                }}
                onMouseLeave={(e) => {
-                 e.currentTarget.style.backgroundColor = "transparent";
-                 e.currentTarget.style.borderColor = "rgba(255,80,80,0.3)";
+                 if (isOrderCancelable(order)) {
+                   e.currentTarget.style.backgroundColor = "transparent";
+                   e.currentTarget.style.borderColor = "rgba(255,80,80,0.3)";
+                 }
                }}
               >
                CANCEL ORDER
@@ -1194,21 +1227,43 @@ export default function Dashboard() {
           </div>
          </div>
 
-         <div className="contact-form-group">
-          <label htmlFor="country" className="contact-form-label">
-           Country
-          </label>
-          <input
-           type="text"
-           id="country"
-           className="contact-form-input"
-           placeholder="Country"
-           required
-           value={addressForm.country}
-           onChange={(e) =>
-            setAddressForm({ ...addressForm, country: e.target.value })
-           }
-          />
+         <div
+          className="checkout-form-row"
+          style={{ display: "flex", gap: "1rem" }}
+         >
+          <div className="contact-form-group" style={{ flex: 1 }}>
+           <label htmlFor="state" className="contact-form-label">
+            State / Region
+           </label>
+           <input
+            type="text"
+            id="state"
+            className="contact-form-input"
+            placeholder="State"
+            required
+            value={addressForm.state || ""}
+            onChange={(e) =>
+             setAddressForm({ ...addressForm, state: e.target.value })
+            }
+           />
+          </div>
+
+          <div className="contact-form-group" style={{ flex: 1 }}>
+           <label htmlFor="country" className="contact-form-label">
+            Country
+           </label>
+           <input
+            type="text"
+            id="country"
+            className="contact-form-input"
+            placeholder="Country"
+            required
+            value={addressForm.country}
+            onChange={(e) =>
+             setAddressForm({ ...addressForm, country: e.target.value })
+            }
+           />
+          </div>
          </div>
 
          <div style={{ display: "flex", gap: "1rem", marginTop: "1rem" }}>
@@ -1311,7 +1366,7 @@ export default function Dashboard() {
               >
                {addr.street}
                <br />
-               {addr.city} - {addr.pincode}
+               {addr.city}{addr.state ? `, ${addr.state}` : ""} - {addr.pincode}
                <br />
                {addr.country}
               </p>

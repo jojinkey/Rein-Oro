@@ -1566,8 +1566,11 @@ export default function Admin() {
      headers: { "Content-Type": "application/json" },
      body: JSON.stringify({ status }),
     });
-    if (!res.ok) throw new Error("Status update failed");
-    alert(`Order status updated to ${status}.`);
+     if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error || "Status update failed");
+     }
+     alert(`Order status updated to ${status}.`);
     setOrders((prev) =>
      prev.map((o) => (o.id === id ? { ...o, status } : o))
     );

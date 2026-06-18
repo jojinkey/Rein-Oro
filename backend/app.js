@@ -5,6 +5,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import apiRouter from "./routes/index.js";
 import { seedDatabase } from "./util/database.js";
+import { notFoundHandler, globalErrorHandler } from "./controller/errorController.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -46,11 +47,22 @@ app.get("*", (req, res, next) => {
  ) {
   return next();
  }
- res.sendFile(path.join(__dirname, "../frontend/dist", "index.html"));
+  const indexPath = path.join(__dirname, "../frontend/dist", "index.html");
+  res.sendFile(indexPath, (err) => {
+    if (err) {
+      res.status(404).send("Frontend static assets not found. Please ensure the frontend has been built successfully.");
+    }
+  });
 });
 
 app.get("/api", (req, res) => {
  res.status(200).json({ message: "Welcome to Rein Oro API" });
 });
+
+// 4. Fallback for unmatched API routes (always JSON)
+app.all("/api/*", notFoundHandler);
+
+// 5. Global Error Handling Middleware (always JSON)
+app.use(globalErrorHandler);
 
 export default app;

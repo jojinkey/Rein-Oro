@@ -140,7 +140,7 @@ export default function Home() {
       window.addEventListener('resize', resizeCanvas);
 
       const useScrollFallback =
-        window.matchMedia('(max-width: 767px), (max-height: 620px), (prefers-reduced-motion: reduce)').matches;
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
       if (useScrollFallback) {
         containerRef.current?.classList.add('scroll-fallback');
@@ -209,8 +209,6 @@ export default function Home() {
                 scene1Entrance.kill();
                 scene1Entrance = null;
               }
-            } else if (self.progress === 0) {
-              localGsap.set('#scene-1', { autoAlpha: 1, y: 0, filter: 'blur(0px)', overwrite: 'auto' });
             }
 
             // Sync progress bar
@@ -236,6 +234,12 @@ export default function Home() {
       }, 0);
 
       // Tween 2: Scene 1 Fade Out
+      mainTimeline.set('#scene-1', {
+        autoAlpha: 1,
+        y: 0,
+        filter: 'blur(0px)'
+      }, 0);
+
       mainTimeline.to('#scene-1', {
         autoAlpha: 0,
         y: -50,

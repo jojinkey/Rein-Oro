@@ -37,3 +37,4 @@ pnpm-debug.log*
 .env.test.local
 .env.production.local
 backend/rein_oro.db
+*.md

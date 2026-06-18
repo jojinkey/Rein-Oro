@@ -9706,7 +9706,7 @@ body {
 }
 
 /* Final homepage scroll guard for phones, short screens, and reduced motion. */
-@media (max-width: 767px), (max-height: 620px), (prefers-reduced-motion: reduce) {
+@media (prefers-reduced-motion: reduce) {
     #hero-container {
         height: auto !important;
         min-height: 0 !important;

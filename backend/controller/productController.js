@@ -87,6 +87,20 @@ function normalizeVariants(body, base) {
  const variants = incoming
   .map((variant) => normalizeVariant(variant, base))
   .filter(Boolean);
+ if (base.weight && !variants.some((v) => v.weight === base.weight)) {
+  const baseVariant = normalizeVariant(
+   {
+    weight: base.weight,
+    mrp: base.mrp,
+    sale_price: base.sale_price,
+    stock: base.stock,
+   },
+   base,
+  );
+  if (baseVariant) {
+   variants.unshift(baseVariant);
+  }
+ }
  if (variants.length) return variants;
  const fallback = normalizeVariant(
   {
@@ -161,8 +175,8 @@ function validateProductPayload(product, isUpdate = false) {
    product[field] === undefined ||
    product[field] === null ||
    product[field] === "" ||
-   (Array.isArray(product[field]) && product[field].length === 0) ||
-   (typeof product[field] === "object" &&
+   (!["benefits", "ingredients"].includes(field) && Array.isArray(product[field]) && product[field].length === 0) ||
+   (!["specs", "nutrition"].includes(field) && typeof product[field] === "object" &&
     !Array.isArray(product[field]) &&
     Object.keys(product[field]).length === 0)
   ) {

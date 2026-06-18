@@ -1,6 +1,16 @@
 import React, { useState, useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext, CMSContext } from "../App.jsx";
+import { apiUrl } from "../config/api.js";
+
+// Scoped fetch helper to ensure all API calls in this file use the env-configured backend url
+const originalFetch = window.fetch;
+const fetch = (resource, options) => {
+ if (typeof resource === 'string' && resource.startsWith('/api') && !resource.startsWith('http')) {
+  return originalFetch(apiUrl(resource), options);
+ }
+ return originalFetch(resource, options);
+};
 
 const getSelectorLabel = (selector) => {
  const labels = {
@@ -739,6 +749,11 @@ export default function Admin() {
  });
  const [ownerDashboard, setOwnerDashboard] = useState(null);
  const [firestoreStatus, setFirestoreStatus] = useState(null);
+ const [confirmDialog, setConfirmDialog] = useState(null);
+
+ const triggerConfirm = (message, onConfirm) => {
+  setConfirmDialog({ message, onConfirm });
+ };
 
  const fetchCategories = () => {
   fetch("/api/categories")
@@ -1231,7 +1246,10 @@ export default function Admin() {
 
    if (!res.ok) {
     const data = await res.json();
-    throw new Error(data.error || "Product operation failed");
+    const errorMsg = data.details && Array.isArray(data.details)
+     ? `${data.error}: ${data.details.join(", ")}`
+     : (data.error || "Product operation failed");
+    throw new Error(errorMsg);
    }
 
    alert(
@@ -1245,21 +1263,20 @@ export default function Admin() {
   } catch (err) {
    alert(`Error: ${err.message}`);
   }
- };
+ };  
+ const handleDeleteProduct = (id) => {
+   triggerConfirm("Are you sure you want to permanently delete this product?", async () => {
+    try {
+     const res = await fetch(`/api/products/${id}`, { method: "DELETE" });
+     if (!res.ok) throw new Error("Deletion failed");
 
- const handleDeleteProduct = async (id) => {
-  if (!confirm("Are you sure you want to permanently delete this product?"))
-   return;
-  try {
-   const res = await fetch(`/api/products/${id}`, { method: "DELETE" });
-   if (!res.ok) throw new Error("Deletion failed");
-
-   alert("Product deleted successfully.");
-   setProducts((prev) => prev.filter((p) => p.id !== id));
-  } catch (err) {
-   alert(err.message);
-  }
- };
+     alert("Product deleted successfully.");
+     setProducts((prev) => prev.filter((p) => p.id !== id));
+    } catch (err) {
+     alert(err.message);
+    }
+   });
+  };
 
  // --- Styles Editor Handler ---
  const handleSaveStyles = async (e) => {
@@ -1323,17 +1340,18 @@ export default function Admin() {
   }
  };
 
- const handleDeleteCategory = async (id) => {
-  if (!confirm("Are you sure you want to delete this category?")) return;
-  try {
-   const res = await fetch(`/api/categories/${id}`, { method: "DELETE" });
-   if (!res.ok) throw new Error("Deletion failed");
-   alert("Category deleted successfully.");
-   fetchCategories();
-  } catch (err) {
-   alert(err.message);
-  }
- };
+ const handleDeleteCategory = (id) => {
+   triggerConfirm("Are you sure you want to delete this category?", async () => {
+    try {
+     const res = await fetch(`/api/categories/${id}`, { method: "DELETE" });
+     if (!res.ok) throw new Error("Deletion failed");
+     alert("Category deleted successfully.");
+     fetchCategories();
+    } catch (err) {
+     alert(err.message);
+    }
+   });
+  };
 
  // --- Banner CRUD Handlers ---
  const handleSaveBanner = async (e) => {
@@ -1356,17 +1374,18 @@ export default function Admin() {
   }
  };
 
- const handleDeleteBanner = async (id) => {
-  if (!confirm("Are you sure you want to delete this banner?")) return;
-  try {
-   const res = await fetch(`/api/banners/${id}`, { method: "DELETE" });
-   if (!res.ok) throw new Error("Deletion failed");
-   alert("Banner deleted successfully.");
-   fetchBanners();
-  } catch (err) {
-   alert(err.message);
-  }
- };
+ const handleDeleteBanner = (id) => {
+   triggerConfirm("Are you sure you want to delete this banner?", async () => {
+    try {
+     const res = await fetch(`/api/banners/${id}`, { method: "DELETE" });
+     if (!res.ok) throw new Error("Deletion failed");
+     alert("Banner deleted successfully.");
+     fetchBanners();
+    } catch (err) {
+     alert(err.message);
+    }
+   });
+  };
 
  // --- Media Handlers ---
  const handleSaveMedia = async (e) => {
@@ -1386,17 +1405,18 @@ export default function Admin() {
   }
  };
 
- const handleDeleteMedia = async (id) => {
-  if (!confirm("Are you sure you want to delete this media item?")) return;
-  try {
-   const res = await fetch(`/api/media/${id}`, { method: "DELETE" });
-   if (!res.ok) throw new Error("Deletion failed");
-   alert("Media item deleted successfully.");
-   fetchMedia();
-  } catch (err) {
-   alert(err.message);
-  }
- };
+ const handleDeleteMedia = (id) => {
+   triggerConfirm("Are you sure you want to delete this media item?", async () => {
+    try {
+     const res = await fetch(`/api/media/${id}`, { method: "DELETE" });
+     if (!res.ok) throw new Error("Deletion failed");
+     alert("Media item deleted successfully.");
+     fetchMedia();
+    } catch (err) {
+     alert(err.message);
+    }
+   });
+  };
 
  // --- Testimonial CRUD Handlers ---
  const handleSaveTestimonial = async (e) => {
@@ -1421,17 +1441,18 @@ export default function Admin() {
   }
  };
 
- const handleDeleteTestimonial = async (id) => {
-  if (!confirm("Are you sure you want to delete this testimonial?")) return;
-  try {
-   const res = await fetch(`/api/testimonials/${id}`, { method: "DELETE" });
-   if (!res.ok) throw new Error("Deletion failed");
-   alert("Testimonial deleted successfully.");
-   fetchTestimonials();
-  } catch (err) {
-   alert(err.message);
-  }
- };
+ const handleDeleteTestimonial = (id) => {
+   triggerConfirm("Are you sure you want to delete this testimonial?", async () => {
+    try {
+     const res = await fetch(`/api/testimonials/${id}`, { method: "DELETE" });
+     if (!res.ok) throw new Error("Deletion failed");
+     alert("Testimonial deleted successfully.");
+     fetchTestimonials();
+    } catch (err) {
+     alert(err.message);
+    }
+   });
+  };
 
  // --- Blog CRUD Handlers ---
  const handleSaveBlog = async (e) => {
@@ -1454,17 +1475,18 @@ export default function Admin() {
   }
  };
 
- const handleDeleteBlog = async (id) => {
-  if (!confirm("Are you sure you want to delete this blog post?")) return;
-  try {
-   const res = await fetch(`/api/blog/${id}`, { method: "DELETE" });
-   if (!res.ok) throw new Error("Deletion failed");
-   alert("Blog post deleted successfully.");
-   fetchBlogs();
-  } catch (err) {
-   alert(err.message);
-  }
- };
+ const handleDeleteBlog = (id) => {
+   triggerConfirm("Are you sure you want to delete this blog post?", async () => {
+    try {
+     const res = await fetch(`/api/blog/${id}`, { method: "DELETE" });
+     if (!res.ok) throw new Error("Deletion failed");
+     alert("Blog post deleted successfully.");
+     fetchBlogs();
+    } catch (err) {
+     alert(err.message);
+    }
+   });
+  };
 
  // --- FAQ CRUD Handlers ---
  const handleSaveFaq = async (e) => {
@@ -1487,17 +1509,18 @@ export default function Admin() {
   }
  };
 
- const handleDeleteFaq = async (id) => {
-  if (!confirm("Are you sure you want to delete this FAQ?")) return;
-  try {
-   const res = await fetch(`/api/faqs/${id}`, { method: "DELETE" });
-   if (!res.ok) throw new Error("Deletion failed");
-   alert("FAQ deleted successfully.");
-   fetchFaqs();
-  } catch (err) {
-   alert(err.message);
-  }
- };
+ const handleDeleteFaq = (id) => {
+   triggerConfirm("Are you sure you want to delete this FAQ?", async () => {
+    try {
+     const res = await fetch(`/api/faqs/${id}`, { method: "DELETE" });
+     if (!res.ok) throw new Error("Deletion failed");
+     alert("FAQ deleted successfully.");
+     fetchFaqs();
+    } catch (err) {
+     alert(err.message);
+    }
+   });
+  };
 
  // --- Coupon CRUD Handlers ---
  const handleSaveCoupon = async (e) => {
@@ -1522,19 +1545,38 @@ export default function Admin() {
   }
  };
 
- const handleDeleteCoupon = async (code) => {
-  if (!confirm(`Are you sure you want to delete coupon ${code}?`)) return;
-  try {
-   const res = await fetch(`/api/coupons/${code}`, { method: "DELETE" });
-   if (!res.ok) throw new Error("Deletion failed");
-   alert("Coupon deleted successfully.");
-   fetchCoupons();
-  } catch (err) {
-   alert(err.message);
-  }
- };
+ const handleDeleteCoupon = (code) => {
+   triggerConfirm(`Are you sure you want to delete coupon ${code}?`, async () => {
+    try {
+     const res = await fetch(`/api/coupons/${code}`, { method: "DELETE" });
+     if (!res.ok) throw new Error("Deletion failed");
+     alert("Coupon deleted successfully.");
+     fetchCoupons();
+    } catch (err) {
+     alert(err.message);
+    }
+   });
+  };
 
- // --- Enquiries Handlers ---
+  // --- Orders Handlers ---
+  const handleUpdateOrderStatus = async (id, status) => {
+   try {
+    const res = await fetch(`/api/orders/${id}/status`, {
+     method: "PUT",
+     headers: { "Content-Type": "application/json" },
+     body: JSON.stringify({ status }),
+    });
+    if (!res.ok) throw new Error("Status update failed");
+    alert(`Order status updated to ${status}.`);
+    setOrders((prev) =>
+     prev.map((o) => (o.id === id ? { ...o, status } : o))
+    );
+   } catch (err) {
+    alert(err.message);
+   }
+  };
+
+  // --- Enquiries Handlers ---
  const handleUpdateEnquiryStatus = async (id, status) => {
   try {
    const res = await fetch(`/api/enquiries/${id}/status`, {
@@ -1550,30 +1592,32 @@ export default function Admin() {
   }
  };
 
- const handleDeleteEnquiry = async (id) => {
-  if (!confirm("Are you sure you want to delete this enquiry log?")) return;
-  try {
-   const res = await fetch(`/api/enquiries/${id}`, { method: "DELETE" });
-   if (!res.ok) throw new Error("Deletion failed");
-   alert("Enquiry deleted successfully.");
-   fetchEnquiries();
-  } catch (err) {
-   alert(err.message);
-  }
- };
+ const handleDeleteEnquiry = (id) => {
+   triggerConfirm("Are you sure you want to delete this enquiry log?", async () => {
+    try {
+     const res = await fetch(`/api/enquiries/${id}`, { method: "DELETE" });
+     if (!res.ok) throw new Error("Deletion failed");
+     alert("Enquiry deleted successfully.");
+     fetchEnquiries();
+    } catch (err) {
+     alert(err.message);
+    }
+   });
+  };
 
  // --- Newsletter Handlers ---
- const handleDeleteNewsletter = async (id) => {
-  if (!confirm("Remove this subscriber email from the list?")) return;
-  try {
-   const res = await fetch(`/api/newsletter/${id}`, { method: "DELETE" });
-   if (!res.ok) throw new Error("Deletion failed");
-   alert("Subscriber email removed successfully.");
-   fetchNewsletter();
-  } catch (err) {
-   alert(err.message);
-  }
- };
+ const handleDeleteNewsletter = (id) => {
+   triggerConfirm("Remove this subscriber email from the list?", async () => {
+    try {
+     const res = await fetch(`/api/newsletter/${id}`, { method: "DELETE" });
+     if (!res.ok) throw new Error("Deletion failed");
+     alert("Subscriber email removed successfully.");
+     fetchNewsletter();
+    } catch (err) {
+     alert(err.message);
+    }
+   });
+  };
 
  // --- User Handlers ---
  const handleUpdateUserRole = async (id, role) => {
@@ -1591,17 +1635,18 @@ export default function Admin() {
   }
  };
 
- const handleDeleteUser = async (id) => {
-  if (!confirm("Permanently delete this user account?")) return;
-  try {
-   const res = await fetch(`/api/users/${id}`, { method: "DELETE" });
-   if (!res.ok) throw new Error("Deletion failed");
-   alert("User account deleted successfully.");
-   fetchUsers();
-  } catch (err) {
-   alert(err.message);
-  }
- };
+ const handleDeleteUser = (id) => {
+   triggerConfirm("Permanently delete this user account?", async () => {
+    try {
+     const res = await fetch(`/api/users/${id}`, { method: "DELETE" });
+     if (!res.ok) throw new Error("Deletion failed");
+     alert("User account deleted successfully.");
+     fetchUsers();
+    } catch (err) {
+     alert(err.message);
+    }
+   });
+  };
 
  // --- Settings Handlers ---
  const handleSaveSeoSettings = async (e) => {
@@ -1668,23 +1713,22 @@ export default function Admin() {
  };
 
  // --- System Reset ---
- const handleFactoryReset = async () => {
-  if (
-   !confirm(
+ const handleFactoryReset = () => {
+   triggerConfirm(
     "Warning: This will clear all product database updates, styles, and page content edits, reverting Rein Oro back to default layouts. Proceed?",
-   )
-  )
-   return;
-  try {
-   const res = await fetch("/api/cms/reset", { method: "POST" });
-   if (!res.ok) throw new Error("Reset failed");
+    async () => {
+     try {
+      const res = await fetch("/api/cms/reset", { method: "POST" });
+      if (!res.ok) throw new Error("Reset failed");
 
-   alert("Factory reset completed successfully. Re-seeding tables...");
-   window.location.reload();
-  } catch (err) {
-   alert(err.message);
-  }
- };
+      alert("Factory reset completed successfully. Re-seeding tables...");
+      window.location.reload();
+     } catch (err) {
+      alert(err.message);
+     }
+    }
+   );
+  };
 
  const getPanelTitle = (panel) => {
   const titles = {
@@ -3219,12 +3263,35 @@ export default function Admin() {
               ₹{o.total}
              </td>
              <td>
-              <span
-               className={`admin-dash-status-badge ${o.status === "Delivered" ? "published" : "pending"}`}
-              >
-               {o.status || "Processing"}
-              </span>
-             </td>
+               <select
+                value={o.status || "Processing"}
+                onChange={(e) =>
+                 handleUpdateOrderStatus(o.id, e.target.value)
+                }
+                style={{
+                 backgroundColor: "#050505",
+                 color:
+                  o.status === "Delivered"
+                   ? "#10b981"
+                   : o.status === "Cancelled"
+                     ? "#ef4444"
+                     : o.status === "Shipped"
+                       ? "#3b82f6"
+                       : "#c9a84c",
+                 border: "1px solid rgba(255,255,255,0.08)",
+                 borderRadius: "4px",
+                 fontSize: "0.75rem",
+                 padding: "2px 4px",
+                 cursor: "pointer",
+                }}
+               >
+                <option value="Processing" style={{ backgroundColor: "#050505", color: "#c9a84c" }}>Processing</option>
+                <option value="Confirmed" style={{ backgroundColor: "#050505", color: "#c9a84c" }}>Confirmed</option>
+                <option value="Shipped" style={{ backgroundColor: "#050505", color: "#3b82f6" }}>Shipped</option>
+                <option value="Delivered" style={{ backgroundColor: "#050505", color: "#10b981" }}>Delivered</option>
+                <option value="Cancelled" style={{ backgroundColor: "#050505", color: "#ef4444" }}>Cancelled</option>
+               </select>
+              </td>
             </tr>
            ))
           )}
@@ -4672,7 +4739,14 @@ export default function Admin() {
              active: e.target.checked ? 1 : 0,
             }))
            }
-           style={{ accentColor: "var(--color-gold)" }}
+           style={{
+            accentColor: "var(--color-gold)",
+            opacity: 1,
+            position: "static",
+            height: "16px",
+            width: "16px",
+            cursor: "pointer",
+           }}
           />
           Coupon is currently active and can be used on checkout
          </label>
@@ -4961,6 +5035,7 @@ export default function Admin() {
            borderRadius: "6px",
            cursor: "pointer",
            backgroundColor: "rgba(255,255,255,0.01)",
+           paddingLeft: "1rem",
           }}
          >
           <input
@@ -4974,6 +5049,11 @@ export default function Admin() {
            }
            style={{
             accentColor: "var(--color-gold)",
+            opacity: 1,
+            position: "static",
+            height: "16px",
+            width: "16px",
+            cursor: "pointer",
             transform: "scale(1.15)",
            }}
           />
@@ -5438,6 +5518,7 @@ export default function Admin() {
           gap: "0.6rem",
           color: "var(--color-white)",
           fontSize: "0.85rem",
+          paddingLeft: 0,
          }}
         >
          <input
@@ -5446,7 +5527,14 @@ export default function Admin() {
           onChange={(e) =>
            setProductForm((prev) => ({ ...prev, featured: e.target.checked }))
           }
-          style={{ accentColor: "var(--color-gold)" }}
+          style={{
+           accentColor: "var(--color-gold)",
+           opacity: 1,
+           position: "static",
+           height: "16px",
+           width: "16px",
+           cursor: "pointer",
+          }}
          />
          Show as Featured product on homepage
         </label>
@@ -6023,6 +6111,96 @@ export default function Admin() {
         </button>
        </div>
       </form>
+     </div>
+    </div>
+   )}
+
+   {confirmDialog && (
+    <div
+     style={{
+      position: "fixed",
+      top: 0,
+      left: 0,
+      width: "100%",
+      height: "100%",
+      backgroundColor: "rgba(0, 0, 0, 0.8)",
+      backdropFilter: "blur(6px)",
+      zIndex: 999999,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+     }}
+    >
+     <div
+      style={{
+       width: "100%",
+       maxWidth: "400px",
+       backgroundColor: "#0B0B0B",
+       border: "1px solid rgba(201, 168, 76, 0.25)",
+       borderRadius: "8px",
+       padding: "2.2rem",
+       textAlign: "center",
+       boxShadow: "0 10px 45px rgba(0,0,0,0.8)",
+      }}
+     >
+      <div style={{ fontSize: "2rem", marginBottom: "0.8rem" }}>⚠️</div>
+      <h3
+       style={{
+        fontFamily: "var(--font-heading)",
+        fontSize: "1.4rem",
+        color: "var(--color-white)",
+        fontWeight: 400,
+        marginBottom: "0.8rem",
+       }}
+      >
+       Confirm Action
+      </h3>
+      <p
+       style={{
+        fontSize: "0.85rem",
+        color: "var(--color-muted)",
+        lineHeight: 1.5,
+        marginBottom: "1.8rem",
+       }}
+      >
+       {confirmDialog.message}
+      </p>
+      <div style={{ display: "flex", gap: "1rem" }}>
+       <button
+        className="btn btn-primary"
+        onClick={() => {
+         confirmDialog.onConfirm();
+         setConfirmDialog(null);
+        }}
+        style={{
+         flex: 1,
+         height: "40px",
+         backgroundColor: "var(--color-gold)",
+         color: "#000",
+         border: "none",
+         fontWeight: "bold",
+         cursor: "pointer",
+         borderRadius: "4px",
+        }}
+       >
+        CONFIRM
+       </button>
+       <button
+        className="btn btn-outline"
+        onClick={() => setConfirmDialog(null)}
+        style={{
+         flex: 1,
+         height: "40px",
+         backgroundColor: "transparent",
+         color: "var(--color-white)",
+         border: "1px solid rgba(255,255,255,0.2)",
+         cursor: "pointer",
+         borderRadius: "4px",
+        }}
+       >
+        CANCEL
+       </button>
+      </div>
      </div>
     </div>
    )}

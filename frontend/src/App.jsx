@@ -5,6 +5,7 @@ import Footer from "./components/Footer.jsx";
 import Preloader from "./components/Preloader.jsx";
 import ExitIntentModal from "./components/ExitIntentModal.jsx";
 import WhatsAppFloat from "./components/WhatsAppFloat.jsx";
+import { apiUrl } from "./config/api.js";
 
 // Pages
 import Home from "./pages/Home.jsx";
@@ -71,30 +72,42 @@ export default function App() {
  }, [appliedPromo]);
 
   useEffect(() => {
-  const fetchCoupons = async () => {
-   try {
-    const res = await fetch("/api/coupons?active=true");
-    const data = await res.json();
-    setCoupons(Array.isArray(data) ? data.filter((coupon) => coupon.active) : []);
+   const fetchCoupons = async () => {
+    try {
+     const res = await fetch(apiUrl("/api/coupons?active=true"));
+     const data = await res.json();
+     setCoupons(Array.isArray(data) ? data.filter((coupon) => coupon.active) : []);
 
-    // Revalidate localStorage promo code
-    const savedPromo = localStorage.getItem("rein_oro_promo") || "";
-    if (savedPromo) {
-     const matched = (Array.isArray(data) ? data : []).find((c) => c.code === savedPromo && c.active);
-     if (matched) {
-      setDiscountRate(matched.discount_rate);
-     } else {
-      setAppliedPromo("");
-      setDiscountRate(0.0);
-      localStorage.removeItem("rein_oro_promo");
+     // Revalidate localStorage promo code
+     const savedPromo = localStorage.getItem("rein_oro_promo") || "";
+     if (savedPromo) {
+      const matched = (Array.isArray(data) ? data : []).find((c) => c.code === savedPromo && c.active);
+      if (matched) {
+       setDiscountRate(matched.discount_rate);
+      } else {
+       setAppliedPromo("");
+       setDiscountRate(0.0);
+       localStorage.removeItem("rein_oro_promo");
+      }
      }
+    } catch (err) {
+     console.warn("Failed to load coupons from API", err);
     }
-   } catch (err) {
-    console.warn("Failed to load coupons from API", err);
-   }
-  };
-  fetchCoupons();
- }, []);
+   };
+
+   // Run the coupon fetch in the background after a 2s delay to not compete with critical home page resources
+   const delayTimer = setTimeout(() => {
+    if (window.requestIdleCallback) {
+     window.requestIdleCallback(() => {
+      fetchCoupons();
+     });
+    } else {
+     fetchCoupons();
+    }
+   }, 2000);
+
+   return () => clearTimeout(delayTimer);
+  }, []);
 
  const addToCart = (product, qty = 1) => {
   setCart((prevCart) => {
@@ -135,20 +148,40 @@ export default function App() {
   localStorage.removeItem("rein_oro_gift_note");
  };
 
- const applyPromoCode = (code) => {
-  const uppercaseCode = code.trim().toUpperCase();
-  const matched = coupons.find((c) => c.code === uppercaseCode && c.active);
-  if (matched) {
-   setAppliedPromo(uppercaseCode);
-   setDiscountRate(matched.discount_rate);
-   return {
-    success: true,
-    message: `Promo code applied successfully (${Math.round(matched.discount_rate * 100)}% Off)!`,
-   };
-  } else {
-   return { success: false, message: "Invalid promo code" };
-  }
- };
+  const applyPromoCode = async (code) => {
+   const uppercaseCode = code.trim().toUpperCase();
+   try {
+    const res = await fetch(apiUrl(`/api/coupons/${encodeURIComponent(uppercaseCode)}`));
+    if (!res.ok) {
+     return { success: false, message: "Invalid promo code" };
+    }
+    const coupon = await res.json();
+    const isActive = coupon && (coupon.active === true || coupon.active === "true" || coupon.active === 1 || coupon.active === "1");
+    if (isActive) {
+     setAppliedPromo(uppercaseCode);
+     setDiscountRate(Number(coupon.discount_rate) || 0.0);
+     return {
+      success: true,
+      message: `Promo code applied successfully (${Math.round((Number(coupon.discount_rate) || 0.0) * 100)}% Off)!`,
+     };
+    } else {
+     return { success: false, message: "Promo code is inactive" };
+    }
+   } catch (err) {
+    console.warn("Failed to validate promo code live:", err);
+    const matched = coupons.find((c) => c.code === uppercaseCode && c.active);
+    if (matched) {
+     setAppliedPromo(uppercaseCode);
+     setDiscountRate(matched.discount_rate);
+     return {
+      success: true,
+      message: `Promo code applied successfully (${Math.round(matched.discount_rate * 100)}% Off)!`,
+     };
+    } else {
+     return { success: false, message: "Invalid promo code" };
+    }
+   }
+  };
 
  const removePromoCode = () => {
   setAppliedPromo("");
@@ -195,11 +228,11 @@ export default function App() {
 
  const fetchCMSData = async () => {
   try {
-   const contentRes = await fetch("/api/cms/content");
+   const contentRes = await fetch(apiUrl("/api/cms/content"));
    const content = await contentRes.json();
    setCmsContent(content);
 
-   const stylesRes = await fetch("/api/cms/styles");
+   const stylesRes = await fetch(apiUrl("/api/cms/styles"));
    const styles = await stylesRes.json();
    setCmsStyles(styles);
    applyGlobalStyles(styles);
@@ -313,7 +346,7 @@ export default function App() {
       setIsCartOpen,
      }}
     >
-     <HashRouter>
+     <HashRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <LayoutWrapper>
        <Routes>
         <Route path="/" element={<Home />} />

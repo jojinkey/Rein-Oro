@@ -234,6 +234,30 @@ async function getReviewSummary(productId) {
  return { total, average, breakdown };
 }
 
+function formatMemberSince(u) {
+ if (u.member_since) {
+  return u.member_since;
+ }
+ const dateVal = u.createdAt;
+ if (!dateVal) {
+  return "N/A";
+ }
+ let dateObj = null;
+ if (typeof dateVal.toDate === "function") {
+  dateObj = dateVal.toDate();
+ } else if (typeof dateVal === "object" && (dateVal._seconds || dateVal.seconds)) {
+  const secs = dateVal._seconds || dateVal.seconds;
+  dateObj = new Date(secs * 1000);
+ } else {
+  dateObj = new Date(dateVal);
+ }
+ if (!dateObj || isNaN(dateObj.getTime())) {
+  return "N/A";
+ }
+ const pad = (n) => String(n).padStart(2, "0");
+ return `${dateObj.getFullYear()}-${pad(dateObj.getMonth() + 1)}-${pad(dateObj.getDate())} ${pad(dateObj.getHours())}:${pad(dateObj.getMinutes())}:${pad(dateObj.getSeconds())}`;
+}
+
 async function getCrmCustomers() {
  const users = await queryFirestoreCollection("users");
  const orders = await queryFirestoreCollection("orders");
@@ -254,7 +278,7 @@ async function getCrmCustomers() {
     id: user.id || user.email,
     email: user.email,
     role: user.role,
-    member_since: user.member_since,
+    member_since: formatMemberSince(user),
     order_count: customerOrders.length,
     total_spent,
     last_order_date,

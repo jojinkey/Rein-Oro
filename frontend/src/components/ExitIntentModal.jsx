@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { apiUrl } from '../config/api.js';
 
 export default function ExitIntentModal() {
   const [isOpen, setIsOpen] = useState(false);
@@ -7,7 +8,7 @@ export default function ExitIntentModal() {
 
   useEffect(() => {
     let isMounted = true;
-    fetch('/api/coupons?active=true')
+    fetch(apiUrl('/api/coupons?active=true'))
       .then((res) => res.json())
       .then((data) => {
         if (!isMounted) return;
@@ -27,8 +28,22 @@ export default function ExitIntentModal() {
 
     const handleMouseLeave = (e) => {
       if (e.clientY < 20 && window.innerWidth > 768) {
-        setIsOpen(true);
-        sessionStorage.setItem('rein_oro_exit_intent', 'true');
+        // Fetch the fresh coupon from the backend before opening the modal to avoid cached values
+        fetch(apiUrl('/api/coupons?active=true'))
+          .then((res) => res.json())
+          .then((data) => {
+            const activeCoupons = Array.isArray(data) ? data.filter((item) => item.active) : [];
+            if (activeCoupons.length > 0) {
+              setCoupon(activeCoupons[0]);
+            }
+            setIsOpen(true);
+            sessionStorage.setItem('rein_oro_exit_intent', 'true');
+          })
+          .catch((err) => {
+            console.warn('Failed to load active exit coupon live:', err);
+            setIsOpen(true);
+            sessionStorage.setItem('rein_oro_exit_intent', 'true');
+          });
       }
     };
 

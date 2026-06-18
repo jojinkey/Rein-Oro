@@ -88,14 +88,30 @@ function buildReviewSummary(reviews) {
 
 export async function getReviews(req, res) {
  try {
-  const productId = cleanText(req.query.productId || req.query.product_id);
+  const queryId = cleanText(req.query.productId || req.query.product_id);
   const status = cleanText(req.query.status);
-  const where = [];
-  if (productId) where.push(["productId", "==", productId]);
-  if (status) where.push(["status", "==", status]);
-  const reviews = await queryFirestoreCollection(REVIEW_COLLECTION, {
-   where,
-   orderBy: [["createdAt", "desc"]],
+  
+  let reviews = await queryFirestoreCollection(REVIEW_COLLECTION);
+  
+  if (queryId) {
+   const products = await queryFirestoreCollection("products");
+   const product = products.find(p => p.id === queryId || p.slug === queryId || p.title === queryId);
+   const productIds = new Set([queryId]);
+   if (product) {
+    if (product.id) productIds.add(product.id);
+    if (product.slug) productIds.add(product.slug);
+   }
+   reviews = reviews.filter((r) => productIds.has(r.productId || r.product_id));
+  }
+  
+  if (status) {
+   reviews = reviews.filter((r) => r.status === status);
+  }
+  
+  reviews.sort((a, b) => {
+   const tA = new Date(a.createdAt || a.created_at || 0).getTime();
+   const tB = new Date(b.createdAt || b.created_at || 0).getTime();
+   return tB - tA;
   });
   res.json(reviews);
  } catch (err) {
@@ -120,19 +136,32 @@ export async function getReviewById(req, res) {
 }
 
 export async function getProductReviews(req, res) {
- const productId = String(req.params.id || "").trim();
- if (!productId) {
+ const paramId = String(req.params.id || "").trim();
+ if (!paramId) {
   return res.status(400).json({ error: "Product id is required" });
  }
  try {
-  const reviews = await queryFirestoreCollection(REVIEW_COLLECTION, {
-   where: [
-    ["productId", "==", productId],
-    ["status", "==", "approved"],
-   ],
-   orderBy: [["createdAt", "desc"]],
-  });
-  res.json({ summary: buildReviewSummary(reviews), reviews });
+  const products = await queryFirestoreCollection("products");
+  const product = products.find(p => p.id === paramId || p.slug === paramId || p.title === paramId);
+  const productIds = new Set([paramId]);
+  if (product) {
+   if (product.id) productIds.add(product.id);
+   if (product.slug) productIds.add(product.slug);
+  }
+
+  const reviews = await queryFirestoreCollection(REVIEW_COLLECTION);
+  const approvedReviews = reviews
+   .filter((r) => {
+    const rId = String(r.productId || r.product_id || "").trim();
+    const status = String(r.status || "").trim();
+    return productIds.has(rId) && status === "approved";
+   })
+   .sort((a, b) => {
+    const tA = new Date(a.createdAt || a.created_at || 0).getTime();
+    const tB = new Date(b.createdAt || b.created_at || 0).getTime();
+    return tB - tA;
+   });
+  res.json({ summary: buildReviewSummary(approvedReviews), reviews: approvedReviews });
  } catch (err) {
   res.status(500).json({ error: err.message });
  }

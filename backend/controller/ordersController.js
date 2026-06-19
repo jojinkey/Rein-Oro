@@ -47,6 +47,7 @@ export async function createOrder(req, res) {
   cod_fee,
   total,
   items,
+  shipping_address,
  } = req.body;
  if (!id || !user_email || !items || items.length === 0) {
   return res.status(400).json({ error: "Incomplete order payload" });
@@ -66,6 +67,7 @@ export async function createOrder(req, res) {
    cod_fee,
    total,
    items,
+   shipping_address,
    status: "Processing",
    created_at: new Date().toISOString(),
   });

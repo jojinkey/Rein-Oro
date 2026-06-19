@@ -693,6 +693,11 @@ export default function Admin() {
   nutrition: {},
  });
 
+ const [slotUploadingIndex, setSlotUploadingIndex] = useState(null);
+ const [thumbnailUploading, setThumbnailUploading] = useState(false);
+ const [benefitsUploading, setBenefitsUploading] = useState(false);
+ const [altImageSlots, setAltImageSlots] = useState([]);
+
  // Styles Form State
  const [stylesForm, setStylesForm] = useState({
   colorBg: "#050505",
@@ -1116,10 +1121,98 @@ export default function Admin() {
   }
  };
 
+  const handleThumbnailUpload = async (e) => {
+   const file = e.target.files[0];
+   if (!file) return;
+   if (!productForm.id || !String(productForm.id).trim()) {
+    alert("Please fill in the Product ID (Unique) first before uploading images.");
+    return;
+   }
+   setThumbnailUploading(true);
+   const formData = new FormData();
+   formData.append("image", file);
+   formData.append("productId", String(productForm.id).trim());
+   formData.append("type", "thumbnail");
+   try {
+    const res = await fetch("/api/upload", {
+     method: "POST",
+     body: formData,
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Upload failed");
+    setProductForm((prev) => ({ ...prev, image: data.url }));
+   } catch (err) {
+    alert(`Thumbnail Upload Error: ${err.message}`);
+   } finally {
+    setThumbnailUploading(false);
+   }
+  };
+
+  const handleBenefitsUpload = async (e) => {
+   const file = e.target.files[0];
+   if (!file) return;
+   if (!productForm.id || !String(productForm.id).trim()) {
+    alert("Please fill in the Product ID (Unique) first before uploading images.");
+    return;
+   }
+   setBenefitsUploading(true);
+   const formData = new FormData();
+   formData.append("image", file);
+   formData.append("productId", String(productForm.id).trim());
+   formData.append("type", "benefit");
+   try {
+    const res = await fetch("/api/upload", {
+     method: "POST",
+     body: formData,
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Upload failed");
+    setProductForm((prev) => ({ ...prev, benefits_image: data.url }));
+   } catch (err) {
+    alert(`Benefits Image Upload Error: ${err.message}`);
+   } finally {
+    setBenefitsUploading(false);
+   }
+  };
+
+  const handleUploadSlotImage = async (e, idx) => {
+   const file = e.target.files[0];
+   if (!file) return;
+   if (!productForm.id || !String(productForm.id).trim()) {
+    alert("Please fill in the Product ID (Unique) first before uploading images.");
+    return;
+   }
+   setSlotUploadingIndex(idx);
+   const formData = new FormData();
+   formData.append("image", file);
+   formData.append("productId", String(productForm.id).trim());
+   formData.append("type", "alternate");
+   try {
+    const res = await fetch("/api/upload", {
+     method: "POST",
+     body: formData,
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Upload failed");
+    setAltImageSlots((prev) => {
+     const next = [...prev];
+     next[idx] = data.url;
+     return next;
+    });
+   } catch (err) {
+    alert(`Slot Upload Error: ${err.message}`);
+   } finally {
+    setSlotUploadingIndex(null);
+   }
+  };
+
  // --- Product CRUD Handlers ---
  const handleOpenProductModal = (mode, prod = null) => {
   setModalMode(mode);
   if (mode === "edit" && prod) {
+   const allImages = toAdminArray(prod.images, []);
+   const altImagesOnly = allImages[0] === prod.image ? allImages.slice(1) : allImages;
+   setAltImageSlots(altImagesOnly);
    setProductForm({
     id: prod.id,
     name: prod.name,
@@ -1146,7 +1239,8 @@ export default function Admin() {
      toAdminObject(prod.nutrition, {}),
    });
   } else {
-   setProductForm({
+    setAltImageSlots([]);
+    setProductForm({
     id: "",
     name: "",
     flavor: "",
@@ -1203,7 +1297,7 @@ export default function Admin() {
     slugifyProduct(productForm.title || productForm.name || productForm.id),
    seo_title: productForm.seo_title,
    meta_description: productForm.meta_description,
-   images: toAdminArray(productForm.images, []),
+    images: altImageSlots.filter((url) => url && url.trim()),
    variants: (productForm.variants || [])
     .map((variant) => ({
      weight: String(variant.weight || "").trim(),
@@ -5693,119 +5787,257 @@ export default function Admin() {
 
        <div className="contact-form-group" style={{ gridColumn: "span 2" }}>
         <label className="contact-form-label">
-         Extra Product Images (comma separated)
+         Product Thumbnail
         </label>
-        <input
-         type="text"
-         className="contact-form-input"
-         value={productForm.images}
-         onChange={(e) =>
-          setProductForm((prev) => ({ ...prev, images: e.target.value }))
-         }
-         placeholder="images/makhana_classic.png, images/gift_box.png"
-        />
-       </div>
-
-       <div className="contact-form-group" style={{ gridColumn: "span 2" }}>
-        <label className="contact-form-label">
-         Product Image URL
-         <span
-          style={{
-           color: "var(--color-gold)",
-           fontSize: "0.72rem",
-           textTransform: "none",
-           marginLeft: "0.5rem",
-          }}
-         >
-          (Use Imgur, Cloudinary, or image hosting)
-         </span>
-        </label>
-        <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
-         <input
-          type="text"
-          className="contact-form-input"
-          required
-          value={productForm.image}
-          onChange={(e) =>
-           setProductForm((prev) => ({ ...prev, image: e.target.value }))
-          }
-          placeholder="https://example.com/image.jpg"
-          style={{ flex: 1 }}
-         />
-         {productForm.image && (
-          <div
+        <div style={{ display: "flex", gap: "1.5rem", alignItems: "center" }}>
+         <div>
+          <button
+           type="button"
+           className="btn btn-outline"
+           disabled={thumbnailUploading}
            style={{
-            width: "48px",
-            height: "48px",
-            backgroundColor: "rgba(255,255,255,0.02)",
+            height: "40px",
+            borderColor: "var(--color-gold)",
+            color: "var(--color-gold)",
             display: "flex",
             alignItems: "center",
-            justifyContent: "center",
-            borderRadius: "6px",
-            border: "1px solid rgba(255,255,255,0.08)",
+            gap: "0.5rem",
+            whiteSpace: "nowrap"
            }}
+           onClick={() => document.getElementById("thumbnail-file-input").click()}
           >
-           <img
-            src={productForm.image}
-            alt="Preview"
-            style={{ maxWidth: "90%", maxHeight: "90%", objectFit: "contain" }}
-            onError={(e) => (e.target.style.opacity = "0.3")}
-           />
-          </div>
-         )}
+           <span>{thumbnailUploading ? "Uploading..." : "Upload Thumbnail"}</span>
+          </button>
+          <input
+           type="file"
+           id="thumbnail-file-input"
+           accept="image/*"
+           style={{ display: "none" }}
+           onChange={handleThumbnailUpload}
+          />
+         </div>
+         <div
+          style={{
+           width: "80px",
+           height: "80px",
+           border: "1px solid rgba(255,255,255,0.06)",
+           borderRadius: "8px",
+           backgroundColor: "rgba(0,0,0,0.3)",
+           display: "flex",
+           alignItems: "center",
+           justifyContent: "center",
+           overflow: "hidden",
+           position: "relative",
+           cursor: "pointer"
+          }}
+          onClick={() => document.getElementById("thumbnail-file-input").click()}
+         >
+          {productForm.image ? (
+           <>
+            <img
+             src={productForm.image}
+             alt="Thumbnail Preview"
+             style={{ width: "90%", height: "90%", objectFit: "contain" }}
+            />
+            <div
+             style={{
+              position: "absolute",
+              inset: 0,
+              backgroundColor: "rgba(0, 0, 0, 0.6)",
+              color: "var(--color-gold)",
+              fontSize: "0.65rem",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              opacity: 0,
+              transition: "opacity 0.2s ease",
+              textTransform: "uppercase"
+             }}
+             onMouseEnter={(e) => (e.currentTarget.style.opacity = 1)}
+             onMouseLeave={(e) => (e.currentTarget.style.opacity = 0)}
+            >
+             Change
+            </div>
+           </>
+          ) : (
+           <span style={{ fontSize: "0.7rem", color: "var(--color-muted)", textAlign: "center", padding: "0.2rem" }}>
+            No Image
+           </span>
+          )}
+         </div>
         </div>
        </div>
 
        <div className="contact-form-group" style={{ gridColumn: "span 2" }}>
         <label className="contact-form-label">
-         Benefits Section Image URL
-         <span
-          style={{
-           color: "var(--color-gold)",
-           fontSize: "0.72rem",
-           textTransform: "none",
-           marginLeft: "0.5rem",
-          }}
-         >
-          (Use Imgur, Cloudinary, or image hosting)
+         Alternate Product Images
+         <span style={{ color: "var(--color-gold)", fontSize: "0.72rem", textTransform: "none", marginLeft: "0.5rem" }}>
+          (Click + to add a slot, click a slot to upload/select a file)
          </span>
         </label>
-        <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
-         <input
-          type="text"
-          className="contact-form-input"
-          required
-          value={productForm.benefits_image}
-          onChange={(e) =>
-           setProductForm((prev) => ({
-            ...prev,
-            benefits_image: e.target.value,
-           }))
-          }
-          placeholder="https://example.com/image.jpg"
-          style={{ flex: 1 }}
-         />
-         {productForm.benefits_image && (
+        <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", alignItems: "center" }}>
+         {altImageSlots.map((imgUrl, idx) => (
           <div
+           key={idx}
            style={{
-            width: "48px",
-            height: "48px",
-            backgroundColor: "rgba(255,255,255,0.02)",
+            width: "80px",
+            height: "80px",
+            backgroundColor: "rgba(255,255,255,0.01)",
+            border: imgUrl ? "1px solid rgba(255,255,255,0.08)" : "1px dashed rgba(199, 168, 76, 0.4)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            borderRadius: "6px",
-            border: "1px solid rgba(255,255,255,0.08)",
+            borderRadius: "8px",
+            position: "relative",
+            cursor: "pointer",
+            overflow: "hidden"
+           }}
+           onClick={(e) => {
+            if (e.target.tagName !== "BUTTON" && e.target.parentElement?.tagName !== "BUTTON") {
+             document.getElementById(`alt-file-input-${idx}`).click();
+            }
            }}
           >
+           {slotUploadingIndex === idx ? (
+            <span style={{ fontSize: "0.7rem", color: "var(--color-gold)" }}>Uploading...</span>
+           ) : imgUrl ? (
+            <img
+             src={imgUrl}
+             alt={`Alt ${idx}`}
+             style={{ width: "100%", height: "100%", objectFit: "contain" }}
+            />
+           ) : (
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", color: "var(--color-gold)" }}>
+             <span style={{ fontSize: "1.2rem" }}>+</span>
+             <span style={{ fontSize: "0.6rem", textTransform: "uppercase" }}>Slot</span>
+            </div>
+           )}
+           
+           <input
+            type="file"
+            id={`alt-file-input-${idx}`}
+            accept="image/*"
+            style={{ display: "none" }}
+            onChange={(e) => handleUploadSlotImage(e, idx)}
+           />
+
+           <button
+            type="button"
+            style={{
+             position: "absolute",
+             top: "2px",
+             right: "2px",
+             width: "18px",
+             height: "18px",
+             borderRadius: "50%",
+             backgroundColor: "rgba(239, 68, 68, 0.85)",
+             color: "var(--color-white)",
+             border: "none",
+             fontSize: "11px",
+             display: "flex",
+             alignItems: "center",
+             justifyContent: "center",
+             cursor: "pointer",
+             lineHeight: 1,
+             zIndex: 10
+            }}
+            onClick={(e) => {
+             e.stopPropagation();
+             setAltImageSlots(prev => prev.filter((_, i) => i !== idx));
+            }}
+           >
+            &times;
+           </button>
+          </div>
+         ))}
+
+         <button
+          type="button"
+          className="btn btn-outline"
+          style={{
+           width: "80px",
+           height: "80px",
+           borderColor: "rgba(199, 168, 76, 0.3)",
+           color: "var(--color-gold)",
+           display: "flex",
+           flexDirection: "column",
+           alignItems: "center",
+           justifyContent: "center",
+           borderRadius: "8px",
+           gap: "0.2rem"
+          }}
+          onClick={() => {
+           setAltImageSlots(prev => [...prev, ""]);
+          }}
+         >
+          <span style={{ fontSize: "1.5rem", lineHeight: 1 }}>+</span>
+          <span style={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: "0.5px" }}>Add Slot</span>
+         </button>
+        </div>
+       </div>
+
+       <div className="contact-form-group" style={{ gridColumn: "span 2" }}>
+        <label className="contact-form-label">
+         Benefits Section Image
+        </label>
+        <div style={{ display: "flex", gap: "2rem", alignItems: "center" }}>
+         <div style={{ flex: 1 }}>
+          <button
+           type="button"
+           className="btn btn-outline"
+           disabled={benefitsUploading}
+           style={{
+            height: "40px",
+            borderColor: "var(--color-gold)",
+            color: "var(--color-gold)",
+            display: "flex",
+            alignItems: "center",
+            gap: "0.5rem",
+            whiteSpace: "nowrap",
+            marginBottom: "0.5rem"
+           }}
+           onClick={() => document.getElementById("benefits-file-input").click()}
+          >
+           <span>{benefitsUploading ? "Uploading..." : "Upload Benefits Image"}</span>
+          </button>
+          <p style={{ fontSize: "0.75rem", color: "var(--color-muted)", margin: 0 }}>
+           Transparent background PNG recommended. Displays in the storefront product benefits section.
+          </p>
+          <input
+           type="file"
+           id="benefits-file-input"
+           accept="image/*"
+           style={{ display: "none" }}
+           onChange={handleBenefitsUpload}
+          />
+         </div>
+         <div
+          style={{
+           width: "120px",
+           height: "120px",
+           border: "1px solid rgba(255,255,255,0.06)",
+           borderRadius: "8px",
+           backgroundColor: "rgba(0,0,0,0.3)",
+           display: "flex",
+           alignItems: "center",
+           justifyContent: "center",
+           overflow: "hidden",
+           position: "relative"
+          }}
+         >
+          {productForm.benefits_image ? (
            <img
             src={productForm.benefits_image}
-            alt="Preview"
-            style={{ maxWidth: "90%", maxHeight: "90%", objectFit: "contain" }}
+            alt="Benefits Section Preview"
+            style={{ width: "90%", height: "90%", objectFit: "contain" }}
             onError={(e) => (e.target.style.opacity = "0.3")}
            />
-          </div>
-         )}
+          ) : (
+           <span style={{ fontSize: "0.75rem", color: "var(--color-muted)", textAlign: "center", padding: "0.5rem" }}>
+            No image uploaded
+           </span>
+          )}
+         </div>
         </div>
        </div>
 

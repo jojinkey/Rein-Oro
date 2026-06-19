@@ -4,11 +4,32 @@ import { AuthContext, CartContext } from "../App.jsx";
 import { apiUrl } from "../config/api.js";
 
 export default function Dashboard() {
- const { user, logout } = useContext(AuthContext);
+ const { user, logout, wishlist, toggleWishlist } = useContext(AuthContext);
  const { addToCart } = useContext(CartContext);
  const navigate = useNavigate();
 
  const [activeTab, setActiveTab] = useState("dashboard");
+ const [wishlistedProducts, setWishlistedProducts] = useState([]);
+ const [wishlistLoading, setWishlistLoading] = useState(false);
+
+ useEffect(() => {
+  if (!user || activeTab !== "wishlist") return;
+  setWishlistLoading(true);
+  fetch(apiUrl(`/api/users/wishlist?email=${encodeURIComponent(user.email)}`))
+   .then((res) => {
+    if (!res.ok) throw new Error("Failed to load wishlist details");
+    return res.json();
+   })
+   .then((data) => {
+    setWishlistedProducts(data.products || []);
+   })
+   .catch((err) => {
+    console.error("Wishlist load error:", err);
+   })
+   .finally(() => {
+    setWishlistLoading(false);
+   });
+ }, [user, activeTab, wishlist]);
  const [orders, setOrders] = useState([]);
  const [recProducts, setRecProducts] = useState([]);
  const [recIndex, setRecIndex] = useState(0);
@@ -372,7 +393,7 @@ export default function Dashboard() {
       {[
        { id: "dashboard", label: "Dashboard Hub" },
        { id: "orders", label: "Order History" },
-       { id: "rewards", label: "Royal Rewards" },
+       { id: "wishlist", label: "Wishlist Items" },
        { id: "addresses", label: "Saved Addresses" },
       ].map((tab) => (
        <li key={tab.id}>
@@ -435,7 +456,7 @@ export default function Dashboard() {
      {activeTab === "dashboard" && (
       <div style={{ display: "flex", flexDirection: "column", gap: "2.5rem" }}>
        {/* Summary Cards */}
-       <div className="dashboard-summary-grid">
+       <div className="dashboard-summary-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}>
         <div className="summary-metric-card" style={{ textAlign: "center" }}>
          <span
           style={{
@@ -467,28 +488,6 @@ export default function Dashboard() {
            letterSpacing: "0.05em",
           }}
          >
-          Rewards points
-         </span>
-         <h4
-          style={{
-           fontSize: "1.8rem",
-           color: "var(--color-gold)",
-           fontWeight: 600,
-           marginTop: "0.3rem",
-          }}
-         >
-          320 pts
-         </h4>
-        </div>
-        <div className="summary-metric-card" style={{ textAlign: "center" }}>
-         <span
-          style={{
-           fontSize: "0.68rem",
-           color: "var(--color-muted)",
-           textTransform: "uppercase",
-           letterSpacing: "0.05em",
-          }}
-         >
           Wishlist items
          </span>
          <h4
@@ -499,7 +498,7 @@ export default function Dashboard() {
            marginTop: "0.3rem",
           }}
          >
-          2
+          {wishlist?.length || 0}
          </h4>
         </div>
         <div className="summary-metric-card" style={{ textAlign: "center" }}>
@@ -1004,82 +1003,174 @@ export default function Dashboard() {
       </div>
      )}
 
-     {activeTab === "rewards" && (
-      <div
-       style={{
-        border: "1px solid rgba(201,168,76,0.15)",
-        borderRadius: "8px",
-        padding: "3rem",
-        backgroundColor: "rgba(201,168,76,0.02)",
-        textAlign: "center",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        gap: "1.2rem",
-       }}
-      >
+      {activeTab === "wishlist" && (
        <div
         style={{
-         width: "64px",
-         height: "64px",
-         borderRadius: "50%",
-         border: "2px solid var(--color-gold)",
-         display: "flex",
-         alignItems: "center",
-         justifyContent: "center",
-         color: "var(--color-gold)",
-         fontSize: "1.8rem",
+         border: "1px solid rgba(255,255,255,0.04)",
+         borderRadius: "8px",
+         padding: "2rem",
+         backgroundColor: "rgba(15,15,15,0.4)",
         }}
        >
-        👑
-       </div>
-       <h2
-        style={{
-         fontFamily: "var(--font-heading)",
-         fontSize: "1.8rem",
-         fontWeight: 300,
-         color: "var(--color-white)",
-        }}
-       >
-        Royal Rewards Club
-       </h2>
-       <p
-        style={{
-         fontSize: "0.9rem",
-         color: "var(--color-muted)",
-         maxWidth: "500px",
-         lineHeight: 1.6,
-        }}
-       >
-        You have accumulated{" "}
-        <strong style={{ color: "var(--color-gold)" }}>320 Royal Points</strong>
-        . Earn 10 points for every ₹100 spent on gourmet delicacies. Redeem
-        points at checkout for complimentary gift hampers and custom tastings.
-       </p>
-       <div style={{ display: "flex", gap: "1rem", marginTop: "1rem" }}>
-        <button
-         className="btn btn-primary"
-         onClick={() => alert("Reward catalog selection is simulated.")}
-         style={{ height: "40px", padding: "0 1.5rem" }}
-        >
-         Redeem points
-        </button>
-        <Link
-         to="/shop"
-         className="btn btn-outline"
+        <h2
          style={{
-          height: "40px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          padding: "0 1.5rem",
+          fontFamily: "var(--font-heading)",
+          fontSize: "1.8rem",
+          fontWeight: 300,
+          color: "var(--color-white)",
+          marginBottom: "2rem",
          }}
         >
-         Earn more
-        </Link>
+         Your Wishlist Items
+        </h2>
+        {wishlistLoading ? (
+         <p style={{ color: "var(--color-muted)", fontSize: "0.85rem" }}>
+          Loading your wishlist...
+         </p>
+        ) : wishlistedProducts.length === 0 ? (
+         <p style={{ color: "var(--color-muted)", fontSize: "0.85rem", lineHeight: "1.6" }}>
+          Your wishlist is currently empty. Explore our gourmet collection to add your favorites.
+         </p>
+        ) : (
+         <div
+          style={{
+           display: "grid",
+           gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
+           gap: "1.5rem",
+          }}
+         >
+          {wishlistedProducts.map((p) => {
+           const displayPrice = p.price;
+           const isOutOfStock = p.stock === 0 || p.stock === "0";
+           return (
+            <div
+             key={p.id}
+             className="product-card"
+             style={{
+              padding: "1.5rem 1rem",
+              position: "relative",
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "space-between",
+              height: "100%",
+             }}
+            >
+             <button
+              onClick={(e) => {
+               e.preventDefault();
+               e.stopPropagation();
+               toggleWishlist(p.id);
+              }}
+              style={{
+               position: "absolute",
+               top: "10px",
+               right: "10px",
+               background: "rgba(0, 0, 0, 0.4)",
+               border: "none",
+               borderRadius: "50%",
+               width: "32px",
+               height: "32px",
+               display: "flex",
+               alignItems: "center",
+               justifyContent: "center",
+               cursor: "pointer",
+               zIndex: 2,
+               transition: "all 0.2s ease",
+              }}
+              title="Remove from Wishlist"
+              onMouseEnter={(e) => e.currentTarget.style.transform = "scale(1.1)"}
+              onMouseLeave={(e) => e.currentTarget.style.transform = "scale(1)"}
+             >
+              <svg
+               xmlns="http://www.w3.org/2000/svg"
+               width="14"
+               height="14"
+               viewBox="0 0 24 24"
+               fill="none"
+               stroke="var(--color-gold)"
+               strokeWidth="2"
+               strokeLinecap="round"
+               strokeLinejoin="round"
+              >
+               <line x1="18" y1="6" x2="6" y2="18"></line>
+               <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+             </button>
+
+             <Link to={`/product/${p.id}`} style={{ textDecoration: "none", color: "inherit" }}>
+              <div
+               className="product-image-wrapper"
+               style={{
+                height: "140px",
+                aspectRatio: "auto",
+                marginBottom: "1rem",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+               }}
+              >
+               <img
+                src={p.image}
+                alt={p.title}
+                style={{ maxHeight: "110px", objectFit: "contain" }}
+               />
+              </div>
+              <div className="product-info" style={{ textAlign: "center" }}>
+               <h4
+                style={{
+                 fontSize: "1rem",
+                 color: "var(--color-white)",
+                 fontWeight: 500,
+                 marginBottom: "0.2rem",
+                 whiteSpace: "nowrap",
+                 overflow: "hidden",
+                 textOverflow: "ellipsis",
+                }}
+                title={p.title}
+               >
+                {p.title}
+               </h4>
+               {p.flavor && (
+                <p
+                 style={{
+                  fontSize: "0.68rem",
+                  color: "var(--color-muted)",
+                  textTransform: "uppercase",
+                  marginBottom: "0.5rem",
+                 }}
+                >
+                 {p.flavor}
+                </p>
+               )}
+               <span style={{ fontSize: "0.88rem", color: "var(--color-gold)", display: "block", marginBottom: "0.8rem" }}>
+                Rs. {displayPrice}
+               </span>
+              </div>
+             </Link>
+
+             <button
+              className="btn btn-outline"
+              onClick={() => addToCart(p, 1)}
+              disabled={isOutOfStock}
+              style={{
+               width: "100%",
+               height: "32px",
+               fontSize: "0.65rem",
+               padding: 0,
+               marginTop: "auto",
+               opacity: isOutOfStock ? 0.45 : 1,
+               cursor: isOutOfStock ? "not-allowed" : "pointer",
+              }}
+             >
+              {isOutOfStock ? "Out of Stock" : "Add to Bag"}
+             </button>
+            </div>
+           );
+          })}
+         </div>
+        )}
        </div>
-      </div>
-     )}
+      )}
 
      {activeTab === "addresses" && (
       <div

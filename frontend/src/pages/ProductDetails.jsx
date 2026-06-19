@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { CartContext } from '../App.jsx';
+import { CartContext, AuthContext } from '../App.jsx';
 import useSEO from '../hooks/useSEO.js';
 import { apiUrl } from '../config/api.js';
 import ProductCard from '../components/ProductCard.jsx';
@@ -20,7 +20,7 @@ function toArray(value, fallback = []) {
   if (Array.isArray(parsed)) return parsed;
   if (typeof parsed === 'string') {
     return parsed
-      .split(/[\n,]/)
+      .split(',')
       .map((item) => item.trim())
       .filter(Boolean);
   }
@@ -54,7 +54,7 @@ function normalizeProduct(product) {
   const ingredients = ingredientsList.length > 0 ? ingredientsList.map((item) =>
     typeof item === 'string' ? { name: item, img: 'images/ingredient_makhana.png' } : item
   ) : [
-    { name: product.name || "Gourmet Delicacy", img: product.image || "images/ingredient_makhana.png" }
+    { name: product.title || "Ingredients", img: product.image || "images/ingredient_makhana.png" }
   ];
 
   const variants = toArray(product.variants, [])
@@ -135,6 +135,7 @@ function normalizeProduct(product) {
 export default function ProductDetails() {
   const { id } = useParams();
   const { addToCart } = useContext(CartContext);
+  const { wishlist, toggleWishlist } = useContext(AuthContext);
 
   const [products, setProducts] = useState([]);
   const [product, setProduct] = useState(null);
@@ -207,6 +208,7 @@ export default function ProductDetails() {
   const displayMrp = selectedVariant ? toNumber(selectedVariant.mrp, displayPrice) : toNumber(product?.mrp, displayPrice);
   const displayStock = selectedVariant ? toNumber(selectedVariant.stock, product?.stock) : toNumber(product?.stock, 0);
   const isOutOfStock = displayStock <= 0;
+  const isWishlisted = Array.isArray(wishlist) && wishlist.includes(product?.id);
 
   // SEO dynamic meta tags
   useSEO({
@@ -440,6 +442,28 @@ export default function ProductDetails() {
               style={{ flex: 1, height: '48px', padding: 0, opacity: isOutOfStock ? 0.55 : 1, cursor: isOutOfStock ? 'not-allowed' : 'pointer' }}
             >
               {isOutOfStock ? 'Out of Stock' : 'Add to Bag'}
+            </button>
+            <button 
+              className="btn-wishlist"
+              onClick={() => toggleWishlist(product.id)}
+              style={{
+                width: '48px',
+                height: '48px',
+                background: 'transparent',
+                border: '1px solid rgba(201,168,76,0.3)',
+                borderRadius: '2px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: isWishlisted ? 'var(--color-gold)' : 'var(--color-muted)',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+              }}
+              title={isWishlisted ? "Remove from Wishlist" : "Add to Wishlist"}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill={isWishlisted ? "var(--color-gold)" : "none"} stroke="var(--color-gold)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="feather feather-heart">
+                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+              </svg>
             </button>
           </div>
 

@@ -9,7 +9,7 @@ function toNumber(value, fallback = 0) {
 
 export default function ProductCard({ product }) {
   const { addToCart } = useContext(CartContext);
-  const { wishlist, toggleWishlist } = useContext(AuthContext);
+  const { wishlist, toggleWishlist, reviewsSummary } = useContext(AuthContext);
   const variants = Array.isArray(product.variants) ? product.variants : [];
   const totalStock =
     product.stock !== undefined
@@ -24,6 +24,11 @@ export default function ProductCard({ product }) {
   const productPath = `/product/${encodeURIComponent(product.slug || product.id)}`;
 
   const isWishlisted = Array.isArray(wishlist) && wishlist.includes(product.id);
+
+  // Ratings calculation matching ProductDetails fallback values
+  const summary = (reviewsSummary && (reviewsSummary[product.id] || reviewsSummary[product.slug] || reviewsSummary[product.title])) || { average: 4.9, total: 124 };
+  const average = summary.average;
+  const total = summary.total;
 
   const handleQuickAdd = (e) => {
     e.preventDefault();
@@ -88,8 +93,46 @@ export default function ProductCard({ product }) {
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-plus"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
           </button>
         </div>
-        <div className="product-info">
-          <h3 className="product-name">{product.title}</h3>
+        <div className="product-info" style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <h3 className="product-name" style={{ marginBottom: '0.4rem', textAlign: 'center' }}>{product.title}</h3>
+          
+          {/* Rating stars and reviews count row */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', marginBottom: '0.6rem', fontSize: '0.78rem', color: 'var(--color-muted)' }}>
+            <div style={{ display: 'flex', gap: '0.1rem' }}>
+              {[1, 2, 3, 4, 5].map((star) => {
+                const isFull = star <= Math.floor(average);
+                const isHalf = !isFull && star === Math.ceil(average) && average % 1 !== 0;
+                
+                let fillVal = "none";
+                if (isFull) fillVal = "var(--color-gold)";
+                else if (isHalf) fillVal = `url(#half-star-${product.id})`;
+                
+                return (
+                  <svg key={star} xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill={fillVal} stroke="var(--color-gold)" strokeWidth="2">
+                    {isHalf && (
+                      <defs>
+                        <linearGradient id={`half-star-${product.id}`}>
+                          <stop offset="50%" stopColor="var(--color-gold)" />
+                          <stop offset="50%" stopColor="transparent" stopOpacity="1" />
+                        </linearGradient>
+                      </defs>
+                    )}
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                  </svg>
+                );
+              })}
+            </div>
+            <span style={{ color: 'var(--color-white)', fontWeight: 600 }}>{average}</span>
+            <span style={{ color: 'rgba(255,255,255,0.15)' }}>|</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-user" style={{ opacity: 0.6 }}>
+                <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+                <circle cx="12" cy="7" r="4" />
+              </svg>
+              <span>{total} reviews</span>
+            </div>
+          </div>
+
           <span className="product-price">Rs. {displayPrice}</span>
         </div>
       </Link>

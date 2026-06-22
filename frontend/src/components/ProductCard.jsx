@@ -96,8 +96,10 @@ export default function ProductCard({ product }) {
         <div className="product-info" style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <h3 className="product-name" style={{ marginBottom: '0.4rem', textAlign: 'center' }}>{product.title}</h3>
           
+          <span className="product-price" style={{ marginBottom: '0.4rem' }}>Rs. {displayPrice}</span>
+
           {/* Rating stars and reviews count row */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', marginBottom: '0.6rem', fontSize: '0.78rem', color: 'var(--color-muted)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', fontSize: '0.78rem', color: 'var(--color-muted)' }}>
             <div style={{ display: 'flex', gap: '0.1rem' }}>
               {[1, 2, 3, 4, 5].map((star) => {
                 const isFull = star <= Math.floor(average);
@@ -132,8 +134,6 @@ export default function ProductCard({ product }) {
               <span>{total} reviews</span>
             </div>
           </div>
-
-          <span className="product-price">Rs. {displayPrice}</span>
         </div>
       </Link>
     </div>

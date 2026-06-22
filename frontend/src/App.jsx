@@ -242,6 +242,41 @@ export default function App() {
     });
   }, [user]);
 
+  const [reviewsSummary, setReviewsSummary] = useState({});
+
+  useEffect(() => {
+   fetch(apiUrl('/api/reviews?status=approved'))
+    .then((res) => {
+     if (!res.ok) throw new Error("Failed to load reviews");
+     return res.json();
+    })
+    .then((data) => {
+     const summaryMap = {};
+     const list = Array.isArray(data) ? data : [];
+     list.forEach((review) => {
+      const prodId = review.productId || review.product_id;
+      if (!prodId) return;
+      if (!summaryMap[prodId]) {
+       summaryMap[prodId] = { totalRating: 0, count: 0 };
+      }
+      summaryMap[prodId].totalRating += Number(review.rating) || 0;
+      summaryMap[prodId].count += 1;
+     });
+
+     const finalized = {};
+     Object.keys(summaryMap).forEach((prodId) => {
+      finalized[prodId] = {
+       average: Number((summaryMap[prodId].totalRating / summaryMap[prodId].count).toFixed(1)),
+       total: summaryMap[prodId].count,
+      };
+     });
+     setReviewsSummary(finalized);
+    })
+    .catch((err) => {
+     console.error("Reviews load error:", err);
+    });
+  }, []);
+
   const toggleWishlist = async (productId) => {
    if (!user) {
     alert("Please log in to manage your wishlist.");
@@ -365,7 +400,7 @@ export default function App() {
     applyGlobalStyles,
    }}
   >
-   <AuthContext.Provider value={{ user, login, logout, wishlist, toggleWishlist }}>
+   <AuthContext.Provider value={{ user, login, logout, wishlist, toggleWishlist, reviewsSummary }}>
     <CartContext.Provider
      value={{
       cart,

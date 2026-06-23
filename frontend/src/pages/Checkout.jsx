@@ -172,6 +172,35 @@ export default function Checkout() {
    return;
   }
 
+  // Programmatic validation of required address and contact fields
+  const name = (formData.name || "").trim();
+  const phone = (formData.phone || "").trim();
+  const email = (formData.email || "").trim();
+  const address = (formData.address || "").trim();
+  const city = (formData.city || "").trim();
+  const state = (formData.state || "").trim();
+  const pincode = (formData.pincode || "").trim();
+
+  if (!name || !phone || !email || !address || !city || !state || !pincode) {
+   alert("Please fill in all required delivery details (Name, Phone, Email, Street Address, City, State, and Pincode).");
+   return;
+  }
+
+  if (!/^\d{10}$/.test(phone)) {
+   alert("Please enter a valid 10-digit phone number.");
+   return;
+  }
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+   alert("Please enter a valid email address.");
+   return;
+  }
+
+  if (!/^\d{6}$/.test(pincode)) {
+   alert("Please enter a valid 6-digit PIN code.");
+   return;
+  }
+
   if (!agreed) {
    alert(
     "You must agree to our Terms & Conditions and Privacy Policy to place an order.",
@@ -226,6 +255,16 @@ export default function Checkout() {
    tax: tax,
    cod_fee: codFee,
    total: totalAmount,
+   shipping_address: {
+    fullName: formData.name,
+    phone: formData.phone,
+    street: formData.address,
+    apartment: formData.apartment,
+    city: formData.city,
+    state: formData.state,
+    pincode: formData.pincode,
+    country: "India",
+   },
    items: cart.map((item) => ({
     id: item.id,
     cart_key: item.cartKey || `${item.id}::${item.weight || ''}`,

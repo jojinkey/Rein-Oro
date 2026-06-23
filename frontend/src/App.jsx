@@ -215,12 +215,90 @@ export default function App() {
   setUser({ email, role: normalizedRole });
  };
 
- const logout = () => {
-  localStorage.removeItem("rein_oro_user_logged_in");
-  localStorage.removeItem("rein_oro_user_email");
-  localStorage.removeItem("rein_oro_user_role");
-  setUser(null);
- };
+  const logout = () => {
+   localStorage.removeItem("rein_oro_user_logged_in");
+   localStorage.removeItem("rein_oro_user_email");
+   localStorage.removeItem("rein_oro_user_role");
+   setUser(null);
+  };
+
+  const [wishlist, setWishlist] = useState([]);
+
+  useEffect(() => {
+   if (!user) {
+    setWishlist([]);
+    return;
+   }
+   fetch(apiUrl(`/api/users/wishlist?email=${encodeURIComponent(user.email)}`))
+    .then((res) => {
+     if (!res.ok) throw new Error("Failed to load wishlist");
+     return res.json();
+    })
+    .then((data) => {
+     setWishlist(data.wishlist || []);
+    })
+    .catch((err) => {
+     console.error("Wishlist load error:", err);
+    });
+  }, [user]);
+
+  const [reviewsSummary, setReviewsSummary] = useState({});
+
+  useEffect(() => {
+   fetch(apiUrl('/api/reviews?status=approved'))
+    .then((res) => {
+     if (!res.ok) throw new Error("Failed to load reviews");
+     return res.json();
+    })
+    .then((data) => {
+     const summaryMap = {};
+     const list = Array.isArray(data) ? data : [];
+     list.forEach((review) => {
+      const prodId = review.productId || review.product_id;
+      if (!prodId) return;
+      if (!summaryMap[prodId]) {
+       summaryMap[prodId] = { totalRating: 0, count: 0 };
+      }
+      summaryMap[prodId].totalRating += Number(review.rating) || 0;
+      summaryMap[prodId].count += 1;
+     });
+
+     const finalized = {};
+     Object.keys(summaryMap).forEach((prodId) => {
+      finalized[prodId] = {
+       average: Number((summaryMap[prodId].totalRating / summaryMap[prodId].count).toFixed(1)),
+       total: summaryMap[prodId].count,
+      };
+     });
+     setReviewsSummary(finalized);
+    })
+    .catch((err) => {
+     console.error("Reviews load error:", err);
+    });
+  }, []);
+
+  const toggleWishlist = async (productId) => {
+   if (!user) {
+    alert("Please log in to manage your wishlist.");
+    return;
+   }
+   try {
+    const res = await fetch(apiUrl("/api/users/wishlist/toggle"), {
+     method: "POST",
+     headers: {
+      "Content-Type": "application/json",
+     },
+     body: JSON.stringify({ email: user.email, productId }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+     throw new Error(data.error || "Failed to toggle wishlist");
+    }
+    setWishlist(data.wishlist || []);
+   } catch (err) {
+    alert(`Wishlist Error: ${err.message}`);
+   }
+  };
 
  // --- CMS Content & Styles State ---
  const [cmsContent, setCmsContent] = useState({});
@@ -322,7 +400,7 @@ export default function App() {
     applyGlobalStyles,
    }}
   >
-   <AuthContext.Provider value={{ user, login, logout }}>
+   <AuthContext.Provider value={{ user, login, logout, wishlist, toggleWishlist, reviewsSummary }}>
     <CartContext.Provider
      value={{
       cart,

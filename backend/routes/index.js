@@ -8,6 +8,7 @@ import paymentRoutes from "./paymentRoutes.js";
 import firestoreRoutes from "./firestoreRoutes.js";
 import crmRoutes from "./crmRoutes.js";
 import siteRoutes from "./siteRoutes.js";
+import uploadRoutes from "./uploadRoutes.js";
 import {
  getProducts,
  getProductById,
@@ -43,6 +44,7 @@ router.use(paymentRoutes);
 router.use(firestoreRoutes);
 router.use(crmRoutes);
 router.use(siteRoutes);
+router.use(uploadRoutes);
 
 router.get("/api/products", getProducts);
 router.get("/api/products/:id", getProductById);

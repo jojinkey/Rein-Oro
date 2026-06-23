@@ -4,11 +4,32 @@ import { AuthContext, CartContext } from "../App.jsx";
 import { apiUrl } from "../config/api.js";
 
 export default function Dashboard() {
- const { user, logout } = useContext(AuthContext);
+ const { user, logout, wishlist, toggleWishlist } = useContext(AuthContext);
  const { addToCart } = useContext(CartContext);
  const navigate = useNavigate();
 
  const [activeTab, setActiveTab] = useState("dashboard");
+ const [wishlistedProducts, setWishlistedProducts] = useState([]);
+ const [wishlistLoading, setWishlistLoading] = useState(false);
+
+ useEffect(() => {
+  if (!user || activeTab !== "wishlist") return;
+  setWishlistLoading(true);
+  fetch(apiUrl(`/api/users/wishlist?email=${encodeURIComponent(user.email)}`))
+   .then((res) => {
+    if (!res.ok) throw new Error("Failed to load wishlist details");
+    return res.json();
+   })
+   .then((data) => {
+    setWishlistedProducts(data.products || []);
+   })
+   .catch((err) => {
+    console.error("Wishlist load error:", err);
+   })
+   .finally(() => {
+    setWishlistLoading(false);
+   });
+ }, [user, activeTab, wishlist]);
  const [orders, setOrders] = useState([]);
  const [recProducts, setRecProducts] = useState([]);
  const [recIndex, setRecIndex] = useState(0);
@@ -20,6 +41,7 @@ export default function Dashboard() {
   fullName: "",
   street: "",
   city: "",
+  state: "",
   pincode: "",
   country: "India",
  });
@@ -77,7 +99,7 @@ export default function Dashboard() {
    });
  }, [user]);
 
- // Auto-fill City via India Post Pincode API
+ // Auto-fill City & State via India Post Pincode API
  useEffect(() => {
   const pincode = addressForm.pincode.trim();
   if (pincode.length === 6 && /^\d+$/.test(pincode)) {
@@ -90,6 +112,7 @@ export default function Dashboard() {
        setAddressForm((prev) => ({
         ...prev,
         city: postOffice.District || postOffice.Block || prev.city,
+        state: postOffice.State || prev.state,
        }));
       }
      }
@@ -103,6 +126,7 @@ export default function Dashboard() {
    fullName: "",
    street: "",
    city: "",
+   state: "",
    pincode: "",
    country: "India",
   });
@@ -115,6 +139,7 @@ export default function Dashboard() {
    fullName: addr.fullName || "",
    street: addr.street || "",
    city: addr.city || "",
+   state: addr.state || "",
    pincode: addr.pincode || "",
    country: addr.country || "India",
   });
@@ -128,6 +153,7 @@ export default function Dashboard() {
    !addressForm.fullName.trim() ||
    !addressForm.street.trim() ||
    !addressForm.city.trim() ||
+   !addressForm.state.trim() ||
    !addressForm.pincode.trim() ||
    !addressForm.country.trim()
   ) {
@@ -191,7 +217,10 @@ export default function Dashboard() {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ status: "Cancelled" }),
    });
-   if (!res.ok) throw new Error("Order cancellation failed");
+   if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || "Order cancellation failed");
+   }
    alert("Your order has been cancelled.");
    setOrders((prev) =>
     prev.map((o) => (o.id === orderToCancel ? { ...o, status: "Cancelled" } : o))
@@ -272,6 +301,24 @@ export default function Dashboard() {
   }));
  };
 
+ const isOrderCancelable = (order) => {
+  if (order.status === "Delivered" || order.status === "Cancelled") {
+   return false;
+  }
+  let creationTime = null;
+  if (order.created_at) {
+   creationTime = new Date(order.created_at).getTime();
+  } else if (order.date) {
+   const cleanDate = order.date.replace(" at ", " ");
+   creationTime = Date.parse(cleanDate);
+  }
+  if (!creationTime || isNaN(creationTime)) {
+   return true; // Fallback if no valid date found
+  }
+  const sixHoursInMs = 6 * 60 * 60 * 1000;
+  return (Date.now() - creationTime) <= sixHoursInMs;
+ };
+
  return (
   <main className="cart-page-main">
    <div className="dashboard-page-container">
@@ -346,7 +393,7 @@ export default function Dashboard() {
       {[
        { id: "dashboard", label: "Dashboard Hub" },
        { id: "orders", label: "Order History" },
-       { id: "rewards", label: "Royal Rewards" },
+       { id: "wishlist", label: "Wishlist Items" },
        { id: "addresses", label: "Saved Addresses" },
       ].map((tab) => (
        <li key={tab.id}>
@@ -409,7 +456,7 @@ export default function Dashboard() {
      {activeTab === "dashboard" && (
       <div style={{ display: "flex", flexDirection: "column", gap: "2.5rem" }}>
        {/* Summary Cards */}
-       <div className="dashboard-summary-grid">
+       <div className="dashboard-summary-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}>
         <div className="summary-metric-card" style={{ textAlign: "center" }}>
          <span
           style={{
@@ -441,28 +488,6 @@ export default function Dashboard() {
            letterSpacing: "0.05em",
           }}
          >
-          Rewards points
-         </span>
-         <h4
-          style={{
-           fontSize: "1.8rem",
-           color: "var(--color-gold)",
-           fontWeight: 600,
-           marginTop: "0.3rem",
-          }}
-         >
-          320 pts
-         </h4>
-        </div>
-        <div className="summary-metric-card" style={{ textAlign: "center" }}>
-         <span
-          style={{
-           fontSize: "0.68rem",
-           color: "var(--color-muted)",
-           textTransform: "uppercase",
-           letterSpacing: "0.05em",
-          }}
-         >
           Wishlist items
          </span>
          <h4
@@ -473,7 +498,7 @@ export default function Dashboard() {
            marginTop: "0.3rem",
           }}
          >
-          2
+          {wishlist?.length || 0}
          </h4>
         </div>
         <div className="summary-metric-card" style={{ textAlign: "center" }}>
@@ -942,21 +967,28 @@ export default function Dashboard() {
              {order.status !== "Delivered" && order.status !== "Cancelled" && (
               <button
                className="btn btn-outline"
+               disabled={!isOrderCancelable(order)}
                onClick={() => setOrderToCancel(order.id)}
                style={{
                 height: "30px",
                 padding: "0 1rem",
                 fontSize: "0.72rem",
-                borderColor: "rgba(255,80,80,0.3)",
-                color: "#ff5050",
+                borderColor: isOrderCancelable(order) ? "rgba(255,80,80,0.3)" : "rgba(255,255,255,0.05)",
+                color: isOrderCancelable(order) ? "#ff5050" : "var(--color-muted)",
+                cursor: isOrderCancelable(order) ? "pointer" : "not-allowed",
+                opacity: isOrderCancelable(order) ? 1 : 0.5,
                }}
                onMouseEnter={(e) => {
-                 e.currentTarget.style.backgroundColor = "rgba(255,80,80,0.1)";
-                 e.currentTarget.style.borderColor = "#ff5050";
+                 if (isOrderCancelable(order)) {
+                   e.currentTarget.style.backgroundColor = "rgba(255,80,80,0.1)";
+                   e.currentTarget.style.borderColor = "#ff5050";
+                 }
                }}
                onMouseLeave={(e) => {
-                 e.currentTarget.style.backgroundColor = "transparent";
-                 e.currentTarget.style.borderColor = "rgba(255,80,80,0.3)";
+                 if (isOrderCancelable(order)) {
+                   e.currentTarget.style.backgroundColor = "transparent";
+                   e.currentTarget.style.borderColor = "rgba(255,80,80,0.3)";
+                 }
                }}
               >
                CANCEL ORDER
@@ -971,82 +1003,174 @@ export default function Dashboard() {
       </div>
      )}
 
-     {activeTab === "rewards" && (
-      <div
-       style={{
-        border: "1px solid rgba(201,168,76,0.15)",
-        borderRadius: "8px",
-        padding: "3rem",
-        backgroundColor: "rgba(201,168,76,0.02)",
-        textAlign: "center",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        gap: "1.2rem",
-       }}
-      >
+      {activeTab === "wishlist" && (
        <div
         style={{
-         width: "64px",
-         height: "64px",
-         borderRadius: "50%",
-         border: "2px solid var(--color-gold)",
-         display: "flex",
-         alignItems: "center",
-         justifyContent: "center",
-         color: "var(--color-gold)",
-         fontSize: "1.8rem",
+         border: "1px solid rgba(255,255,255,0.04)",
+         borderRadius: "8px",
+         padding: "2rem",
+         backgroundColor: "rgba(15,15,15,0.4)",
         }}
        >
-        👑
-       </div>
-       <h2
-        style={{
-         fontFamily: "var(--font-heading)",
-         fontSize: "1.8rem",
-         fontWeight: 300,
-         color: "var(--color-white)",
-        }}
-       >
-        Royal Rewards Club
-       </h2>
-       <p
-        style={{
-         fontSize: "0.9rem",
-         color: "var(--color-muted)",
-         maxWidth: "500px",
-         lineHeight: 1.6,
-        }}
-       >
-        You have accumulated{" "}
-        <strong style={{ color: "var(--color-gold)" }}>320 Royal Points</strong>
-        . Earn 10 points for every ₹100 spent on gourmet delicacies. Redeem
-        points at checkout for complimentary gift hampers and custom tastings.
-       </p>
-       <div style={{ display: "flex", gap: "1rem", marginTop: "1rem" }}>
-        <button
-         className="btn btn-primary"
-         onClick={() => alert("Reward catalog selection is simulated.")}
-         style={{ height: "40px", padding: "0 1.5rem" }}
-        >
-         Redeem points
-        </button>
-        <Link
-         to="/shop"
-         className="btn btn-outline"
+        <h2
          style={{
-          height: "40px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          padding: "0 1.5rem",
+          fontFamily: "var(--font-heading)",
+          fontSize: "1.8rem",
+          fontWeight: 300,
+          color: "var(--color-white)",
+          marginBottom: "2rem",
          }}
         >
-         Earn more
-        </Link>
+         Your Wishlist Items
+        </h2>
+        {wishlistLoading ? (
+         <p style={{ color: "var(--color-muted)", fontSize: "0.85rem" }}>
+          Loading your wishlist...
+         </p>
+        ) : wishlistedProducts.length === 0 ? (
+         <p style={{ color: "var(--color-muted)", fontSize: "0.85rem", lineHeight: "1.6" }}>
+          Your wishlist is currently empty. Explore our gourmet collection to add your favorites.
+         </p>
+        ) : (
+         <div
+          style={{
+           display: "grid",
+           gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
+           gap: "1.5rem",
+          }}
+         >
+          {wishlistedProducts.map((p) => {
+           const displayPrice = p.price;
+           const isOutOfStock = p.stock === 0 || p.stock === "0";
+           return (
+            <div
+             key={p.id}
+             className="product-card"
+             style={{
+              padding: "1.5rem 1rem",
+              position: "relative",
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "space-between",
+              height: "100%",
+             }}
+            >
+             <button
+              onClick={(e) => {
+               e.preventDefault();
+               e.stopPropagation();
+               toggleWishlist(p.id);
+              }}
+              style={{
+               position: "absolute",
+               top: "10px",
+               right: "10px",
+               background: "rgba(0, 0, 0, 0.4)",
+               border: "none",
+               borderRadius: "50%",
+               width: "32px",
+               height: "32px",
+               display: "flex",
+               alignItems: "center",
+               justifyContent: "center",
+               cursor: "pointer",
+               zIndex: 2,
+               transition: "all 0.2s ease",
+              }}
+              title="Remove from Wishlist"
+              onMouseEnter={(e) => e.currentTarget.style.transform = "scale(1.1)"}
+              onMouseLeave={(e) => e.currentTarget.style.transform = "scale(1)"}
+             >
+              <svg
+               xmlns="http://www.w3.org/2000/svg"
+               width="14"
+               height="14"
+               viewBox="0 0 24 24"
+               fill="none"
+               stroke="var(--color-gold)"
+               strokeWidth="2"
+               strokeLinecap="round"
+               strokeLinejoin="round"
+              >
+               <line x1="18" y1="6" x2="6" y2="18"></line>
+               <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+             </button>
+
+             <Link to={`/product/${p.id}`} style={{ textDecoration: "none", color: "inherit" }}>
+              <div
+               className="product-image-wrapper"
+               style={{
+                height: "140px",
+                aspectRatio: "auto",
+                marginBottom: "1rem",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+               }}
+              >
+               <img
+                src={p.image}
+                alt={p.title}
+                style={{ maxHeight: "110px", objectFit: "contain" }}
+               />
+              </div>
+              <div className="product-info" style={{ textAlign: "center" }}>
+               <h4
+                style={{
+                 fontSize: "1rem",
+                 color: "var(--color-white)",
+                 fontWeight: 500,
+                 marginBottom: "0.2rem",
+                 whiteSpace: "nowrap",
+                 overflow: "hidden",
+                 textOverflow: "ellipsis",
+                }}
+                title={p.title}
+               >
+                {p.title}
+               </h4>
+               {p.flavor && (
+                <p
+                 style={{
+                  fontSize: "0.68rem",
+                  color: "var(--color-muted)",
+                  textTransform: "uppercase",
+                  marginBottom: "0.5rem",
+                 }}
+                >
+                 {p.flavor}
+                </p>
+               )}
+               <span style={{ fontSize: "0.88rem", color: "var(--color-gold)", display: "block", marginBottom: "0.8rem" }}>
+                Rs. {displayPrice}
+               </span>
+              </div>
+             </Link>
+
+             <button
+              className="btn btn-outline"
+              onClick={() => addToCart(p, 1)}
+              disabled={isOutOfStock}
+              style={{
+               width: "100%",
+               height: "32px",
+               fontSize: "0.65rem",
+               padding: 0,
+               marginTop: "auto",
+               opacity: isOutOfStock ? 0.45 : 1,
+               cursor: isOutOfStock ? "not-allowed" : "pointer",
+              }}
+             >
+              {isOutOfStock ? "Out of Stock" : "Add to Bag"}
+             </button>
+            </div>
+           );
+          })}
+         </div>
+        )}
        </div>
-      </div>
-     )}
+      )}
 
      {activeTab === "addresses" && (
       <div
@@ -1194,21 +1318,43 @@ export default function Dashboard() {
           </div>
          </div>
 
-         <div className="contact-form-group">
-          <label htmlFor="country" className="contact-form-label">
-           Country
-          </label>
-          <input
-           type="text"
-           id="country"
-           className="contact-form-input"
-           placeholder="Country"
-           required
-           value={addressForm.country}
-           onChange={(e) =>
-            setAddressForm({ ...addressForm, country: e.target.value })
-           }
-          />
+         <div
+          className="checkout-form-row"
+          style={{ display: "flex", gap: "1rem" }}
+         >
+          <div className="contact-form-group" style={{ flex: 1 }}>
+           <label htmlFor="state" className="contact-form-label">
+            State / Region
+           </label>
+           <input
+            type="text"
+            id="state"
+            className="contact-form-input"
+            placeholder="State"
+            required
+            value={addressForm.state || ""}
+            onChange={(e) =>
+             setAddressForm({ ...addressForm, state: e.target.value })
+            }
+           />
+          </div>
+
+          <div className="contact-form-group" style={{ flex: 1 }}>
+           <label htmlFor="country" className="contact-form-label">
+            Country
+           </label>
+           <input
+            type="text"
+            id="country"
+            className="contact-form-input"
+            placeholder="Country"
+            required
+            value={addressForm.country}
+            onChange={(e) =>
+             setAddressForm({ ...addressForm, country: e.target.value })
+            }
+           />
+          </div>
          </div>
 
          <div style={{ display: "flex", gap: "1rem", marginTop: "1rem" }}>
@@ -1311,7 +1457,7 @@ export default function Dashboard() {
               >
                {addr.street}
                <br />
-               {addr.city} - {addr.pincode}
+               {addr.city}{addr.state ? `, ${addr.state}` : ""} - {addr.pincode}
                <br />
                {addr.country}
               </p>

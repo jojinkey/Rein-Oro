@@ -112,3 +112,52 @@ export async function updateUserAddresses(req, res) {
   res.status(500).json({ error: err.message });
  }
 }
+
+export async function getUserWishlist(req, res) {
+  const { email } = req.query;
+  if (!email) {
+    return res.status(400).json({ error: "Email parameter is required" });
+  }
+  try {
+    const list = await queryFirestoreCollection("wishlisted_items", {
+      where: [["email", "==", email.trim().toLowerCase()]],
+    });
+    const wishlistIds = list.map((item) => item.productId);
+    const allProducts = await queryFirestoreCollection("products");
+    const products = allProducts.filter((p) => wishlistIds.includes(p.id));
+    res.json({ wishlist: wishlistIds, products });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+}
+
+export async function toggleUserWishlist(req, res) {
+  const { email, productId } = req.body;
+  if (!email || !productId) {
+    return res.status(400).json({ error: "Email and productId are required" });
+  }
+  const cleanEmail = email.trim().toLowerCase();
+  const docId = `${cleanEmail.replace(/[^a-zA-Z0-9]/g, "_")}_${productId}`;
+  try {
+    const existing = await getFirestoreDocument("wishlisted_items", docId);
+    if (existing) {
+      await deleteFromFirestore("wishlisted_items", docId);
+    } else {
+      await mirrorToFirestore("wishlisted_items", docId, {
+        email: cleanEmail,
+        productId,
+        created_at: new Date().toISOString(),
+      });
+    }
+
+    const list = await queryFirestoreCollection("wishlisted_items", {
+      where: [["email", "==", cleanEmail]],
+    });
+    const wishlistIds = list.map((item) => item.productId);
+    const allProducts = await queryFirestoreCollection("products");
+    const products = allProducts.filter((p) => wishlistIds.includes(p.id));
+    res.json({ success: true, wishlist: wishlistIds, products });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+}

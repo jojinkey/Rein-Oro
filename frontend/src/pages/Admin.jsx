@@ -2029,7 +2029,6 @@ export default function Admin() {
 
       <button className="admin-dash-bell-btn">
        <IconBell />
-       <span className="admin-dash-bell-badge">5</span>
       </button>
 
       <div className="admin-dash-profile">
@@ -2758,71 +2757,108 @@ export default function Admin() {
 
        <div style={{ overflowX: "auto" }}>
         <table className="admin-dash-table">
-         <thead>
-          <tr>
-           <th>Thumbnail</th>
-           <th>Title</th>
-           <th>Flavor</th>
-           <th>Price</th>
-           <th>Weight</th>
-           <th style={{ textAlign: "right" }}>Actions</th>
-          </tr>
-         </thead>
-         <tbody>
-          {products.map((p) => (
-           <tr key={p.id}>
-            <td>
-             <div
-              style={{
-               width: "40px",
-               height: "40px",
-               backgroundColor: "rgba(255,255,255,0.02)",
-               display: "flex",
-               alignItems: "center",
-               justifyContent: "center",
-               borderRadius: "4px",
-               border: "1px solid rgba(255,255,255,0.05)",
-              }}
-             >
-              <img
-               src={p.image}
-               alt={p.title}
-               style={{
-                maxWidth: "85%",
-                maxHeight: "85%",
-                objectFit: "contain",
-               }}
-              />
-             </div>
-            </td>
-            <td className="highlight">{p.title}</td>
-            <td>{p.flavor}</td>
-            <td style={{ color: "var(--color-gold)", fontWeight: 600 }}>
-             ₹{p.price}
-            </td>
-            <td>{p.weight}</td>
-            <td style={{ textAlign: "right" }}>
-             <div className="admin-dash-action-btn-row">
-              <button
-               onClick={() => handleOpenProductModal("edit", p)}
-               className="admin-dash-action-btn"
-               title="Edit Product"
-              >
-               <IconEdit />
-              </button>
-              <button
-               onClick={() => handleDeleteProduct(p.id)}
-               className="admin-dash-action-btn delete"
-               title="Delete Product"
-              >
-               <IconDelete />
-              </button>
-             </div>
-            </td>
+          <thead>
+           <tr>
+            <th>Thumbnail</th>
+            <th>Title</th>
+            <th>Flavor</th>
+            <th>Weight</th>
+            <th>Price</th>
+            <th>Stock</th>
+            <th style={{ textAlign: "right" }}>Actions</th>
            </tr>
-          ))}
-         </tbody>
-        </table>
+          </thead>
+          <tbody>
+           {products.map((p) => {
+            const variants = Array.isArray(p.variants) && p.variants.length > 0
+              ? p.variants 
+              : [{ weight: p.weight || '100g', price: p.price, stock: p.stock || 0 }];
+            return (
+             <tr key={p.id}>
+              <td>
+               <div
+                style={{
+                 width: "40px",
+                 height: "40px",
+                 backgroundColor: "rgba(255,255,255,0.02)",
+                 display: "flex",
+                 alignItems: "center",
+                 justifyContent: "center",
+                 borderRadius: "4px",
+                 border: "1px solid rgba(255,255,255,0.05)",
+                }}
+               >
+                <img
+                 src={p.image}
+                 alt={p.title}
+                 style={{
+                  maxWidth: "85%",
+                  maxHeight: "85%",
+                  objectFit: "contain",
+                 }}
+                />
+               </div>
+              </td>
+              <td className="highlight">{p.title}</td>
+              <td>{p.flavor}</td>
+              <td>
+               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                {variants.map((v, idx) => (
+                 <div key={idx} style={{ fontSize: '0.82rem' }}>
+                  {v.weight}
+                 </div>
+                ))}
+               </div>
+              </td>
+              <td>
+               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                {variants.map((v, idx) => (
+                 <div key={idx} style={{ color: "var(--color-gold)", fontWeight: 600, fontSize: '0.82rem' }}>
+                  ₹{v.price ?? v.sale_price}
+                 </div>
+                ))}
+               </div>
+              </td>
+              <td>
+               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                {variants.map((v, idx) => {
+                 const stockVal = Number(v.stock) || 0;
+                 const isOutOfStock = stockVal === 0;
+                 return (
+                  <div key={idx} style={{ 
+                   color: isOutOfStock ? "#ff6b6b" : "var(--color-white)", 
+                   fontSize: '0.82rem',
+                   fontWeight: isOutOfStock ? 600 : 400
+                  }}>
+                   {stockVal} pcs
+                  </div>
+                 );
+                })}
+               </div>
+              </td>
+              <td style={{ textAlign: "right" }}>
+               <div className="admin-dash-action-btn-row">
+                <button
+                 onClick={() => handleOpenProductModal("edit", p)}
+                 className="admin-dash-action-btn"
+                 title="Edit Product"
+                >
+                 <IconEdit />
+                </button>
+                <button
+                 onClick={() => handleDeleteProduct(p.id)}
+                 className="admin-dash-action-btn delete"
+                 title="Delete Product"
+                >
+                 <IconDelete />
+                </button>
+               </div>
+              </td>
+             </tr>
+            );
+           })}
+          </tbody>
+         </table>
        </div>
       </div>
      )}

@@ -60,7 +60,7 @@ export default function Login() {
      ? `Welcome back, ${userEmail}!`
      : "Account registered successfully! Logging you in...",
    );
-   login(userEmail, role);
+    login(userEmail, role, resData.token || "");
    navigate(getPostLoginPath(role), { replace: true });
   } catch (err) {
    alert(err.message);

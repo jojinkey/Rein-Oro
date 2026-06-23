@@ -196,31 +196,36 @@ export default function App() {
  const cartCount = cart.reduce((sum, item) => sum + item.qty, 0);
 
  // --- Auth State ---
- const [user, setUser] = useState(() => {
-  const logged = localStorage.getItem("rein_oro_user_logged_in") === "true";
-  const email = localStorage.getItem("rein_oro_user_email");
-  const role = String(localStorage.getItem("rein_oro_user_role") || "user")
-   .trim()
-   .toLowerCase();
-  return logged ? { email, role } : null;
- });
+  const [user, setUser] = useState(() => {
+   const logged = localStorage.getItem("rein_oro_user_logged_in") === "true";
+   const email = localStorage.getItem("rein_oro_user_email");
+   const token = localStorage.getItem("rein_oro_auth_token") || "";
+   const role = String(localStorage.getItem("rein_oro_user_role") || "user")
+    .trim()
+    .toLowerCase();
+   return logged ? { email, role, token } : null;
+  });
 
- const login = (email, role = "user") => {
-  const normalizedRole = String(role || "user")
-   .trim()
-   .toLowerCase();
-  localStorage.setItem("rein_oro_user_logged_in", "true");
-  localStorage.setItem("rein_oro_user_email", email);
-  localStorage.setItem("rein_oro_user_role", normalizedRole);
-  setUser({ email, role: normalizedRole });
- };
-
-  const logout = () => {
-   localStorage.removeItem("rein_oro_user_logged_in");
-   localStorage.removeItem("rein_oro_user_email");
-   localStorage.removeItem("rein_oro_user_role");
-   setUser(null);
+  const login = (email, role = "user", token = "") => {
+   const normalizedRole = String(role || "user")
+    .trim()
+    .toLowerCase();
+   localStorage.setItem("rein_oro_user_logged_in", "true");
+   localStorage.setItem("rein_oro_user_email", email);
+   localStorage.setItem("rein_oro_user_role", normalizedRole);
+   if (token) {
+    localStorage.setItem("rein_oro_auth_token", token);
+   }
+   setUser({ email, role: normalizedRole, token });
   };
+
+   const logout = () => {
+    localStorage.removeItem("rein_oro_user_logged_in");
+    localStorage.removeItem("rein_oro_user_email");
+    localStorage.removeItem("rein_oro_user_role");
+    localStorage.removeItem("rein_oro_auth_token");
+    setUser(null);
+   };
 
   const [wishlist, setWishlist] = useState([]);
 

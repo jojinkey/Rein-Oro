@@ -1,5 +1,4 @@
 {
-  "$schema": "./.vscode/vercel.schema.json",
   "framework": "services",
   "experimentalServices": {
     "frontend": {

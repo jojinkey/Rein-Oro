@@ -3,16 +3,16 @@
   "framework": "services",
   "experimentalServices": {
     "frontend": {
-      "root": "frontend",
+      "entrypoint": "frontend",
+      "routePrefix": "/",
       "framework": "vite",
       "installCommand": "npm ci",
-      "buildCommand": "npm run build",
-      "mount": "/"
+      "buildCommand": "npm run build"
     },
     "backend": {
-      "root": "backend",
+      "entrypoint": "backend/server.js",
+      "routePrefix": "/api",
       "framework": "express",
-      "entrypoint": "app.js",
       "installCommand": "npm ci",
       "buildCommand": "npm test",
       "maxDuration": 30

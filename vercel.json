@@ -3,18 +3,11 @@
   "experimentalServices": {
     "frontend": {
       "entrypoint": "frontend",
-      "routePrefix": "/",
-      "framework": "vite",
-      "installCommand": "npm ci",
-      "buildCommand": "npm run build"
+      "routePrefix": "/"
     },
     "backend": {
       "entrypoint": "backend/server.js",
-      "routePrefix": "/api",
-      "framework": "express",
-      "installCommand": "npm ci",
-      "buildCommand": "npm test",
-      "maxDuration": 30
+      "routePrefix": "/api"
     }
   },
   "rewrites": [

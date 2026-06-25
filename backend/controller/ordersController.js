@@ -10,6 +10,28 @@ import {
  getFirestoreDocument,
 } from "../util/firestore.js";
 
+const RAZORPAY_BUSINESS_NAME = "Rein Oro Foods";
+
+function cleanRazorpayNote(value) {
+ return String(value || "")
+  .trim()
+  .slice(0, 256);
+}
+
+function buildRazorpayNotes(receipt, customer = {}) {
+ return Object.fromEntries(
+  Object.entries({
+   merchant: RAZORPAY_BUSINESS_NAME,
+   local_order_id: receipt,
+   customer_name: customer.name,
+   customer_email: customer.email,
+   customer_phone: customer.contact,
+  })
+   .map(([key, value]) => [key, cleanRazorpayNote(value)])
+   .filter(([, value]) => value),
+ );
+}
+
 export async function getOrders(req, res) {
  const { email } = req.query;
  try {
@@ -78,7 +100,7 @@ export async function createOrder(req, res) {
 }
 
 export async function createRazorpayOrder(req, res) {
- const { amount, receipt } = req.body;
+ const { amount, receipt, customer = {} } = req.body;
  if (!amount) return res.status(400).json({ error: "Amount is required" });
  try {
   const { keyId, keySecret, isConfigured } = await getRazorpayCredentials();
@@ -113,6 +135,7 @@ export async function createRazorpayOrder(req, res) {
     amount: Math.round(amount * 100),
     currency: "INR",
     receipt: receipt || `rec_${Date.now()}`,
+    notes: buildRazorpayNotes(receipt, customer),
    }),
   });
   const data = await response.json();

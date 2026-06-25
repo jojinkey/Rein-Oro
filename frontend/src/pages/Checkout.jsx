@@ -3,6 +3,21 @@ import { useNavigate, Link } from "react-router-dom";
 import { CartContext, AuthContext } from "../App.jsx";
 import { apiUrl } from "../config/api.js";
 
+const RAZORPAY_BUSINESS_NAME = "Rein Oro Foods";
+const RAZORPAY_BUSINESS_DESCRIPTION = "Rein Oro Foods Order";
+
+function formatPhoneForRazorpay(phone) {
+ const digits = String(phone || "").replace(/\D/g, "");
+ if (digits.length === 10) return `+91${digits}`;
+ if (digits.length === 12 && digits.startsWith("91")) return `+${digits}`;
+ return digits || String(phone || "").trim();
+}
+
+function getRazorpayLogoUrl() {
+ if (typeof window === "undefined") return "";
+ return `${window.location.origin}/images/logo.png`;
+}
+
 export default function Checkout() {
  const {
   cart,
@@ -201,6 +216,8 @@ export default function Checkout() {
    return;
   }
 
+  const razorpayContact = formatPhoneForRazorpay(phone);
+
   if (!agreed) {
    alert(
     "You must agree to our Terms & Conditions and Privacy Policy to place an order.",
@@ -282,7 +299,15 @@ export default function Checkout() {
     const orderRes = await fetch(apiUrl("/api/payments/razorpay/order"), {
      method: "POST",
      headers: { "Content-Type": "application/json" },
-     body: JSON.stringify({ amount: totalAmount, receipt: orderId }),
+     body: JSON.stringify({
+      amount: totalAmount,
+      receipt: orderId,
+      customer: {
+       name,
+       email,
+       contact: razorpayContact,
+      },
+     }),
     });
     const orderData = await orderRes.json();
     if (!orderRes.ok) {
@@ -302,20 +327,36 @@ export default function Checkout() {
       return;
      }
 
+     const logoUrl = getRazorpayLogoUrl();
      const options = {
       key: orderData.keyId,
       amount: orderData.amount,
       currency: "INR",
-      name: "Rein Oro Foods",
-      description: "Gourmet Order Payment",
+      name: RAZORPAY_BUSINESS_NAME,
+      description: `${RAZORPAY_BUSINESS_DESCRIPTION} ${orderPayload.id}`,
       order_id: orderData.orderId,
+      method: "upi",
       prefill: {
-       name: formData.name,
-       email: user.email,
-       contact: formData.phone,
+       name,
+       email,
+       contact: razorpayContact,
+      },
+      notes: {
+       merchant: RAZORPAY_BUSINESS_NAME,
+       local_order_id: orderPayload.id,
+       customer_email: email,
+       customer_phone: razorpayContact,
+      },
+      readonly: {
+       email: true,
+       contact: true,
       },
       theme: {
        color: "#c9a84c",
+       backdrop_color: "#050505",
+      },
+      retry: {
+       enabled: true,
       },
       handler: async function (response) {
        try {
@@ -341,11 +382,15 @@ export default function Checkout() {
        }
       },
       modal: {
+       confirm_close: true,
        ondismiss: function () {
         setIsSubmitting(false);
        },
       },
      };
+     if (logoUrl) {
+      options.image = logoUrl;
+     }
 
      const rzp = new window.Razorpay(options);
      rzp.open();

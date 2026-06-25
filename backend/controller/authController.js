@@ -37,7 +37,7 @@ async function ensureFirebaseApp() {
 }
 
 async function getAuthClient() {
- await getFirestoreDb();
+ await ensureFirebaseApp();
  return getAuth();
 }
 

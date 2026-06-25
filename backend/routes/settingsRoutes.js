@@ -1,5 +1,6 @@
 import { Router } from "express";
 import * as settings from "../controller/settingsController.js";
+import { protect, restrict2 } from "../controller/authController.js";
 
 const router = Router();
 
@@ -12,7 +13,17 @@ router.post("/api/settings/payment", settings.postPaymentSettings);
 router.get("/api/settings/shipping", settings.getShippingSettings);
 router.post("/api/settings/shipping", settings.postShippingSettings);
 
-router.get("/api/settings/gateway", settings.getGatewaySettings);
-router.post("/api/settings/gateway", settings.postGatewaySettings);
+router.get(
+ "/api/settings/gateway",
+ protect,
+ restrict2("admin"),
+ settings.getGatewaySettings,
+);
+router.post(
+ "/api/settings/gateway",
+ protect,
+ restrict2("admin"),
+ settings.postGatewaySettings,
+);
 
 export default router;

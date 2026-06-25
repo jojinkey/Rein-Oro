@@ -241,7 +241,7 @@ export default function Checkout() {
   else if (paymentMethod === "cod")
    paymentMethodName = "Cash on Delivery (COD)";
   else if (paymentMethod === "razorpay")
-   paymentMethodName = "Razorpay Instant Payment (Simulated)";
+   paymentMethodName = "Razorpay Instant Payment";
 
   const orderPayload = {
    id: orderId,

@@ -644,7 +644,7 @@ const normalizeVariantRows = (prod = {}) => {
 };
 
 export default function Admin() {
- const { user, login, logout } = useContext(AuthContext);
+  const { user, login, logout } = useContext(AuthContext);
  const { cmsContent, cmsStyles, fetchCMSData, getCMSValue } =
   useContext(CMSContext);
  const navigate = useNavigate();
@@ -756,9 +756,12 @@ export default function Admin() {
  const [firestoreStatus, setFirestoreStatus] = useState(null);
  const [confirmDialog, setConfirmDialog] = useState(null);
 
- const triggerConfirm = (message, onConfirm) => {
-  setConfirmDialog({ message, onConfirm });
- };
+  const triggerConfirm = (message, onConfirm) => {
+   setConfirmDialog({ message, onConfirm });
+  };
+
+  const getAuthHeaders = () =>
+   user?.token ? { Authorization: `Bearer ${user.token}` } : {};
 
  const fetchCategories = () => {
   fetch("/api/categories")
@@ -838,11 +841,11 @@ export default function Admin() {
    .then((data) => setShippingSettings(data))
    .catch((err) => console.error(err));
  };
- const fetchGatewaySettings = () => {
-  fetch("/api/settings/gateway")
-   .then((res) => res.json())
-   .then((data) => setGatewaySettings(data))
-   .catch((err) => console.error(err));
+  const fetchGatewaySettings = () => {
+   fetch("/api/settings/gateway", { headers: getAuthHeaders() })
+    .then((res) => res.json())
+    .then((data) => setGatewaySettings(data))
+    .catch((err) => console.error(err));
  };
  const fetchOwnerDashboard = () => {
   fetch("/api/owner/dashboard")
@@ -1113,7 +1116,7 @@ export default function Admin() {
     throw new Error("Access Denied. Admin privileges required.");
    }
 
-   login(authEmail, "admin");
+    login(data.user?.email || authEmail, data.user?.role || "admin", data.token || "");
    setIsAdminLoggedIn(true);
    alert("Administrative authentication successful.");
   } catch (err) {
@@ -1796,11 +1799,11 @@ export default function Admin() {
  const handleSaveGatewaySettings = async (e) => {
   e.preventDefault();
   try {
-   const res = await fetch("/api/settings/gateway", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(gatewaySettings),
-   });
+    const res = await fetch("/api/settings/gateway", {
+     method: "POST",
+     headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+     body: JSON.stringify(gatewaySettings),
+    });
    if (!res.ok) throw new Error("Gateway settings save failed");
    alert("Razorpay gateway keys updated successfully.");
    fetchGatewaySettings();
@@ -5239,8 +5242,7 @@ export default function Admin() {
          }}
         >
          Configure your Razorpay Key ID and Secret to enable real online
-         checkouts. Leave as default placeholders to run in Sandbox Simulation
-         mode.
+         checkouts. Leave both blank to keep checkout in sandbox simulation mode.
         </p>
 
         <div className="contact-form-group">

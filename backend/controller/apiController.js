@@ -13,9 +13,10 @@ import {
  protect as authProtect,
  restrict2,
 } from "./authController.js";
-
-const DEFAULT_RAZORPAY_KEY_ID = "rzp_test_defaultKeyId";
-const DEFAULT_RAZORPAY_KEY_SECRET = "defaultKeySecret";
+import {
+ getEnvValue,
+ resolveRazorpayCredentials,
+} from "../util/razorpayCredentials.js";
 
 function mirrorRecord(collectionName, documentId, data) {
  mirrorToFirestore(collectionName, documentId, data).catch((err) => {
@@ -59,37 +60,8 @@ async function getGatewaySetting(key, fallback = "") {
  return doc?.value || fallback;
 }
 
-function getEnvValue(...keys) {
- for (const key of keys) {
-  const value = process.env[key];
-  if (typeof value === "string" && value.trim()) return value.trim();
- }
- return "";
-}
-
 async function getRazorpayCredentials() {
- const envKeyId = getEnvValue("RAZORPAY_KEY_ID", "NEXT_PUBLIC_RAZORPAY_KEY_ID");
- const envKeySecret = getEnvValue("RAZORPAY_KEY_SECRET", "RAZORPAY_SECRET");
- const envConfigured = Boolean(envKeyId && envKeySecret);
- const keyId =
-  envKeyId ||
-  (await getGatewaySetting("razorpay_key_id", DEFAULT_RAZORPAY_KEY_ID));
- const keySecret =
-  envKeySecret ||
-  (await getGatewaySetting("razorpay_key_secret", DEFAULT_RAZORPAY_KEY_SECRET));
- const isConfigured = Boolean(
-  keyId &&
-  keySecret &&
-  keyId !== DEFAULT_RAZORPAY_KEY_ID &&
-  keySecret !== DEFAULT_RAZORPAY_KEY_SECRET,
- );
-
- return {
-  keyId,
-  keySecret,
-  isConfigured,
-  source: envConfigured ? "env" : "database",
- };
+ return resolveRazorpayCredentials({ getGatewaySetting });
 }
 
 function verifyRazorpaySignature({ orderId, paymentId, signature, keySecret }) {

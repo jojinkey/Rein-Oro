@@ -60,7 +60,7 @@ export default function Login() {
      ? `Welcome back, ${userEmail}!`
      : "Account registered successfully! Logging you in...",
    );
-   login(userEmail, role);
+    login(userEmail, role, resData.token || "");
    navigate(getPostLoginPath(role), { replace: true });
   } catch (err) {
    alert(err.message);
@@ -101,11 +101,9 @@ export default function Login() {
     return;
    }
    setOtpError("");
-   login("royal.guest@reinoro.com", "user");
-   alert("Simulated authentication successful! Welcome to Rein Oro Foods.");
-   setShowOtpModal(false);
-   navigate(getPostLoginPath("user"), { replace: true });
-  };
+    alert("OTP authentication is not yet connected to the backend. Please sign in using your email and password.");
+    setShowOtpModal(false);
+   };
 
  return (
   <main className="login-main-section">

@@ -83,25 +83,7 @@ export async function createRazorpayOrder(req, res) {
  try {
   const { keyId, keySecret, isConfigured } = await getRazorpayCredentials();
   if (!isConfigured) {
-   const mockOrderId = `order_mock_${Math.floor(100000 + Math.random() * 900000)}`;
-   const record = {
-    local_order_id: receipt || null,
-    provider: "razorpay",
-    provider_order_id: mockOrderId,
-    amount: toPaise(amount),
-    currency: "INR",
-    status: "created",
-    is_mock: 1,
-   };
-   await mirrorPaymentRecord(record);
-   return res.json({
-    success: true,
-    orderId: mockOrderId,
-    keyId: keyId || "rzp_test_defaultKeyId",
-    amount: Math.round(amount * 100),
-    currency: "INR",
-    isMock: true,
-   });
+   return res.status(500).json({ error: "Razorpay payment gateway credentials are not configured. Please contact the administrator." });
   }
 
   const authHeader =
@@ -158,16 +140,18 @@ export async function verifyRazorpayPayment(req, res) {
 
  try {
   const { keySecret, isConfigured } = await getRazorpayCredentials();
-  if (isConfigured) {
-   const valid = verifyRazorpaySignature({
-    orderId: razorpay_order_id,
-    paymentId: razorpay_payment_id,
-    signature: razorpay_signature,
-    keySecret,
-   });
-   if (!valid) {
-    return res.status(400).json({ error: "Invalid payment signature" });
-   }
+  if (!isConfigured) {
+   return res.status(500).json({ error: "Razorpay payment gateway credentials are not configured." });
+  }
+
+  const valid = verifyRazorpaySignature({
+   orderId: razorpay_order_id,
+   paymentId: razorpay_payment_id,
+   signature: razorpay_signature,
+   keySecret,
+  });
+  if (!valid) {
+   return res.status(400).json({ error: "Invalid payment signature" });
   }
 
   const record = await mirrorPaymentRecord({
@@ -179,7 +163,7 @@ export async function verifyRazorpayPayment(req, res) {
    currency: "INR",
    status: "Paid",
    method: "Razorpay",
-   is_mock: isConfigured ? 0 : 1,
+   is_mock: 0,
    raw_payload: req.body,
   });
 

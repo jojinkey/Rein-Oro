@@ -889,7 +889,7 @@ export default function Admin() {
   weight: "",
   variants: [{ weight: "", mrp: 0, sale_price: 0, stock: 0, active: true }],
   benefits: "",
-  benefits_image: "images/makhana_bowl_love.png",
+  benefits_image: "/images/makhana_bowl_love.png",
   ingredients: [],
   specs: {},
   nutrition: {},
@@ -921,7 +921,40 @@ export default function Admin() {
    }
   };
 
- // Styles Form State
+  const [uploadingIngredientIndex, setUploadingIngredientIndex] = useState(null);
+
+  const handleUploadIngredientImage = async (e, index) => {
+   const file = e.target.files[0];
+   if (!file) return;
+   if (!productForm.id || !String(productForm.id).trim()) {
+    alert("Please fill in the Product ID (Unique) first before uploading images.");
+    return;
+   }
+   setUploadingIngredientIndex(index);
+   const formData = new FormData();
+   formData.append("image", file);
+   formData.append("productId", String(productForm.id).trim());
+   formData.append("type", "ingredient");
+   try {
+    const res = await fetch("/api/upload", {
+     method: "POST",
+     body: formData,
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Upload failed");
+    setProductForm((prev) => {
+     const newIngs = [...(prev.ingredients || [])];
+     newIngs[index].img = data.url;
+     return { ...prev, ingredients: newIngs };
+    });
+   } catch (err) {
+    alert(`Ingredient Image Upload Error: ${err.message}`);
+   } finally {
+    setUploadingIngredientIndex(null);
+   }
+  };
+
+  // Styles Form State
  const [stylesForm, setStylesForm] = useState({
   colorBg: "#050505",
   colorGold: "#c9a84c",
@@ -1469,7 +1502,7 @@ export default function Admin() {
     weight: prod.weight,
     variants: normalizeVariantRows(prod),
     benefits: toAdminArray(prod.benefits, []).join(", "),
-    benefits_image: prod.benefits_image,
+    benefits_image: prod.benefits_image || "/images/makhana_bowl_love.png",
     ingredients: toAdminArray(prod.ingredients, []),
     specs: toAdminObject(prod.specs, {}),
     nutrition:
@@ -1496,7 +1529,7 @@ export default function Admin() {
     weight: "",
     variants: [{ weight: "", mrp: 0, sale_price: 0, stock: 0, active: true }],
     benefits: "",
-    benefits_image: "images/makhana_bowl_love.png",
+    benefits_image: "/images/makhana_bowl_love.png",
     ingredients: [],
     specs: {
      Brand: "Rein Oro",
@@ -3028,64 +3061,102 @@ export default function Admin() {
            <th>Thumbnail</th>
            <th>Title</th>
            <th>Flavor</th>
-           <th>Price</th>
            <th>Weight</th>
+           <th>Price</th>
+           <th>Stock</th>
            <th style={{ textAlign: "right" }}>Actions</th>
           </tr>
          </thead>
          <tbody>
-          {products.map((p) => (
-           <tr key={p.id}>
-            <td>
-             <div
-              style={{
-               width: "40px",
-               height: "40px",
-               backgroundColor: "rgba(255,255,255,0.02)",
-               display: "flex",
-               alignItems: "center",
-               justifyContent: "center",
-               borderRadius: "4px",
-               border: "1px solid rgba(255,255,255,0.05)",
-              }}
-             >
-              <img
-               src={p.image}
-               alt={p.title}
+          {products.map((p) => {
+           const variants = normalizeVariantRows(p);
+           return (
+            <tr key={p.id}>
+             <td>
+              <div
                style={{
-                maxWidth: "85%",
-                maxHeight: "85%",
-                objectFit: "contain",
+                width: "40px",
+                height: "40px",
+                backgroundColor: "rgba(255,255,255,0.02)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                borderRadius: "4px",
+                border: "1px solid rgba(255,255,255,0.05)",
                }}
-              />
-             </div>
-            </td>
-            <td className="highlight">{p.title}</td>
-            <td>{p.flavor}</td>
-            <td style={{ color: "var(--color-gold)", fontWeight: 600 }}>
-             ₹{p.price}
-            </td>
-            <td>{p.weight}</td>
-            <td style={{ textAlign: "right" }}>
-             <div className="admin-dash-action-btn-row">
-              <button
-               onClick={() => handleOpenProductModal("edit", p)}
-               className="admin-dash-action-btn"
-               title="Edit Product"
               >
-               <IconEdit />
-              </button>
-              <button
-               onClick={() => handleDeleteProduct(p.id)}
-               className="admin-dash-action-btn delete"
-               title="Delete Product"
-              >
-               <IconDelete />
-              </button>
-             </div>
-            </td>
-           </tr>
-          ))}
+               <img
+                src={p.image ? (p.image.startsWith('http') || p.image.startsWith('/') ? p.image : '/' + p.image) : ''}
+                alt={p.title}
+                style={{
+                 maxWidth: "85%",
+                 maxHeight: "85%",
+                 objectFit: "contain",
+                }}
+               />
+              </div>
+             </td>
+             <td className="highlight">{p.title}</td>
+             <td>{p.flavor}</td>
+             <td>
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
+               {variants.map((v, idx) => (
+                <div key={idx} style={{ fontSize: "0.82rem" }}>
+                 {v.weight || "Standard"}
+                </div>
+               ))}
+              </div>
+             </td>
+             <td>
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
+               {variants.map((v, idx) => (
+                <div key={idx} style={{ color: "var(--color-gold)", fontWeight: 600, fontSize: "0.82rem" }}>
+                 ₹{(v.sale_price).toLocaleString("en-IN")}
+                </div>
+               ))}
+              </div>
+             </td>
+             <td>
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
+               {variants.map((v, idx) => {
+                const stockVal = Number(v.stock) || 0;
+                const isOutOfStock = stockVal === 0;
+                return (
+                 <div
+                  key={idx}
+                  style={{
+                   color: isOutOfStock ? "#ff6b6b" : "var(--color-white)",
+                   fontSize: "0.82rem",
+                   fontWeight: isOutOfStock ? 600 : 400,
+                  }}
+                 >
+                  {stockVal} pcs
+                 </div>
+                );
+               })}
+              </div>
+             </td>
+             <td style={{ textAlign: "right" }}>
+              <div className="admin-dash-action-btn-row">
+               <button
+                onClick={() => handleOpenProductModal("edit", p)}
+                className="admin-dash-action-btn"
+                title="Edit Product"
+               >
+                <IconEdit />
+               </button>
+               <button
+                onClick={() => handleDeleteProduct(p.id)}
+                className="admin-dash-action-btn delete"
+                title="Delete Product"
+               >
+                <IconDelete />
+               </button>
+              </div>
+             </td>
+            </tr>
+           );
+          })}
          </tbody>
         </table>
        </div>
@@ -6301,7 +6372,7 @@ export default function Admin() {
          >
           {productForm.benefits_image ? (
            <img
-            src={productForm.benefits_image}
+            src={productForm.benefits_image ? (productForm.benefits_image.startsWith('http') || productForm.benefits_image.startsWith('/') ? productForm.benefits_image : '/' + productForm.benefits_image) : ''}
             alt="Benefits Section Preview"
             style={{ width: "90%", height: "90%", objectFit: "contain" }}
             onError={(e) => (e.target.style.opacity = "0.3")}
@@ -6401,18 +6472,37 @@ export default function Admin() {
              }}
              style={{ flex: 1 }}
             />
-            <input
-             type="text"
-             className="contact-form-input"
-             placeholder="Image URL (e.g. https://example.com/image.png)"
-             value={ing.img || ""}
-             onChange={(e) => {
-              const newIngs = [...productForm.ingredients];
-              newIngs[index].img = e.target.value;
-              setProductForm((prev) => ({ ...prev, ingredients: newIngs }));
-             }}
-             style={{ flex: 1 }}
-            />
+            <div style={{ display: "flex", gap: "0.8rem", alignItems: "center", flex: 1 }}>
+             <button
+              type="button"
+              className="btn btn-outline"
+              onClick={() => document.getElementById(`ingredient-file-input-${index}`).click()}
+              style={{
+               height: "40px",
+               borderColor: "var(--color-gold)",
+               color: "var(--color-gold)",
+               display: "flex",
+               alignItems: "center",
+               gap: "0.5rem",
+               whiteSpace: "nowrap",
+               fontSize: "0.8rem",
+               padding: "0 1rem",
+               flex: 1,
+               justifyContent: "center",
+               marginBottom: 0
+              }}
+              disabled={uploadingIngredientIndex === index}
+             >
+              {uploadingIngredientIndex === index ? "Uploading..." : ing.img ? "Change Image" : "Upload Image"}
+             </button>
+             <input
+              type="file"
+              id={`ingredient-file-input-${index}`}
+              accept="image/*"
+              style={{ display: "none" }}
+              onChange={(e) => handleUploadIngredientImage(e, index)}
+             />
+            </div>
             {ing.img && (
              <div
               style={{

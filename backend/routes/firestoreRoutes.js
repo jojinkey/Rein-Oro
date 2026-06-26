@@ -32,6 +32,7 @@ router.post("/api/firestore/sync", async (req, res) => {
    "gateway_settings",
    "payments",
    "reviews",
+   "website_visits",
   ];
   for (const t of tables) {
    try {

@@ -55,6 +55,160 @@ function toPaise(amount) {
  return Math.round(parsed * 100);
 }
 
+function getDashboardTimestamp(value) {
+ if (!value) return 0;
+ if (typeof value === "number") return value;
+ if (typeof value?.toDate === "function") return value.toDate().getTime();
+ if (value?._seconds) return value._seconds * 1000;
+ const parsed = Date.parse(String(value).replace(" at ", " "));
+ return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function getOrderTimestamp(order) {
+ return (
+  getDashboardTimestamp(order.paid_at) ||
+  getDashboardTimestamp(order.created_at) ||
+  getDashboardTimestamp(order.date) ||
+  getDashboardTimestamp(order.firestore_updated_at)
+ );
+}
+
+function getRangeStart(days, now = new Date()) {
+ const start = new Date(now);
+ start.setHours(0, 0, 0, 0);
+ start.setDate(start.getDate() - (days - 1));
+ return start.getTime();
+}
+
+function percentChange(current, previous) {
+ if (!previous && !current) return 0;
+ if (!previous) return 100;
+ return Math.round(((current - previous) / previous) * 1000) / 10;
+}
+
+function formatChartLabel(date) {
+ return new Intl.DateTimeFormat("en-IN", {
+  day: "2-digit",
+  month: "short",
+ }).format(date);
+}
+
+function buildDashboardRange(rows, days, valueSelector, now = new Date()) {
+ const currentStart = getRangeStart(days, now);
+ const previousStart = currentStart - days * 24 * 60 * 60 * 1000;
+ const currentRows = rows.filter((row) => {
+  const ts = row.timestampMs || 0;
+  return ts >= currentStart && ts <= now.getTime();
+ });
+ const previousRows = rows.filter((row) => {
+  const ts = row.timestampMs || 0;
+  return ts >= previousStart && ts < currentStart;
+ });
+ const current = currentRows.reduce((sum, row) => sum + valueSelector(row), 0);
+ const previous = previousRows.reduce((sum, row) => sum + valueSelector(row), 0);
+ return {
+  current,
+  previous,
+  change: percentChange(current, previous),
+ };
+}
+
+function buildSalesSeries(orders, days, now = new Date()) {
+ const start = getRangeStart(days, now);
+ const buckets = new Map();
+ const bucketCount = days <= 7 ? days : 6;
+ const bucketSize = days <= 7 ? 1 : Math.ceil(days / bucketCount);
+
+ for (let i = 0; i < bucketCount; i += 1) {
+  const bucketStart = new Date(start);
+  bucketStart.setDate(bucketStart.getDate() + i * bucketSize);
+  const key = bucketStart.toISOString().slice(0, 10);
+  buckets.set(key, {
+   label: formatChartLabel(bucketStart),
+   revenue: 0,
+   orders: 0,
+  });
+ }
+
+ for (const order of orders) {
+  const ts = order.timestampMs || 0;
+  if (ts < start || ts > now.getTime()) continue;
+  const daysFromStart = Math.floor((ts - start) / (24 * 60 * 60 * 1000));
+  const bucketIndex = Math.min(
+   bucketCount - 1,
+   Math.max(0, Math.floor(daysFromStart / bucketSize)),
+  );
+  const bucketDate = new Date(start);
+  bucketDate.setDate(bucketDate.getDate() + bucketIndex * bucketSize);
+  const key = bucketDate.toISOString().slice(0, 10);
+  const bucket = buckets.get(key);
+  if (!bucket) continue;
+  bucket.revenue += Number(order.total || 0);
+  bucket.orders += 1;
+ }
+
+ return Array.from(buckets.values());
+}
+
+function getVisitorSource(referrer = "", explicitSource = "") {
+ const source = String(explicitSource || "").trim();
+ if (source) return source;
+ const ref = String(referrer || "").toLowerCase();
+ if (!ref) return "Direct";
+ if (/(google|bing|yahoo|duckduckgo|search)/.test(ref)) {
+  return "Organic Search";
+ }
+ if (/(facebook|instagram|linkedin|twitter|x\.com|youtube|whatsapp)/.test(ref)) {
+  return "Social Media";
+ }
+ return "Referral";
+}
+
+function buildVisitorAnalytics(visits, days, now = new Date()) {
+ const start = getRangeStart(days, now);
+ const inRange = visits.filter((visit) => {
+  const ts = visit.timestampMs || 0;
+  return ts >= start && ts <= now.getTime();
+ });
+ const previousStart = start - days * 24 * 60 * 60 * 1000;
+ const previous = visits.filter((visit) => {
+  const ts = visit.timestampMs || 0;
+  return ts >= previousStart && ts < start;
+ });
+ const uniqueCurrent = Array.from(
+  new Map(
+   inRange.map((visit) => [
+    visit.session_id || visit.id || `${visit.path}:${visit.timestampMs}`,
+    visit,
+   ]),
+  ).values(),
+ );
+ const uniquePrevious = new Set(
+  previous.map((visit) => visit.session_id || visit.id || visit.timestampMs),
+ );
+ const sourceRows = uniqueCurrent.reduce((acc, visit) => {
+  const source = visit.source || "Direct";
+  acc[source] = (acc[source] || 0) + 1;
+  return acc;
+ }, {});
+ const sources = Object.entries(sourceRows)
+  .map(([source, count]) => ({
+   source,
+   count,
+   percent: uniqueCurrent.length
+    ? Math.round((count / uniqueCurrent.length) * 100)
+    : 0,
+  }))
+  .sort((a, b) => b.count - a.count);
+ return {
+  total: uniqueCurrent.length,
+  previous: uniquePrevious.size,
+  page_views: inRange.length,
+  change: percentChange(uniqueCurrent.length, uniquePrevious.size),
+  sources,
+ };
+}
+
 async function getGatewaySetting(key, fallback = "") {
  const doc = await getFirestoreDocument("gateway_settings", key);
  return doc?.value || fallback;
@@ -303,8 +457,40 @@ async function getCrmActivity() {
   .slice(0, 15);
 }
 
+async function recordWebsiteVisit(req, res) {
+ try {
+  const now = new Date();
+  const sessionId =
+   String(req.body?.session_id || "").slice(0, 120) ||
+   `session_${Date.now()}`;
+  const path = String(req.body?.path || "/").slice(0, 160);
+  const referrer = String(req.body?.referrer || "").slice(0, 300);
+  const source = getVisitorSource(referrer, req.body?.source);
+  const id = `${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+
+  await mirrorToFirestore("website_visits", id, {
+   id,
+   session_id: sessionId,
+   path,
+   referrer,
+   source,
+   user_agent: String(req.headers["user-agent"] || "").slice(0, 240),
+   created_at: now.toISOString(),
+   date: now.toISOString().slice(0, 10),
+  });
+
+  res.json({ success: true });
+ } catch (err) {
+  res.status(500).json({ error: err.message });
+ }
+}
+
 async function buildOwnerDashboard() {
- const orders = await queryFirestoreCollection("orders");
+ const now = new Date();
+ const orders = (await queryFirestoreCollection("orders")).map((order) => ({
+  ...order,
+  timestampMs: getOrderTimestamp(order),
+ }));
  const sales = {
   total_orders: orders.length,
   revenue: orders.reduce((sum, order) => sum + Number(order.total || 0), 0),
@@ -313,11 +499,38 @@ async function buildOwnerDashboard() {
      orders.length
    : 0,
  };
+ const revenue30 = buildDashboardRange(
+  orders,
+  30,
+  (order) => Number(order.total || 0),
+  now,
+ );
+ const orders30 = buildDashboardRange(orders, 30, () => 1, now);
+ const revenue7 = buildDashboardRange(
+  orders,
+  7,
+  (order) => Number(order.total || 0),
+  now,
+ );
+ const orders7 = buildDashboardRange(orders, 7, () => 1, now);
 
  const usersRows = await queryFirestoreCollection("users");
  const customerCount = {
   count: usersRows.filter((u) => (u.role || "") !== "admin").length,
  };
+ const usersWithTimestamps = usersRows.map((user) => ({
+  ...user,
+  timestampMs:
+   getDashboardTimestamp(user.created_at) ||
+   getDashboardTimestamp(user.member_since) ||
+   getDashboardTimestamp(user.firestore_updated_at),
+ }));
+ const customers30 = buildDashboardRange(
+  usersWithTimestamps.filter((u) => (u.role || "") !== "admin"),
+  30,
+  () => 1,
+  now,
+ );
  const enquiriesRows = await queryFirestoreCollection("enquiries");
  const leadCount = { count: enquiriesRows.length };
  const openLeadCount = {
@@ -332,6 +545,36 @@ async function buildOwnerDashboard() {
  const pendingReviewCount = {
   count: reviewRows.filter((r) => (r.status || "") !== "approved").length,
  };
+ const reviewRowsWithTimestamps = reviewRows.map((review) => ({
+  ...review,
+  timestampMs:
+   getDashboardTimestamp(review.created_at) ||
+   getDashboardTimestamp(review.date) ||
+   getDashboardTimestamp(review.firestore_updated_at),
+ }));
+ const reviews30 = buildDashboardRange(reviewRowsWithTimestamps, 30, () => 1, now);
+ const productsRows = await queryFirestoreCollection("products");
+ const productRowsWithTimestamps = productsRows.map((product) => ({
+  ...product,
+  timestampMs:
+   getDashboardTimestamp(product.created_at) ||
+   getDashboardTimestamp(product.updated_at) ||
+   getDashboardTimestamp(product.firestore_updated_at),
+ }));
+ const products30 = buildDashboardRange(
+  productRowsWithTimestamps,
+  30,
+  () => 1,
+  now,
+ );
+ const visitsRows = (await queryFirestoreCollection("website_visits")).map(
+  (visit) => ({
+   ...visit,
+   timestampMs:
+    getDashboardTimestamp(visit.created_at) ||
+    getDashboardTimestamp(visit.firestore_updated_at),
+  }),
+ );
 
  const paymentRows = orders.reduce((acc, order) => {
   const provider = order.payment_provider || "unknown";
@@ -352,7 +595,7 @@ async function buildOwnerDashboard() {
 
  const recentOrders = orders
   .slice()
-  .sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")))
+  .sort((a, b) => (b.timestampMs || 0) - (a.timestampMs || 0))
   .slice(0, 8);
 
  const lowStockProducts = await queryFirestoreCollection("products", {
@@ -397,6 +640,27 @@ async function buildOwnerDashboard() {
    reviews: reviewCount.count || 0,
    pending_reviews: pendingReviewCount.count || 0,
   },
+  trends: {
+   "30d": {
+    orders: orders30,
+    revenue: revenue30,
+    customers: customers30,
+    products: products30,
+    reviews: reviews30,
+   },
+   "7d": {
+    orders: orders7,
+    revenue: revenue7,
+   },
+  },
+  sales_series: {
+   "30d": buildSalesSeries(orders, 30, now),
+   "7d": buildSalesSeries(orders, 7, now),
+  },
+  visitors: {
+   "30d": buildVisitorAnalytics(visitsRows, 30, now),
+   "7d": buildVisitorAnalytics(visitsRows, 7, now),
+  },
   firestore: getFirestoreStatus(),
   payment_breakdown: Object.values(paymentRows),
   recent_orders: recentOrders,
@@ -411,6 +675,7 @@ export function registerApiRoutes(router) {
  // --- Auth Routes ---
  router.post("/api/auth/register", authRegister);
  router.post("/api/auth/login", authLogin);
+ router.post("/api/analytics/visit", recordWebsiteVisit);
 }
 
 export {

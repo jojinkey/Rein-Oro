@@ -7337,6 +7337,14 @@ body.login-page-body .login-card-footer {
     color: var(--color-gold);
 }
 
+.admin-dash-notification-wrap {
+    position: relative;
+}
+
+.admin-dash-bell-btn.active {
+    color: var(--color-gold);
+}
+
 .admin-dash-bell-badge {
     position: absolute;
     top: -4px;
@@ -7351,6 +7359,135 @@ body.login-page-body .login-card-footer {
     display: flex;
     align-items: center;
     justify-content: center;
+}
+
+.admin-dash-notification-panel {
+    position: absolute;
+    top: calc(100% + 14px);
+    right: -0.75rem;
+    width: min(360px, calc(100vw - 2rem));
+    max-height: 460px;
+    overflow: hidden;
+    background-color: #090909;
+    border: 1px solid rgba(201, 168, 76, 0.18);
+    border-radius: 8px;
+    box-shadow: 0 18px 45px rgba(0, 0, 0, 0.55);
+    z-index: 150;
+}
+
+.admin-dash-notification-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.admin-dash-notification-title,
+.admin-dash-notification-subtitle {
+    display: block;
+}
+
+.admin-dash-notification-title {
+    color: var(--color-white);
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+
+.admin-dash-notification-subtitle {
+    margin-top: 0.2rem;
+    color: var(--color-muted);
+    font-size: 0.68rem;
+}
+
+.admin-dash-notification-live {
+    color: #4cd964;
+    border: 1px solid rgba(76, 217, 100, 0.2);
+    border-radius: 999px;
+    padding: 0.12rem 0.45rem;
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.admin-dash-notification-list {
+    max-height: 370px;
+    overflow-y: auto;
+    padding: 0.4rem;
+}
+
+.admin-dash-notification-item {
+    width: 100%;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.8rem;
+    padding: 0.75rem;
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.admin-dash-notification-item:hover {
+    background-color: rgba(201, 168, 76, 0.07);
+}
+
+.admin-dash-notification-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.04);
+    color: var(--color-gold);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.62rem;
+    font-weight: 800;
+    flex-shrink: 0;
+}
+
+.admin-dash-notification-icon.success {
+    color: #4cd964;
+    background-color: rgba(76, 217, 100, 0.08);
+}
+
+.admin-dash-notification-icon.warning {
+    color: #ff9500;
+    background-color: rgba(255, 149, 0, 0.08);
+}
+
+.admin-dash-notification-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 0.16rem;
+    min-width: 0;
+}
+
+.admin-dash-notification-copy strong {
+    color: var(--color-white);
+    font-size: 0.76rem;
+}
+
+.admin-dash-notification-copy span {
+    color: var(--color-muted);
+    font-size: 0.72rem;
+    line-height: 1.35;
+}
+
+.admin-dash-notification-copy small {
+    color: rgba(255, 255, 255, 0.32);
+    font-size: 0.64rem;
+}
+
+.admin-dash-notification-empty {
+    padding: 1.5rem 1rem;
+    text-align: center;
+    color: var(--color-muted);
+    font-size: 0.75rem;
 }
 
 .admin-dash-profile {
@@ -7476,6 +7613,10 @@ body.login-page-body .login-card-footer {
 
 .admin-dash-kpi-trend.positive {
     color: #4cd964;
+}
+
+.admin-dash-kpi-trend.negative {
+    color: #ff5050;
 }
 
 .admin-dash-kpi-trend.neutral {

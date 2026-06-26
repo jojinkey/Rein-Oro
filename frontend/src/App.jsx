@@ -460,6 +460,30 @@ export default function App() {
 function LayoutWrapper({ children }) {
  const location = useLocation();
  const isAdminPath = location.pathname === "/admin";
+
+ useEffect(() => {
+  if (isAdminPath) return;
+  const storageKey = "rein_oro_visitor_session";
+  let sessionId = localStorage.getItem(storageKey);
+  if (!sessionId) {
+   sessionId = `visit_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+   localStorage.setItem(storageKey, sessionId);
+  }
+  const params = new URLSearchParams(window.location.search);
+  fetch(apiUrl("/api/analytics/visit"), {
+   method: "POST",
+   headers: { "Content-Type": "application/json" },
+   body: JSON.stringify({
+    session_id: sessionId,
+    path: location.pathname,
+    referrer: document.referrer,
+    source: params.get("utm_source") || "",
+   }),
+  }).catch((err) => {
+   console.warn("Visitor analytics tracking failed", err);
+  });
+ }, [isAdminPath, location.pathname]);
+
  return (
   <>
    <ScrollToTop />

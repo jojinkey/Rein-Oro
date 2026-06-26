@@ -212,7 +212,9 @@ export async function createRazorpayOrder(req, res) {
  try {
   const { keyId, keySecret, isConfigured } = await getRazorpayCredentials();
   if (!isConfigured) {
-   return res.status(500).json({ error: "Razorpay payment gateway credentials are not configured. Please contact the administrator." });
+   return res
+    .status(503)
+    .json({ error: "Razorpay live credentials are not configured." });
   }
 
   const authHeader =
@@ -271,7 +273,9 @@ export async function verifyRazorpayPayment(req, res) {
  try {
   const { keySecret, isConfigured } = await getRazorpayCredentials();
   if (!isConfigured) {
-   return res.status(500).json({ error: "Razorpay payment gateway credentials are not configured." });
+   return res
+    .status(503)
+    .json({ error: "Razorpay live credentials are not configured." });
   }
 
   const valid = verifyRazorpaySignature({

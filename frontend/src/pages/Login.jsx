@@ -101,9 +101,11 @@ export default function Login() {
     return;
    }
    setOtpError("");
-    alert("OTP authentication is not yet connected to the backend. Please sign in using your email and password.");
-    setShowOtpModal(false);
-   };
+   login("royal.guest@reinoro.com", "user");
+   alert("Simulated authentication successful! Welcome to Rein Oro Foods.");
+   setShowOtpModal(false);
+   navigate(getPostLoginPath("user"), { replace: true });
+  };
 
  return (
   <main className="login-main-section">

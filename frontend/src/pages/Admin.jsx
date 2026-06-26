@@ -899,6 +899,27 @@ export default function Admin() {
  const [thumbnailUploading, setThumbnailUploading] = useState(false);
  const [benefitsUploading, setBenefitsUploading] = useState(false);
  const [altImageSlots, setAltImageSlots] = useState([]);
+  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [selectedOrderAddresses, setSelectedOrderAddresses] = useState([]);
+  const [loadingAddresses, setLoadingAddresses] = useState(false);
+
+  const handleOpenOrderDetails = (order) => {
+   setSelectedOrder(order);
+   setSelectedOrderAddresses([]);
+   if (!order.shipping_address && order.user_email) {
+    setLoadingAddresses(true);
+    fetch(`/api/users/addresses?email=${encodeURIComponent(order.user_email)}`)
+     .then((res) => {
+      if (!res.ok) throw new Error("Failed to fetch address");
+      return res.json();
+     })
+     .then((data) => {
+      setSelectedOrderAddresses(Array.isArray(data) ? data : []);
+     })
+     .catch((err) => console.error("Error fetching fallback address:", err))
+     .finally(() => setLoadingAddresses(false));
+   }
+  };
 
  // Styles Form State
  const [stylesForm, setStylesForm] = useState({
@@ -2295,9 +2316,68 @@ export default function Admin() {
        />
       </div>
 
-      <button className="admin-dash-bell-btn">
-       <IconBell />
-      </button>
+      <div className="admin-dash-notification-wrap">
+       <button
+        type="button"
+        className={`admin-dash-bell-btn ${isNotificationsOpen ? "active" : ""}`}
+        aria-label="Open live notifications"
+        aria-haspopup="menu"
+        aria-expanded={isNotificationsOpen}
+        onClick={handleNotificationBellClick}
+       >
+        <IconBell />
+        {unreadNotificationCount > 0 && (
+         <span className="admin-dash-bell-badge">
+          {unreadNotificationCount > 9 ? "9+" : unreadNotificationCount}
+         </span>
+        )}
+       </button>
+
+       {isNotificationsOpen && (
+        <div className="admin-dash-notification-panel" role="menu">
+         <div className="admin-dash-notification-head">
+          <div>
+           <span className="admin-dash-notification-title">
+            Live Notifications
+           </span>
+           <span className="admin-dash-notification-subtitle">
+            Orders, payments, enquiries
+           </span>
+          </div>
+          <span className="admin-dash-notification-live">Live</span>
+         </div>
+
+         <div className="admin-dash-notification-list">
+          {notificationItems.length === 0 ? (
+           <div className="admin-dash-notification-empty">
+            No live notifications yet.
+           </div>
+          ) : (
+           notificationItems.map((item) => (
+            <button
+             type="button"
+             key={item.key}
+             className="admin-dash-notification-item"
+             role="menuitem"
+             onClick={() => handleNotificationItemClick(item)}
+            >
+             <span
+              className={`admin-dash-notification-icon ${item.type === "success" ? "success" : item.type === "warning" ? "warning" : ""}`}
+             >
+              {getNotificationIconText(item)}
+             </span>
+             <span className="admin-dash-notification-copy">
+              <strong>{item.title}</strong>
+              <span>{item.text}</span>
+              <small>{item.time}</small>
+             </span>
+            </button>
+           ))
+          )}
+         </div>
+        </div>
+       )}
+      </div>
 
       <div className="admin-dash-profile">
        <img
@@ -2943,108 +3023,71 @@ export default function Admin() {
 
        <div style={{ overflowX: "auto" }}>
         <table className="admin-dash-table">
-          <thead>
-           <tr>
-            <th>Thumbnail</th>
-            <th>Title</th>
-            <th>Flavor</th>
-            <th>Weight</th>
-            <th>Price</th>
-            <th>Stock</th>
-            <th style={{ textAlign: "right" }}>Actions</th>
+         <thead>
+          <tr>
+           <th>Thumbnail</th>
+           <th>Title</th>
+           <th>Flavor</th>
+           <th>Price</th>
+           <th>Weight</th>
+           <th style={{ textAlign: "right" }}>Actions</th>
+          </tr>
+         </thead>
+         <tbody>
+          {products.map((p) => (
+           <tr key={p.id}>
+            <td>
+             <div
+              style={{
+               width: "40px",
+               height: "40px",
+               backgroundColor: "rgba(255,255,255,0.02)",
+               display: "flex",
+               alignItems: "center",
+               justifyContent: "center",
+               borderRadius: "4px",
+               border: "1px solid rgba(255,255,255,0.05)",
+              }}
+             >
+              <img
+               src={p.image}
+               alt={p.title}
+               style={{
+                maxWidth: "85%",
+                maxHeight: "85%",
+                objectFit: "contain",
+               }}
+              />
+             </div>
+            </td>
+            <td className="highlight">{p.title}</td>
+            <td>{p.flavor}</td>
+            <td style={{ color: "var(--color-gold)", fontWeight: 600 }}>
+             ₹{p.price}
+            </td>
+            <td>{p.weight}</td>
+            <td style={{ textAlign: "right" }}>
+             <div className="admin-dash-action-btn-row">
+              <button
+               onClick={() => handleOpenProductModal("edit", p)}
+               className="admin-dash-action-btn"
+               title="Edit Product"
+              >
+               <IconEdit />
+              </button>
+              <button
+               onClick={() => handleDeleteProduct(p.id)}
+               className="admin-dash-action-btn delete"
+               title="Delete Product"
+              >
+               <IconDelete />
+              </button>
+             </div>
+            </td>
            </tr>
-          </thead>
-          <tbody>
-           {products.map((p) => {
-            const variants = Array.isArray(p.variants) && p.variants.length > 0
-              ? p.variants 
-              : [{ weight: p.weight || '100g', price: p.price, stock: p.stock || 0 }];
-            return (
-             <tr key={p.id}>
-              <td>
-               <div
-                style={{
-                 width: "40px",
-                 height: "40px",
-                 backgroundColor: "rgba(255,255,255,0.02)",
-                 display: "flex",
-                 alignItems: "center",
-                 justifyContent: "center",
-                 borderRadius: "4px",
-                 border: "1px solid rgba(255,255,255,0.05)",
-                }}
-               >
-                <img
-                 src={p.image}
-                 alt={p.title}
-                 style={{
-                  maxWidth: "85%",
-                  maxHeight: "85%",
-                  objectFit: "contain",
-                 }}
-                />
-               </div>
-              </td>
-              <td className="highlight">{p.title}</td>
-              <td>{p.flavor}</td>
-              <td>
-               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                {variants.map((v, idx) => (
-                 <div key={idx} style={{ fontSize: '0.82rem' }}>
-                  {v.weight}
-                 </div>
-                ))}
-               </div>
-              </td>
-              <td>
-               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                {variants.map((v, idx) => (
-                 <div key={idx} style={{ color: "var(--color-gold)", fontWeight: 600, fontSize: '0.82rem' }}>
-                  ₹{v.price ?? v.sale_price}
-                 </div>
-                ))}
-               </div>
-              </td>
-              <td>
-               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                {variants.map((v, idx) => {
-                 const stockVal = Number(v.stock) || 0;
-                 const isOutOfStock = stockVal === 0;
-                 return (
-                  <div key={idx} style={{ 
-                   color: isOutOfStock ? "#ff6b6b" : "var(--color-white)", 
-                   fontSize: '0.82rem',
-                   fontWeight: isOutOfStock ? 600 : 400
-                  }}>
-                   {stockVal} pcs
-                  </div>
-                 );
-                })}
-               </div>
-              </td>
-              <td style={{ textAlign: "right" }}>
-               <div className="admin-dash-action-btn-row">
-                <button
-                 onClick={() => handleOpenProductModal("edit", p)}
-                 className="admin-dash-action-btn"
-                 title="Edit Product"
-                >
-                 <IconEdit />
-                </button>
-                <button
-                 onClick={() => handleDeleteProduct(p.id)}
-                 className="admin-dash-action-btn delete"
-                 title="Delete Product"
-                >
-                 <IconDelete />
-                </button>
-               </div>
-              </td>
-             </tr>
-            );
-           })}
-          </tbody>
-         </table>
+          ))}
+         </tbody>
+        </table>
        </div>
       </div>
      )}
@@ -3572,10 +3615,19 @@ export default function Admin() {
            </tr>
           ) : (
            orders.map((o) => (
-            <tr key={o.id}>
-             <td className="highlight" style={{ fontFamily: "monospace" }}>
-              #{o.id}
-             </td>
+             <tr key={o.id}>
+              <td
+               className="highlight"
+               style={{
+                fontFamily: "monospace",
+                cursor: "pointer",
+                textDecoration: "underline",
+                color: "var(--color-gold)",
+               }}
+               onClick={() => handleOpenOrderDetails(o)}
+              >
+               #{o.id}
+              </td>
               <td>{o.user_email}</td>
               <td>{o.date}</td>
               <td>{o.payment_method}</td>
@@ -6566,13 +6618,259 @@ export default function Admin() {
         >
          CANCEL
         </button>
+        </div>
+       </form>
+      </div>
+     </div>
+    )}
+
+   {selectedOrder && (
+    <div
+     style={{
+      position: "fixed",
+      inset: 0,
+      backgroundColor: "rgba(0,0,0,0.85)",
+      zIndex: 10000,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      padding: "2rem",
+     }}
+    >
+     <div
+      style={{
+       border: "1px solid var(--color-gold-border)",
+       borderRadius: "12px",
+       width: "100%",
+       maxWidth: "680px",
+       padding: "2.5rem",
+       backgroundColor: "#090909",
+       position: "relative",
+       maxHeight: "90vh",
+       overflowY: "auto",
+      }}
+     >
+      <button
+       type="button"
+       onClick={() => setSelectedOrder(null)}
+       style={{
+        position: "absolute",
+        top: "1.5rem",
+        right: "1.5rem",
+        background: "none",
+        border: "none",
+        color: "var(--color-muted)",
+        fontSize: "1.5rem",
+        cursor: "pointer",
+        lineHeight: 1,
+       }}
+      >
+       &times;
+      </button>
+
+      <h3
+       style={{
+        fontFamily: "var(--font-heading)",
+        fontSize: "1.8rem",
+        color: "var(--color-white)",
+        fontWeight: 300,
+        marginBottom: "1.5rem",
+       }}
+      >
+       Order Details
+      </h3>
+
+      <div style={{ marginBottom: "1.5rem", display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "1.5rem" }}>
+       <div>
+        <p style={{ margin: "0.2rem 0", color: "var(--color-muted)", fontSize: "0.85rem" }}>
+         Order ID: <span style={{ color: "var(--color-white)", fontFamily: "monospace" }}>#{selectedOrder.id}</span>
+        </p>
+        <p style={{ margin: "0.2rem 0", color: "var(--color-muted)", fontSize: "0.85rem" }}>
+         Date Placed: <span style={{ color: "var(--color-white)" }}>{selectedOrder.date}</span>
+        </p>
+        <p style={{ margin: "0.2rem 0", color: "var(--color-muted)", fontSize: "0.85rem" }}>
+         Customer Email: <span style={{ color: "var(--color-white)" }}>{selectedOrder.user_email}</span>
+        </p>
+        <p style={{ margin: "0.2rem 0", color: "var(--color-muted)", fontSize: "0.85rem" }}>
+         Payment Method: <span style={{ color: "var(--color-white)" }}>{selectedOrder.payment_method}</span>
+        </p>
+        <p style={{ margin: "0.2rem 0", color: "var(--color-muted)", fontSize: "0.85rem" }}>
+         Payment Status: <span style={{ color: "var(--color-white)" }}>{selectedOrder.payment_status || "Pending"}</span>
+        </p>
+        {selectedOrder.payment_id && (
+         <p style={{ margin: "0.2rem 0", color: "var(--color-muted)", fontSize: "0.85rem" }}>
+          Payment ID: <span style={{ color: "var(--color-white)", fontFamily: "monospace" }}>{selectedOrder.payment_id}</span>
+         </p>
+        )}
        </div>
-      </form>
+       <div style={{ textAlign: "right" }}>
+        <label style={{ display: "block", fontSize: "0.75rem", textTransform: "uppercase", color: "var(--color-gold)", marginBottom: "0.4rem" }}>
+         Order Status
+        </label>
+        <select
+         value={selectedOrder.status || "Processing"}
+         onChange={(e) => {
+          const newStatus = e.target.value;
+          handleUpdateOrderStatus(selectedOrder.id, newStatus);
+          setSelectedOrder(prev => ({ ...prev, status: newStatus }));
+         }}
+         style={{
+          backgroundColor: "#050505",
+          color:
+           selectedOrder.status === "Delivered"
+            ? "#10b981"
+            : selectedOrder.status === "Cancelled"
+              ? "#ef4444"
+              : selectedOrder.status === "Shipped"
+                ? "#3b82f6"
+                : "#c9a84c",
+          border: "1px solid rgba(255,255,255,0.08)",
+          borderRadius: "4px",
+          fontSize: "0.85rem",
+          padding: "6px 12px",
+          cursor: "pointer",
+         }}
+        >
+         <option value="Processing" style={{ backgroundColor: "#050505", color: "#c9a84c" }}>Processing</option>
+         <option value="Confirmed" style={{ backgroundColor: "#050505", color: "#c9a84c" }}>Confirmed</option>
+         <option value="Shipped" style={{ backgroundColor: "#050505", color: "#3b82f6" }}>Shipped</option>
+         <option value="Delivered" style={{ backgroundColor: "#050505", color: "#10b981" }}>Delivered</option>
+         <option value="Cancelled" style={{ backgroundColor: "#050505", color: "#ef4444" }}>Cancelled</option>
+        </select>
+       </div>
+      </div>
+
+      <div style={{ borderTop: "1px solid rgba(255,255,255,0.08)", borderBottom: "1px solid rgba(255,255,255,0.08)", padding: "1.5rem 0", marginBottom: "1.5rem" }}>
+       <h4 style={{ fontFamily: "var(--font-heading)", fontSize: "1.2rem", color: "var(--color-white)", fontWeight: 300, marginBottom: "1rem" }}>
+        Ordered Items
+       </h4>
+       <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+        {Array.isArray(selectedOrder.items) && selectedOrder.items.map((item, idx) => (
+         <div key={idx} style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+           <div style={{
+            width: "50px",
+            height: "50px",
+            backgroundColor: "rgba(255,255,255,0.02)",
+            border: "1px solid rgba(255,255,255,0.08)",
+            borderRadius: "6px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            overflow: "hidden"
+           }}>
+            {item.image ? (
+             <img src={item.image} alt={item.name} style={{ width: "90%", height: "90%", objectFit: "contain" }} />
+            ) : (
+             <span style={{ fontSize: "0.6rem", color: "var(--color-muted)" }}>No image</span>
+            )}
+           </div>
+           <div>
+            <span style={{ display: "block", color: "var(--color-white)", fontSize: "0.9rem", fontWeight: 500 }}>
+             {item.name || item.title || "Gourmet Offering"}
+            </span>
+            <span style={{ display: "block", color: "var(--color-muted)", fontSize: "0.8rem" }}>
+             {item.weight || item.variant || "Standard"} {item.flavor ? `• ${item.flavor}` : ""}
+            </span>
+           </div>
+          </div>
+          <div style={{ textAlign: "right" }}>
+           <span style={{ display: "block", color: "var(--color-white)", fontSize: "0.9rem" }}>
+            {item.quantity} x ₹{item.price}
+           </span>
+           <span style={{ display: "block", color: "var(--color-gold)", fontSize: "0.9rem", fontWeight: 600 }}>
+            ₹{(item.quantity * item.price).toLocaleString("en-IN")}
+           </span>
+          </div>
+         </div>
+        ))}
+       </div>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.5rem", marginBottom: "1.5rem" }}>
+       <div>
+        <h4 style={{ fontFamily: "var(--font-heading)", fontSize: "1.2rem", color: "var(--color-white)", fontWeight: 300, marginBottom: "0.8rem" }}>
+         Payment Details
+        </h4>
+        <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem", fontSize: "0.85rem" }}>
+         <div style={{ display: "flex", justifyContent: "space-between" }}>
+          <span style={{ color: "var(--color-muted)" }}>Subtotal</span>
+          <span style={{ color: "var(--color-white)" }}>₹{(selectedOrder.subtotal || 0).toLocaleString("en-IN")}</span>
+         </div>
+         {selectedOrder.discount > 0 && (
+          <div style={{ display: "flex", justifyContent: "space-between" }}>
+           <span style={{ color: "var(--color-muted)" }}>Coupon Discount</span>
+           <span style={{ color: "#ef4444" }}>-₹{(selectedOrder.discount).toLocaleString("en-IN")}</span>
+          </div>
+         )}
+         <div style={{ display: "flex", justifyContent: "space-between" }}>
+          <span style={{ color: "var(--color-muted)" }}>Shipping</span>
+          <span style={{ color: "var(--color-white)" }}>
+           {selectedOrder.shipping > 0 ? `₹${selectedOrder.shipping.toLocaleString("en-IN")}` : "Free"}
+          </span>
+         </div>
+         {selectedOrder.tax > 0 && (
+          <div style={{ display: "flex", justifyContent: "space-between" }}>
+           <span style={{ color: "var(--color-muted)" }}>GST/Tax</span>
+           <span style={{ color: "var(--color-white)" }}>₹{(selectedOrder.tax).toLocaleString("en-IN")}</span>
+          </div>
+         )}
+         {selectedOrder.cod_fee > 0 && (
+          <div style={{ display: "flex", justifyContent: "space-between" }}>
+           <span style={{ color: "var(--color-muted)" }}>COD Fee</span>
+           <span style={{ color: "var(--color-white)" }}>₹{(selectedOrder.cod_fee).toLocaleString("en-IN")}</span>
+          </div>
+         )}
+         <div style={{ display: "flex", justifyContent: "space-between", borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: "0.4rem", marginTop: "0.4rem", fontSize: "1.05rem", fontWeight: 600 }}>
+          <span style={{ color: "var(--color-white)" }}>Total Paid</span>
+          <span style={{ color: "var(--color-gold)" }}>₹{(selectedOrder.total || 0).toLocaleString("en-IN")}</span>
+         </div>
+        </div>
+       </div>
+
+       <div>
+        <h4 style={{ fontFamily: "var(--font-heading)", fontSize: "1.2rem", color: "var(--color-white)", fontWeight: 300, marginBottom: "0.8rem" }}>
+         Delivery Address
+        </h4>
+        {selectedOrder.shipping_address ? (
+         <div style={{ fontSize: "0.85rem", color: "var(--color-white)", display: "flex", flexDirection: "column", gap: "0.2rem" }}>
+          <strong>{selectedOrder.shipping_address.fullName}</strong>
+          <span>{selectedOrder.shipping_address.street} {selectedOrder.shipping_address.apartment ? `, ${selectedOrder.shipping_address.apartment}` : ""}</span>
+          <span>{selectedOrder.shipping_address.city}, {selectedOrder.shipping_address.state} - {selectedOrder.shipping_address.pincode}</span>
+          <span>{selectedOrder.shipping_address.country}</span>
+          <span style={{ color: "var(--color-muted)", marginTop: "0.4rem" }}>Phone: {selectedOrder.shipping_address.phone}</span>
+         </div>
+        ) : loadingAddresses ? (
+         <p style={{ fontSize: "0.85rem", color: "var(--color-muted)" }}>Loading delivery address...</p>
+        ) : selectedOrderAddresses.length > 0 ? (
+         <div style={{ fontSize: "0.85rem", color: "var(--color-white)", display: "flex", flexDirection: "column", gap: "0.2rem" }}>
+          <strong>{selectedOrderAddresses[0].name || selectedOrder.user_email}</strong>
+          <span>{selectedOrderAddresses[0].address}</span>
+          <span>{selectedOrderAddresses[0].city}{selectedOrderAddresses[0].state ? `, ${selectedOrderAddresses[0].state}` : ""} - {selectedOrderAddresses[0].pincode}</span>
+          <span>{selectedOrderAddresses[0].country || "India"}</span>
+          <span style={{ color: "var(--color-muted)", marginTop: "0.4rem" }}>Phone: {selectedOrderAddresses[0].phone || "N/A"}</span>
+         </div>
+        ) : (
+         <p style={{ fontSize: "0.85rem", color: "var(--color-muted)" }}>No delivery address recorded.</p>
+        )}
+       </div>
+      </div>
+
+      <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "1.5rem" }}>
+       <button
+        type="button"
+        className="btn btn-outline"
+        onClick={() => setSelectedOrder(null)}
+        style={{ width: "150px", height: "40px" }}
+       >
+        CLOSE
+       </button>
+      </div>
      </div>
     </div>
    )}
 
-   {confirmDialog && (
+    {confirmDialog && (
     <div
      style={{
       position: "fixed",

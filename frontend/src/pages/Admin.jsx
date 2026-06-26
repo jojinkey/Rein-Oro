@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useEffect, useContext, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext, CMSContext } from "../App.jsx";
 import { apiUrl } from "../config/api.js";
@@ -605,6 +605,197 @@ const toAdminNumber = (value, fallback = 0) => {
  return Number.isFinite(numeric) ? numeric : fallback;
 };
 
+const formatINR = (value) =>
+ `₹${Math.round(toAdminNumber(value, 0)).toLocaleString("en-IN")}`;
+
+const sumOrderTotals = (rows = []) =>
+ rows.reduce((sum, order) => sum + toAdminNumber(order?.total, 0), 0);
+
+const ADMIN_NOTIFICATION_SEEN_KEY = "rein_oro_admin_notifications_seen_at";
+const DASHBOARD_RANGES = {
+ "30d": { label: "Last 30 Days", days: 30 },
+ "7d": { label: "Last 7 Days", days: 7 },
+};
+const VISITOR_SOURCE_COLORS = [
+ "var(--color-gold)",
+ "var(--color-white)",
+ "rgba(255,255,255,0.3)",
+ "rgba(201,168,76,0.3)",
+ "#4cd964",
+ "#ff9500",
+];
+
+const getAdminTimestamp = (value) => {
+ if (!value) return 0;
+ if (typeof value === "number") return value;
+ if (typeof value?.toDate === "function") return value.toDate().getTime();
+ if (value?._seconds) return value._seconds * 1000;
+ const normalized = String(value).replace(" at ", " ");
+ const parsed = Date.parse(normalized);
+ return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const formatAdminTimestamp = (timestamp) => {
+ if (!timestamp) return "Just now";
+ return new Intl.DateTimeFormat("en-IN", {
+  dateStyle: "medium",
+  timeStyle: "short",
+ }).format(new Date(timestamp));
+};
+
+const formatSignedPercent = (value) => {
+ const numeric = toAdminNumber(value, 0);
+ return `${numeric >= 0 ? "+" : ""}${numeric}%`;
+};
+
+const formatDashboardDateRange = (rangeKey) => {
+ const days = DASHBOARD_RANGES[rangeKey]?.days || 30;
+ const end = new Date();
+ const start = new Date(end);
+ start.setDate(end.getDate() - (days - 1));
+ const formatter = new Intl.DateTimeFormat("en-IN", {
+  day: "2-digit",
+  month: "short",
+  year: "numeric",
+ });
+ return `${formatter.format(start)} - ${formatter.format(end)}`;
+};
+
+const getTrendType = (value) =>
+ toAdminNumber(value, 0) < 0 ? "negative" : "positive";
+
+const getSalesChartPoints = (series = [], metric = "revenue") => {
+ const rows = series.length
+  ? series
+  : [{ label: "No Data", revenue: 0, orders: 0 }];
+ const values = rows.map((row) => toAdminNumber(row?.[metric], 0));
+ const maxValue = Math.max(...values, 1);
+ const width = 460;
+ const xStart = 20;
+ const xGap = rows.length > 1 ? width / (rows.length - 1) : 0;
+ return rows.map((row, index) => {
+  const value = toAdminNumber(row?.[metric], 0);
+  return {
+   label: row.label,
+   value,
+   x: xStart + index * xGap,
+   y: 160 - (value / maxValue) * 110,
+  };
+ });
+};
+
+const getLinePath = (points = []) =>
+ points
+  .map((point, index) => `${index === 0 ? "M" : "L"} ${point.x},${point.y}`)
+  .join(" ");
+
+const getAreaPath = (points = []) => {
+ if (!points.length) return "";
+ return `${getLinePath(points)} L ${points[points.length - 1].x},160 L ${points[0].x},160 Z`;
+};
+
+const getVisitorRingSegments = (sources = []) => {
+ const circumference = 345;
+ let offset = 86;
+ return sources.slice(0, 6).map((source, index) => {
+  const arc = Math.max(0, (toAdminNumber(source.percent, 0) / 100) * circumference);
+  const segment = {
+   ...source,
+   color: VISITOR_SOURCE_COLORS[index % VISITOR_SOURCE_COLORS.length],
+   dasharray: `${arc} ${circumference}`,
+   dashoffset: offset,
+  };
+  offset -= arc;
+  return segment;
+ });
+};
+
+const getCmsPageFieldCount = (cmsContent, pageName) =>
+ Object.keys(cmsContent?.[pageName] || {}).length;
+
+const getOrderItemLabel = (order = {}) => {
+ const items = Array.isArray(order.items) ? order.items : [];
+ if (!items.length) return "items";
+ const first = items[0]?.name || "item";
+ if (items.length === 1) return first;
+ return `${first} +${items.length - 1} more`;
+};
+
+const getNotificationIconText = (item) => {
+ if (item.kind === "payment") return "Rs";
+ if (item.kind === "order") return "#";
+ if (item.kind === "enquiry") return "!";
+ return "i";
+};
+
+const buildAdminNotifications = (orders = [], activity = []) => {
+ const orderNotifications = [];
+
+ for (const order of orders || []) {
+  const orderId = order.id || "unknown";
+  const timestamp =
+   getAdminTimestamp(order.paid_at) ||
+   getAdminTimestamp(order.created_at) ||
+   getAdminTimestamp(order.date) ||
+   getAdminTimestamp(order.firestore_updated_at);
+  const amount = formatINR(order.total);
+  const customer = order.user_email || "Customer";
+  const paymentStatus = String(order.payment_status || "").toLowerCase();
+  const isPaid = paymentStatus === "paid" || Boolean(order.payment_id);
+
+  orderNotifications.push({
+   key: `order-${orderId}-${timestamp || order.date || ""}`,
+   kind: "order",
+   type: isPaid ? "success" : "warning",
+   title: `New order #${orderId}`,
+   text: `${customer} ordered ${getOrderItemLabel(order)} for ${amount}.`,
+   time: formatAdminTimestamp(timestamp),
+   timestampMs: timestamp,
+  });
+
+  orderNotifications.push({
+   key: `payment-${order.payment_id || orderId}-${timestamp || order.date || ""}`,
+   kind: "payment",
+   type: isPaid ? "success" : "warning",
+   title: isPaid ? "Payment received" : "Payment pending",
+   text: isPaid
+    ? `${amount} Razorpay payment confirmed for order #${orderId}.`
+    : `Order #${orderId} is waiting for verified Razorpay payment.`,
+   time: formatAdminTimestamp(timestamp),
+   timestampMs: timestamp,
+  });
+ }
+
+ const activityNotifications = (activity || [])
+  .filter((item) => item?.type !== "order")
+  .map((item) => {
+   const timestamp = getAdminTimestamp(item.created_at);
+   const isEnquiry = item.type === "enquiry";
+   const isNewsletter = item.type === "newsletter";
+   return {
+    key: `activity-${item.type}-${item.id || item.actor || timestamp}`,
+    kind: item.type || "activity",
+    type: isEnquiry ? "warning" : "info",
+    title: isEnquiry
+     ? "New enquiry"
+     : isNewsletter
+       ? "Newsletter signup"
+       : "Admin activity",
+    text: isEnquiry
+     ? `${item.actor || "Customer"} asked about ${item.value || "an enquiry"}.`
+     : isNewsletter
+       ? `${item.actor || "Customer"} subscribed to newsletter.`
+       : `${item.actor || "Admin"} updated ${item.value || "activity"}.`,
+    time: formatAdminTimestamp(timestamp),
+    timestampMs: timestamp,
+   };
+  });
+
+ return [...orderNotifications, ...activityNotifications]
+  .sort((a, b) => b.timestampMs - a.timestampMs)
+  .slice(0, 12);
+};
+
 const slugifyProduct = (value) =>
  String(value || "")
   .trim()
@@ -644,7 +835,7 @@ const normalizeVariantRows = (prod = {}) => {
 };
 
 export default function Admin() {
-  const { user, login, logout } = useContext(AuthContext);
+ const { user, login, logout } = useContext(AuthContext);
  const { cmsContent, cmsStyles, fetchCMSData, getCMSValue } =
   useContext(CMSContext);
  const navigate = useNavigate();
@@ -657,10 +848,21 @@ export default function Admin() {
  // CMS Panel States
  const [activePanel, setActivePanel] = useState("overview");
  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+ const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+ const [dashboardRange, setDashboardRange] = useState("30d");
+ const [visitorRange, setVisitorRange] = useState("30d");
+ const [salesMetric, setSalesMetric] = useState("revenue");
+ const [notificationsSeenAt, setNotificationsSeenAt] = useState(() => {
+  const stored = Number(
+   window.localStorage.getItem(ADMIN_NOTIFICATION_SEEN_KEY),
+  );
+  return Number.isFinite(stored) ? stored : 0;
+ });
 
  const handlePanelSelect = (panelId) => {
   setActivePanel(panelId);
   setIsSidebarOpen(false);
+  setIsNotificationsOpen(false);
  };
  const [products, setProducts] = useState([]);
  const [orders, setOrders] = useState([]);
@@ -841,11 +1043,17 @@ export default function Admin() {
    .then((data) => setShippingSettings(data))
    .catch((err) => console.error(err));
  };
-  const fetchGatewaySettings = () => {
-   fetch("/api/settings/gateway", { headers: getAuthHeaders() })
-    .then((res) => res.json())
-    .then((data) => setGatewaySettings(data))
-    .catch((err) => console.error(err));
+ const fetchGatewaySettings = () => {
+  fetch("/api/settings/gateway", { headers: getAuthHeaders() })
+   .then((res) => res.json())
+   .then((data) => setGatewaySettings(data))
+   .catch((err) => console.error(err));
+ };
+ const fetchOrders = () => {
+  fetch("/api/orders")
+   .then((res) => res.json())
+   .then((data) => setOrders(Array.isArray(data) ? data : []))
+   .catch((err) => console.error(err));
  };
  const fetchOwnerDashboard = () => {
   fetch("/api/owner/dashboard")
@@ -887,11 +1095,7 @@ export default function Admin() {
    .then((data) => setProducts(data))
    .catch((err) => console.error(err));
 
-  // Fetch all orders
-  fetch("/api/orders")
-   .then((res) => res.json())
-   .then((data) => setOrders(data))
-   .catch((err) => console.error(err));
+  fetchOrders();
 
   fetchCategories();
   fetchBanners();
@@ -918,6 +1122,15 @@ export default function Admin() {
    }));
   }
  }, [isAdminLoggedIn, cmsStyles]);
+
+ useEffect(() => {
+  if (!isAdminLoggedIn) return undefined;
+  const timer = window.setInterval(() => {
+   fetchOrders();
+   fetchOwnerDashboard();
+  }, 15000);
+  return () => window.clearInterval(timer);
+ }, [isAdminLoggedIn]);
 
  // Setup Page Content form values
  useEffect(() => {
@@ -1830,6 +2043,58 @@ export default function Admin() {
    );
   };
 
+ const notificationItems = useMemo(
+  () => buildAdminNotifications(orders, ownerDashboard?.activity || []),
+  [orders, ownerDashboard],
+ );
+ const latestNotificationAt = notificationItems[0]?.timestampMs || 0;
+ const unreadNotificationCount = notificationItems.filter(
+  (item) => item.timestampMs > notificationsSeenAt,
+ ).length;
+
+ const markNotificationsRead = () => {
+  if (!latestNotificationAt) return;
+  setNotificationsSeenAt(latestNotificationAt);
+  window.localStorage.setItem(
+   ADMIN_NOTIFICATION_SEEN_KEY,
+   String(latestNotificationAt),
+  );
+ };
+
+ const handleNotificationBellClick = () => {
+  setIsNotificationsOpen((open) => !open);
+  if (!isNotificationsOpen) {
+   markNotificationsRead();
+  }
+ };
+
+ const handleNotificationItemClick = (item) => {
+  setIsNotificationsOpen(false);
+  if (item.kind === "order" || item.kind === "payment") {
+   setActivePanel("orders");
+   return;
+  }
+  if (item.kind === "enquiry") {
+   setActivePanel("enquiries");
+   return;
+  }
+  if (item.kind === "newsletter") {
+   setActivePanel("newsletter");
+  }
+ };
+
+ const activeTrends = ownerDashboard?.trends?.[dashboardRange] || {};
+ const salesSeries = ownerDashboard?.sales_series?.[dashboardRange] || [];
+ const salesChartPoints = getSalesChartPoints(salesSeries, salesMetric);
+ const visitorStats = ownerDashboard?.visitors?.[visitorRange] || {
+  total: 0,
+  previous: 0,
+  change: 0,
+  sources: [],
+ };
+ const visitorSegments = getVisitorRingSegments(visitorStats.sources || []);
+ const kpiComparisonLabel = `vs previous ${DASHBOARD_RANGES[dashboardRange]?.days || 30} days`;
+
  const getPanelTitle = (panel) => {
   const titles = {
    overview: "Dashboard",
@@ -2030,10 +2295,68 @@ export default function Admin() {
        />
       </div>
 
-      <button className="admin-dash-bell-btn">
-       <IconBell />
-       <span className="admin-dash-bell-badge">5</span>
-      </button>
+      <div className="admin-dash-notification-wrap">
+       <button
+        type="button"
+        className={`admin-dash-bell-btn ${isNotificationsOpen ? "active" : ""}`}
+        aria-label="Open live notifications"
+        aria-haspopup="menu"
+        aria-expanded={isNotificationsOpen}
+        onClick={handleNotificationBellClick}
+       >
+        <IconBell />
+        {unreadNotificationCount > 0 && (
+         <span className="admin-dash-bell-badge">
+          {unreadNotificationCount > 9 ? "9+" : unreadNotificationCount}
+         </span>
+        )}
+       </button>
+
+       {isNotificationsOpen && (
+        <div className="admin-dash-notification-panel" role="menu">
+         <div className="admin-dash-notification-head">
+          <div>
+           <span className="admin-dash-notification-title">
+            Live Notifications
+           </span>
+           <span className="admin-dash-notification-subtitle">
+            Orders, payments, enquiries
+           </span>
+          </div>
+          <span className="admin-dash-notification-live">Live</span>
+         </div>
+
+         <div className="admin-dash-notification-list">
+          {notificationItems.length === 0 ? (
+           <div className="admin-dash-notification-empty">
+            No live notifications yet.
+           </div>
+          ) : (
+           notificationItems.map((item) => (
+            <button
+             type="button"
+             key={item.key}
+             className="admin-dash-notification-item"
+             role="menuitem"
+             onClick={() => handleNotificationItemClick(item)}
+            >
+             <span
+              className={`admin-dash-notification-icon ${item.type === "success" ? "success" : item.type === "warning" ? "warning" : ""}`}
+             >
+              {getNotificationIconText(item)}
+             </span>
+             <span className="admin-dash-notification-copy">
+              <strong>{item.title}</strong>
+              <span>{item.text}</span>
+              <small>{item.time}</small>
+             </span>
+            </button>
+           ))
+          )}
+         </div>
+        </div>
+       )}
+      </div>
 
       <div className="admin-dash-profile">
        <img
@@ -2066,7 +2389,18 @@ export default function Admin() {
        >
         <div className="admin-dash-date-picker">
          <IconCalendar />
-         <span>May 12, 2026 - Jun 10, 2026</span>
+         <select
+          className="admin-dash-select-filter"
+          value={dashboardRange}
+          onChange={(e) => setDashboardRange(e.target.value)}
+         >
+          {Object.entries(DASHBOARD_RANGES).map(([value, range]) => (
+           <option key={value} value={value}>
+            {range.label}
+           </option>
+          ))}
+         </select>
+         <span>{formatDashboardDateRange(dashboardRange)}</span>
         </div>
        </div>
 
@@ -2082,14 +2416,16 @@ export default function Admin() {
          <div className="admin-dash-kpi-body">
           <div className="admin-dash-kpi-value-row">
            <h4 className="admin-dash-kpi-value">
-            {orders.length > 0 ? orders.length : "1,248"}
-           </h4>
-           <span className="admin-dash-kpi-trend positive">
+             {ownerDashboard?.kpis?.total_orders ?? orders.length}
+            </h4>
+           <span
+            className={`admin-dash-kpi-trend ${getTrendType(activeTrends.orders?.change)}`}
+           >
             <IconTrendingUp />
-            18.5%
+            {formatSignedPercent(activeTrends.orders?.change)}
            </span>
           </div>
-          <p className="admin-dash-kpi-comparison">vs Apr 12 - May 11, 2026</p>
+          <p className="admin-dash-kpi-comparison">{kpiComparisonLabel}</p>
          </div>
         </div>
 
@@ -2104,16 +2440,16 @@ export default function Admin() {
          <div className="admin-dash-kpi-body">
           <div className="admin-dash-kpi-value-row">
            <h4 className="admin-dash-kpi-value">
-            {orders.length > 0
-             ? `₹${orders.reduce((sum, o) => sum + o.total, 0).toLocaleString("en-IN")}`
-             : "₹24,85,760"}
-           </h4>
-           <span className="admin-dash-kpi-trend positive">
+             {formatINR(ownerDashboard?.kpis?.revenue ?? sumOrderTotals(orders))}
+            </h4>
+           <span
+            className={`admin-dash-kpi-trend ${getTrendType(activeTrends.revenue?.change)}`}
+           >
             <IconTrendingUp />
-            22.7%
+            {formatSignedPercent(activeTrends.revenue?.change)}
            </span>
           </div>
-          <p className="admin-dash-kpi-comparison">vs Apr 12 - May 11, 2026</p>
+          <p className="admin-dash-kpi-comparison">{kpiComparisonLabel}</p>
          </div>
         </div>
 
@@ -2128,14 +2464,16 @@ export default function Admin() {
          <div className="admin-dash-kpi-body">
           <div className="admin-dash-kpi-value-row">
            <h4 className="admin-dash-kpi-value">
-            {ownerDashboard?.kpis?.customers ?? usersList.length ?? "2,350"}
-           </h4>
-           <span className="admin-dash-kpi-trend positive">
+             {ownerDashboard?.kpis?.customers ?? usersList.length}
+            </h4>
+           <span
+            className={`admin-dash-kpi-trend ${getTrendType(activeTrends.customers?.change)}`}
+           >
             <IconTrendingUp />
-            16.3%
+            {formatSignedPercent(activeTrends.customers?.change)}
            </span>
           </div>
-          <p className="admin-dash-kpi-comparison">vs Apr 12 - May 11, 2026</p>
+          <p className="admin-dash-kpi-comparison">{kpiComparisonLabel}</p>
          </div>
         </div>
 
@@ -2150,14 +2488,16 @@ export default function Admin() {
          <div className="admin-dash-kpi-body">
           <div className="admin-dash-kpi-value-row">
            <h4 className="admin-dash-kpi-value">
-            {products.length > 0 ? products.length : "186"}
-           </h4>
-           <span className="admin-dash-kpi-trend positive">
+             {products.length}
+            </h4>
+           <span
+            className={`admin-dash-kpi-trend ${getTrendType(activeTrends.products?.change)}`}
+           >
             <IconTrendingUp />
-            8.2%
+            {formatSignedPercent(activeTrends.products?.change)}
            </span>
           </div>
-          <p className="admin-dash-kpi-comparison">vs Apr 12 - May 11, 2026</p>
+          <p className="admin-dash-kpi-comparison">{kpiComparisonLabel}</p>
          </div>
         </div>
 
@@ -2168,7 +2508,7 @@ export default function Admin() {
         >
          <div className="admin-dash-kpi-header">
           <span className="admin-dash-kpi-title" style={{ fontSize: "0.6rem" }}>
-           Active Coupons
+           Product Reviews
           </span>
           <div
            className="admin-dash-kpi-icon-wrapper"
@@ -2180,20 +2520,20 @@ export default function Admin() {
          <div className="admin-dash-kpi-body" style={{ marginTop: "0.5rem" }}>
           <div className="admin-dash-kpi-value-row" style={{ gap: "0.3rem" }}>
            <h4 className="admin-dash-kpi-value" style={{ fontSize: "1.4rem" }}>
-            {ownerDashboard?.kpis?.reviews ?? 12}
+            {ownerDashboard?.kpis?.reviews ?? 0}
            </h4>
            <span
-            className="admin-dash-kpi-trend positive"
+            className={`admin-dash-kpi-trend ${getTrendType(activeTrends.reviews?.change)}`}
             style={{ fontSize: "0.65rem" }}
            >
-            +2
+            {formatSignedPercent(activeTrends.reviews?.change)}
            </span>
           </div>
           <p
            className="admin-dash-kpi-comparison"
            style={{ fontSize: "0.6rem", marginTop: "0.2rem" }}
           >
-           Product reviews stored
+           {ownerDashboard?.kpis?.pending_reviews ?? 0} pending reviews
           </p>
          </div>
         </div>
@@ -2207,13 +2547,29 @@ export default function Admin() {
           <h3 className="admin-dash-widget-title">Sales Overview</h3>
           <div className="admin-dash-widget-header-actions">
            <div className="admin-dash-chart-tabs">
-            <button className="admin-dash-chart-tab active">Revenue</button>
-            <button className="admin-dash-chart-tab">Orders</button>
+            <button
+             className={`admin-dash-chart-tab ${salesMetric === "revenue" ? "active" : ""}`}
+             onClick={() => setSalesMetric("revenue")}
+            >
+             Revenue
+            </button>
+            <button
+             className={`admin-dash-chart-tab ${salesMetric === "orders" ? "active" : ""}`}
+             onClick={() => setSalesMetric("orders")}
+            >
+             Orders
+            </button>
            </div>
-           <select className="admin-dash-select-filter">
-            <option>Last 30 Days</option>
-            <option>Last 6 Months</option>
-            <option>Last Year</option>
+           <select
+            className="admin-dash-select-filter"
+            value={dashboardRange}
+            onChange={(e) => setDashboardRange(e.target.value)}
+           >
+            {Object.entries(DASHBOARD_RANGES).map(([value, range]) => (
+             <option key={value} value={value}>
+              {range.label}
+             </option>
+            ))}
            </select>
           </div>
          </div>
@@ -2271,123 +2627,50 @@ export default function Admin() {
             stroke="rgba(255,255,255,0.02)"
            />
 
-           <path
-            d="M 20,160 L 20,130 C 60,110 80,140 120,130 C 160,120 180,70 220,95 C 260,120 280,105 320,80 C 360,55 380,130 420,110 C 460,90 480,50 480,50 L 480,160 Z"
-            fill="url(#chartGlow)"
-           />
+           <path d={getAreaPath(salesChartPoints)} fill="url(#chartGlow)" />
 
            <path
-            d="M 20,130 C 60,110 80,140 120,130 C 160,120 180,70 220,95 C 260,120 280,105 320,80 C 360,55 380,130 420,110 C 460,90 480,50 480,50"
+            d={getLinePath(salesChartPoints)}
             fill="none"
             stroke="url(#lineGrad)"
             strokeWidth="3"
             strokeLinecap="round"
+            strokeLinejoin="round"
            />
 
-           <circle
-            cx="20"
-            cy="130"
-            r="4"
-            fill="var(--color-gold)"
-            stroke="#050505"
-            strokeWidth="2"
-           />
-           <circle
-            cx="120"
-            cy="130"
-            r="4"
-            fill="var(--color-gold)"
-            stroke="#050505"
-            strokeWidth="2"
-           />
-           <circle
-            cx="220"
-            cy="95"
-            r="4"
-            fill="var(--color-gold)"
-            stroke="#050505"
-            strokeWidth="2"
-           />
-           <circle
-            cx="320"
-            cy="80"
-            r="4"
-            fill="var(--color-gold)"
-            stroke="#050505"
-            strokeWidth="2"
-           />
-           <circle
-            cx="420"
-            cy="110"
-            r="4"
-            fill="var(--color-gold)"
-            stroke="#050505"
-            strokeWidth="2"
-           />
-           <circle
-            cx="480"
-            cy="50"
-            r="5"
-            fill="var(--color-white)"
-            stroke="var(--color-gold)"
-            strokeWidth="2"
-            style={{ filter: "drop-shadow(0 0 5px var(--color-gold))" }}
-           />
+           {salesChartPoints.map((point, index) => (
+            <circle
+             key={`${point.label}-${index}`}
+             cx={point.x}
+             cy={point.y}
+             r={index === salesChartPoints.length - 1 ? 5 : 4}
+             fill={
+              index === salesChartPoints.length - 1
+               ? "var(--color-white)"
+               : "var(--color-gold)"
+             }
+             stroke="var(--color-gold)"
+             strokeWidth="2"
+             style={
+              index === salesChartPoints.length - 1
+               ? { filter: "drop-shadow(0 0 5px var(--color-gold))" }
+               : undefined
+             }
+            />
+           ))}
 
-           <text
-            x="20"
-            y="185"
-            fill="var(--color-muted)"
-            fontSize="9"
-            textAnchor="middle"
-           >
-            May 12
-           </text>
-           <text
-            x="120"
-            y="185"
-            fill="var(--color-muted)"
-            fontSize="9"
-            textAnchor="middle"
-           >
-            May 20
-           </text>
-           <text
-            x="220"
-            y="185"
-            fill="var(--color-muted)"
-            fontSize="9"
-            textAnchor="middle"
-           >
-            May 28
-           </text>
-           <text
-            x="320"
-            y="185"
-            fill="var(--color-muted)"
-            fontSize="9"
-            textAnchor="middle"
-           >
-            Jun 01
-           </text>
-           <text
-            x="420"
-            y="185"
-            fill="var(--color-muted)"
-            fontSize="9"
-            textAnchor="middle"
-           >
-            Jun 05
-           </text>
-           <text
-            x="480"
-            y="185"
-            fill="var(--color-muted)"
-            fontSize="9"
-            textAnchor="middle"
-           >
-            Jun 10
-           </text>
+           {salesChartPoints.map((point, index) => (
+            <text
+             key={`${point.label}-label-${index}`}
+             x={point.x}
+             y="185"
+             fill="var(--color-muted)"
+             fontSize="9"
+             textAnchor="middle"
+            >
+             {point.label}
+            </text>
+           ))}
           </svg>
          </div>
         </div>
@@ -2405,20 +2688,19 @@ export default function Admin() {
           </button>
          </div>
          <div className="admin-dash-product-list">
-          {products.slice(0, 5).map((prod, index) => {
-           const mockSales = [256, 189, 145, 132, 98];
-           const mockRevenues = [
-            "₹2,56,000",
-            "₹1,89,000",
-            "₹1,45,000",
-            "₹1,32,000",
-            "₹98,000",
-           ];
-           return (
-            <div className="admin-dash-product-item" key={prod.id}>
+          {(ownerDashboard?.top_products || []).length === 0 ? (
+           <p style={{ color: "var(--color-muted)", fontSize: "0.78rem" }}>
+            No paid product sales yet.
+           </p>
+          ) : (
+           ownerDashboard.top_products.slice(0, 5).map((prod) => (
+            <div
+             className="admin-dash-product-item"
+             key={prod.product_id || prod.name}
+            >
              <div className="admin-dash-prod-left">
               <div className="admin-dash-prod-img-wrapper">
-               <img src={prod.image} alt={prod.title} />
+               <img src={prod.image} alt={prod.name} />
               </div>
               <div className="admin-dash-prod-info">
                <span className="admin-dash-prod-name">{prod.name}</span>
@@ -2427,15 +2709,15 @@ export default function Admin() {
              </div>
              <div className="admin-dash-prod-stats">
               <span className="admin-dash-prod-orders">
-               {mockSales[index] || 80} orders
+               {prod.units_sold || 0} units
               </span>
               <span className="admin-dash-prod-revenue">
-               {mockRevenues[index] || "₹75,000"}
+               {formatINR(prod.revenue)}
               </span>
              </div>
             </div>
-           );
-          })}
+           ))
+          )}
          </div>
         </div>
        </div>
@@ -2465,8 +2747,8 @@ export default function Admin() {
              <th>Page Title</th>
              <th>Type</th>
              <th>Status</th>
-             <th>Last Updated</th>
-             <th>Updated By</th>
+             <th>CMS Data</th>
+             <th>Source</th>
              <th style={{ textAlign: "right" }}>Actions</th>
             </tr>
            </thead>
@@ -2476,22 +2758,16 @@ export default function Admin() {
               title: "Home Page",
               file: "index.html",
               type: "Landing Page",
-              date: "Jun 10, 2026",
-              user: "Admin User",
              },
              {
               title: "About Us",
               file: "about.html",
               type: "Static Page",
-              date: "Jun 09, 2026",
-              user: "Admin User",
              },
              {
               title: "Contact Rein Oro Foods",
               file: "contact.html",
               type: "Static Page",
-              date: "Jun 08, 2026",
-              user: "Admin User",
              },
             ].map((pg) => (
              <tr key={pg.file}>
@@ -2502,8 +2778,12 @@ export default function Admin() {
                 Published
                </span>
               </td>
-              <td>{pg.date}</td>
-              <td>{pg.user}</td>
+              <td>
+               {getCmsPageFieldCount(cmsContent, pg.file) > 0
+                ? `${getCmsPageFieldCount(cmsContent, pg.file)} live fields`
+                : "Default content"}
+              </td>
+              <td>CMS</td>
               <td style={{ textAlign: "right" }}>
                <div className="admin-dash-action-btn-row">
                 <button
@@ -2529,9 +2809,16 @@ export default function Admin() {
         <div className="admin-dash-widget-box">
          <div className="admin-dash-widget-header">
           <h3 className="admin-dash-widget-title">Website Visitors</h3>
-          <select className="admin-dash-select-filter">
-           <option>Last 30 Days</option>
-           <option>Last Week</option>
+          <select
+           className="admin-dash-select-filter"
+           value={visitorRange}
+           onChange={(e) => setVisitorRange(e.target.value)}
+          >
+           {Object.entries(DASHBOARD_RANGES).map(([value, range]) => (
+            <option key={value} value={value}>
+             {range.label}
+            </option>
+           ))}
           </select>
          </div>
 
@@ -2569,50 +2856,34 @@ export default function Admin() {
             strokeWidth="14"
            />
 
-           <circle
-            cx="80"
-            cy="80"
-            r="55"
-            fill="transparent"
-            stroke="url(#donutGold)"
-            strokeWidth="15"
-            strokeDasharray="128 345"
-            strokeDashoffset="86"
-            strokeLinecap="round"
-           />
-           <circle
-            cx="80"
-            cy="80"
-            r="55"
-            fill="transparent"
-            stroke="url(#donutWhite)"
-            strokeWidth="13"
-            strokeDasharray="117 345"
-            strokeDashoffset="-42"
-            strokeLinecap="round"
-           />
-           <circle
-            cx="80"
-            cy="80"
-            r="55"
-            fill="transparent"
-            stroke="rgba(255,255,255,0.12)"
-            strokeWidth="11"
-            strokeDasharray="65 345"
-            strokeDashoffset="-159"
-            strokeLinecap="round"
-           />
-           <circle
-            cx="80"
-            cy="80"
-            r="55"
-            fill="transparent"
-            stroke="rgba(201,168,76,0.2)"
-            strokeWidth="9"
-            strokeDasharray="35 345"
-            strokeDashoffset="-224"
-            strokeLinecap="round"
-           />
+           {visitorSegments.length === 0 ? (
+            <circle
+             cx="80"
+             cy="80"
+             r="55"
+             fill="transparent"
+             stroke="rgba(201,168,76,0.22)"
+             strokeWidth="15"
+             strokeDasharray="20 345"
+             strokeDashoffset="86"
+             strokeLinecap="round"
+            />
+           ) : (
+            visitorSegments.map((segment, index) => (
+             <circle
+              key={segment.source}
+              cx="80"
+              cy="80"
+              r="55"
+              fill="transparent"
+              stroke={segment.color}
+              strokeWidth={15 - Math.min(index, 4)}
+              strokeDasharray={segment.dasharray}
+              strokeDashoffset={segment.dashoffset}
+              strokeLinecap="round"
+             />
+            ))
+           )}
            <text
             x="80"
             y="76"
@@ -2621,7 +2892,7 @@ export default function Admin() {
             fontWeight="bold"
             textAnchor="middle"
            >
-            12,580
+            {visitorStats.total.toLocaleString("en-IN")}
            </text>
            <text
             x="80"
@@ -2633,49 +2904,39 @@ export default function Admin() {
            >
             TOTAL VISITORS
            </text>
+           <text
+            x="80"
+            y="106"
+            fill={visitorStats.change >= 0 ? "#4cd964" : "#ff5050"}
+            fontSize="8"
+            fontWeight="bold"
+            textAnchor="middle"
+           >
+            {formatSignedPercent(visitorStats.change)}
+           </text>
           </svg>
 
           <div
            className="admin-dash-donut-legend"
            style={{ width: "100%", marginTop: "1.5rem" }}
           >
-           {[
-            {
-             label: "Direct",
-             val: "4,650",
-             pct: "37%",
-             color: "var(--color-gold)",
-            },
-            {
-             label: "Organic Search",
-             val: "4,220",
-             pct: "34%",
-             color: "var(--color-white)",
-            },
-            {
-             label: "Social Media",
-             val: "2,350",
-             pct: "19%",
-             color: "rgba(255,255,255,0.3)",
-            },
-            {
-             label: "Referral",
-             val: "1,360",
-             pct: "10%",
-             color: "rgba(201,168,76,0.3)",
-            },
-           ].map((leg) => (
-            <div className="admin-dash-legend-item" key={leg.label}>
+           {(visitorSegments.length
+            ? visitorSegments
+            : [{ source: "No visits yet", count: 0, percent: 0, color: "rgba(255,255,255,0.18)" }]
+           ).map((leg) => (
+            <div className="admin-dash-legend-item" key={leg.source}>
              <div className="admin-dash-legend-label">
               <span
                className="admin-dash-legend-dot"
                style={{ backgroundColor: leg.color }}
               />
-              {leg.label}
+              {leg.source}
              </div>
              <div className="admin-dash-legend-value">
-              {leg.val}{" "}
-              <span className="admin-dash-legend-percent">({leg.pct})</span>
+              {Number(leg.count || 0).toLocaleString("en-IN")}{" "}
+              <span className="admin-dash-legend-percent">
+               ({leg.percent || 0}%)
+              </span>
              </div>
             </div>
            ))}
@@ -2694,45 +2955,25 @@ export default function Admin() {
           <h3 className="admin-dash-widget-title">Recent Activity</h3>
          </div>
          <div className="admin-dash-activity-list">
-          {[
-           {
-            text: "New order #ORD1258 received from customer (Saffron Makhana)",
-            time: "10 Jun, 2026 11:25 AM",
-            type: "success",
-           },
-           {
-            text: 'Page "About Us" updated by Admin User',
-            time: "10 Jun, 2026 11:10 AM",
-            type: "info",
-           },
-           {
-            text: "New customer John Doe registered",
-            time: "10 Jun, 2026 10:45 AM",
-            type: "success",
-           },
-           {
-            text: 'Banner "Summer Sale" published',
-            time: "10 Jun, 2026 09:30 AM",
-            type: "warning",
-           },
-           {
-            text: 'Product "Premium Pistachios" updated by Admin User',
-            time: "10 Jun, 2026 09:15 AM",
-            type: "info",
-           },
-          ].map((act, index) => (
-           <div className="admin-dash-activity-item" key={index}>
+          {notificationItems.length === 0 ? (
+           <p style={{ color: "var(--color-muted)", fontSize: "0.78rem" }}>
+            No live activity yet.
+           </p>
+          ) : (
+           notificationItems.slice(0, 8).map((act) => (
+           <div className="admin-dash-activity-item" key={act.key}>
             <div
              className={`admin-dash-activity-icon-wrapper ${act.type === "success" ? "success" : act.type === "warning" ? "warning" : ""}`}
             >
-             {act.type === "success" ? "✓" : act.type === "warning" ? "!" : "i"}
+             {getNotificationIconText(act)}
             </div>
             <div className="admin-dash-activity-details">
              <span className="admin-dash-activity-text">{act.text}</span>
              <span className="admin-dash-activity-time">{act.time}</span>
             </div>
            </div>
-          ))}
+           ))
+          )}
          </div>
         </div>
        </div>
@@ -3328,18 +3569,20 @@ export default function Admin() {
           <tr>
            <th>Order ID</th>
            <th>Customer Email</th>
-           <th>Date</th>
-           <th>Payment Method</th>
-           <th>Subtotal</th>
-           <th>Total Paid</th>
-           <th>Status</th>
+            <th>Date</th>
+            <th>Payment Method</th>
+            <th>Payment Status</th>
+            <th>Payment ID</th>
+            <th>Subtotal</th>
+            <th>Total Paid</th>
+            <th>Status</th>
           </tr>
          </thead>
          <tbody>
           {orders.length === 0 ? (
            <tr>
             <td
-             colSpan="7"
+              colSpan="9"
              style={{
               textAlign: "center",
               padding: "3rem",
@@ -3355,10 +3598,14 @@ export default function Admin() {
              <td className="highlight" style={{ fontFamily: "monospace" }}>
               #{o.id}
              </td>
-             <td>{o.user_email}</td>
-             <td>{o.date}</td>
-             <td>{o.payment_method}</td>
-             <td>₹{o.subtotal}</td>
+              <td>{o.user_email}</td>
+              <td>{o.date}</td>
+              <td>{o.payment_method}</td>
+              <td>{o.payment_status || "Pending"}</td>
+              <td style={{ fontFamily: "monospace", fontSize: "0.72rem" }}>
+               {o.payment_id || "-"}
+              </td>
+              <td>₹{o.subtotal}</td>
              <td style={{ color: "var(--color-gold)", fontWeight: 600 }}>
               ₹{o.total}
              </td>
@@ -5117,12 +5364,7 @@ export default function Admin() {
          {firestoreStatus?.message || "Checking sync status..."}
         </div>
 
-        {[
-         "Cash on Delivery (COD)",
-         "UPI / NetBanking",
-         "Credit / Debit Card",
-         "Razorpay (Online Payment)",
-        ].map((methodName) => (
+        {["Razorpay (Online Payment)"].map((methodName) => (
          <label
           key={methodName}
           className="checkbox-label"

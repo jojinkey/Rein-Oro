@@ -81,11 +81,11 @@ export default function Confirmation() {
        </div>
        <div>
         <span className="label">Estimated Delivery:</span>
-        <span className="value">{order.estDelivery}</span>
+        <span className="value">{order.estDelivery || order.est_delivery}</span>
        </div>
        <div>
         <span className="label">Payment Method:</span>
-        <span className="value">{order.paymentMethod}</span>
+        <span className="value">{order.paymentMethod || order.payment_method}</span>
        </div>
        <button
         className="btn btn-outline"

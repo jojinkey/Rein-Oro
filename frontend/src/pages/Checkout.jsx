@@ -52,11 +52,7 @@ export default function Checkout() {
   saveAddress: false,
  });
  const [deliveryMethod, setDeliveryMethod] = useState("standard");
- const [paymentMethod, setPaymentMethod] = useState("upi");
- const [enabledPayments, setEnabledPayments] = useState({});
- const [showMockPaymentModal, setShowMockPaymentModal] = useState(false);
- const [mockOrderPayload, setMockOrderPayload] = useState(null);
- const [mockPaymentMeta, setMockPaymentMeta] = useState(null);
+ const paymentMethod = "razorpay";
  const [agreed, setAgreed] = useState(false);
  const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -65,27 +61,6 @@ export default function Checkout() {
    setFormData((prev) => ({ ...prev, email: user.email }));
   }
  }, [user]);
-
- React.useEffect(() => {
-  fetch(apiUrl("/api/settings/payment"))
-   .then((res) => res.json())
-   .then((data) => {
-    setEnabledPayments(data);
-    const keys = Object.keys(data);
-    const hasSettings = keys.length > 0;
-    // Prefer Razorpay when explicit enabled or when no settings exist (default to modern online flow)
-    if (data["Razorpay (Online Payment)"] || !hasSettings) {
-     setPaymentMethod("razorpay");
-    } else if (keys.length > 0) {
-     const firstEnabled = keys.find((k) => data[k]);
-     if (firstEnabled === "Cash on Delivery (COD)") setPaymentMethod("cod");
-     else if (firstEnabled === "UPI / NetBanking") setPaymentMethod("upi");
-     else if (firstEnabled === "Credit / Debit Card") setPaymentMethod("card");
-     else setPaymentMethod("upi");
-    }
-   })
-   .catch((err) => console.error(err));
- }, []);
 
  // Auto-fill City & State via India Post Pincode API
  React.useEffect(() => {
@@ -126,7 +101,7 @@ export default function Checkout() {
  // Recalculations based on checkout selections
  const shippingFee =
   deliveryMethod === "standard" ? (subtotal >= 599 ? 0 : 99) : 149;
- const codFee = paymentMethod === "cod" ? 49 : 0;
+ const codFee = 0;
  const totalAmount = subtotal - discount + shippingFee + tax + codFee;
 
  const handleInputChange = (e) => {
@@ -251,14 +226,7 @@ export default function Checkout() {
   deliveryEnd.setDate(now.getDate() + 6);
   const formattedDelivery = `${deliveryStart.getDate()} - ${deliveryEnd.getDate()} ${months[deliveryStart.getMonth()]} ${deliveryStart.getFullYear()}`;
 
-  let paymentMethodName = "Paid Online";
-  if (paymentMethod === "upi") paymentMethodName = "Paid Online (UPI)";
-  else if (paymentMethod === "card") paymentMethodName = "Paid Online (Card)";
-  else if (paymentMethod === "netbanking") paymentMethodName = "Net Banking";
-  else if (paymentMethod === "cod")
-   paymentMethodName = "Cash on Delivery (COD)";
-  else if (paymentMethod === "razorpay")
-   paymentMethodName = "Razorpay Instant Payment";
+  const paymentMethodName = "Razorpay Instant Payment";
 
   const orderPayload = {
    id: orderId,
@@ -294,119 +262,106 @@ export default function Checkout() {
    })),
   };
 
-  if (paymentMethod === "razorpay") {
-   try {
-    const orderRes = await fetch(apiUrl("/api/payments/razorpay/order"), {
-     method: "POST",
-     headers: { "Content-Type": "application/json" },
-     body: JSON.stringify({
-      amount: totalAmount,
-      receipt: orderId,
-      customer: {
-       name,
-       email,
-       contact: razorpayContact,
-      },
-     }),
-    });
-    const orderData = await orderRes.json();
-    if (!orderRes.ok) {
-     throw new Error(orderData.error || "Failed to create payment order");
-    }
+  try {
+   const orderRes = await fetch(apiUrl("/api/payments/razorpay/order"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+     amount: totalAmount,
+     receipt: orderId,
+     customer: {
+      name,
+      email,
+      contact: razorpayContact,
+     },
+    }),
+   });
+   const orderData = await orderRes.json();
+   if (!orderRes.ok) {
+    throw new Error(orderData.error || "Failed to create payment order");
+   }
 
-    if (orderData.isMock) {
-     setMockOrderPayload(orderPayload);
-     setMockPaymentMeta(orderData);
-     setShowMockPaymentModal(true);
-     setIsSubmitting(false);
-    } else {
-     const scriptLoaded = await loadRazorpayScript();
-     if (!scriptLoaded) {
-      alert("Failed to load Razorpay script. Check your internet connection.");
+   if (orderData.isMock) {
+    throw new Error("Razorpay live credentials are not configured.");
+   }
+
+   const scriptLoaded = await loadRazorpayScript();
+   if (!scriptLoaded) {
+    alert("Failed to load Razorpay script. Check your internet connection.");
+    setIsSubmitting(false);
+    return;
+   }
+
+   const logoUrl = getRazorpayLogoUrl();
+   const options = {
+    key: orderData.keyId,
+    amount: orderData.amount,
+    currency: "INR",
+    name: RAZORPAY_BUSINESS_NAME,
+    description: `${RAZORPAY_BUSINESS_DESCRIPTION} ${orderPayload.id}`,
+    order_id: orderData.orderId,
+    method: "upi",
+    prefill: {
+     name,
+     email,
+     contact: razorpayContact,
+    },
+    notes: {
+     merchant: RAZORPAY_BUSINESS_NAME,
+     local_order_id: orderPayload.id,
+     customer_email: email,
+     customer_phone: razorpayContact,
+    },
+    readonly: {
+     email: true,
+     contact: true,
+    },
+    theme: {
+     color: "#c9a84c",
+     backdrop_color: "#050505",
+    },
+    retry: {
+     enabled: true,
+    },
+    handler: async function (response) {
+     try {
+      await verifyRazorpayPayment({
+       orderId: response.razorpay_order_id || orderData.orderId,
+       paymentId: response.razorpay_payment_id,
+       signature: response.razorpay_signature,
+       localOrderId: orderPayload.id,
+       amount: totalAmount,
+      });
+      const finalPayload = {
+       ...orderPayload,
+       payment_method: "Paid via Razorpay Online",
+       payment_id: response.razorpay_payment_id,
+       razorpay_order_id: response.razorpay_order_id || orderData.orderId,
+       razorpay_signature: response.razorpay_signature,
+      };
+      await saveOrderToDB(finalPayload);
+     } catch (err) {
+      alert(`Order registration issue: ${err.message}`);
+     } finally {
       setIsSubmitting(false);
-      return;
      }
-
-     const logoUrl = getRazorpayLogoUrl();
-     const options = {
-      key: orderData.keyId,
-      amount: orderData.amount,
-      currency: "INR",
-      name: RAZORPAY_BUSINESS_NAME,
-      description: `${RAZORPAY_BUSINESS_DESCRIPTION} ${orderPayload.id}`,
-      order_id: orderData.orderId,
-      method: "upi",
-      prefill: {
-       name,
-       email,
-       contact: razorpayContact,
-      },
-      notes: {
-       merchant: RAZORPAY_BUSINESS_NAME,
-       local_order_id: orderPayload.id,
-       customer_email: email,
-       customer_phone: razorpayContact,
-      },
-      readonly: {
-       email: true,
-       contact: true,
-      },
-      theme: {
-       color: "#c9a84c",
-       backdrop_color: "#050505",
-      },
-      retry: {
-       enabled: true,
-      },
-      handler: async function (response) {
-       try {
-        await verifyRazorpayPayment({
-         orderId: response.razorpay_order_id || orderData.orderId,
-         paymentId: response.razorpay_payment_id,
-         signature: response.razorpay_signature,
-         localOrderId: orderPayload.id,
-         amount: totalAmount,
-        });
-        const finalPayload = {
-         ...orderPayload,
-         payment_method: "Paid via Razorpay Online",
-         payment_id: response.razorpay_payment_id,
-         razorpay_order_id: response.razorpay_order_id || orderData.orderId,
-         razorpay_signature: response.razorpay_signature,
-        };
-        await saveOrderToDB(finalPayload);
-       } catch (err) {
-        alert(`Order registration issue: ${err.message}`);
-       } finally {
-        setIsSubmitting(false);
-       }
-      },
-      modal: {
-       confirm_close: true,
-       ondismiss: function () {
-        setIsSubmitting(false);
-       },
-      },
-     };
-     if (logoUrl) {
-      options.image = logoUrl;
-     }
-
-     const rzp = new window.Razorpay(options);
-     rzp.open();
-    }
-   } catch (err) {
-    alert(`Razorpay checkout initialization failed: ${err.message}`);
-    setIsSubmitting(false);
+    },
+    modal: {
+     confirm_close: true,
+     ondismiss: function () {
+      setIsSubmitting(false);
+     },
+    },
+   };
+   if (logoUrl) {
+    options.image = logoUrl;
    }
-  } else {
-   try {
-    await saveOrderToDB(orderPayload);
-   } catch (err) {
-    alert(`Failed to complete order checkout: ${err.message}`);
-   } finally {
-    setIsSubmitting(false);
-   }
+
+   const rzp = new window.Razorpay(options);
+   rzp.open();
+  } catch (err) {
+   alert(`Razorpay checkout initialization failed: ${err.message}`);
+   setIsSubmitting(false);
   }
  };
 
@@ -861,67 +816,19 @@ export default function Checkout() {
 
       <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
        {(() => {
-        const paymentOptions = [];
-        if (
-         enabledPayments["UPI / NetBanking"] ||
-         enabledPayments["UPI / NetBanking"] === undefined
-        ) {
-         paymentOptions.push({
-          id: "upi",
-          label: "Unified Payments Interface (UPI)",
-          desc: "Instant transfer via PhonePe, GPay, Paytm, or BHIM.",
-         });
-        }
-        if (
-         enabledPayments["Credit / Debit Card"] ||
-         enabledPayments["Credit / Debit Card"] === undefined
-        ) {
-         paymentOptions.push({
-          id: "card",
-          label: "Credit or Debit Card",
-          desc: "Secure payment via Visa, Mastercard, or RuPay.",
-         });
-        }
-        if (
-         enabledPayments["Net Banking"] ||
-         enabledPayments["Net Banking"] === undefined
-        ) {
-         paymentOptions.push({
-          id: "netbanking",
-          label: "Net Banking",
-          desc: "Direct secure access from major commercial banks.",
-         });
-        }
-        // Show Razorpay when explicitly enabled or when no payment settings are configured (default)
-        if (
-         enabledPayments["Razorpay (Online Payment)"] === 1 ||
-         enabledPayments["Razorpay (Online Payment)"] === true ||
-         Object.keys(enabledPayments).length === 0
-        ) {
-         paymentOptions.push({
+        const paymentOptions = [
+         {
           id: "razorpay",
-          label: "Razorpay Instant Payment (UPI/Card/NetBanking)",
+          label: "Razorpay Instant Payment",
           desc:
-           "Secure checkout with Razorpay. Supports cards, netbanking, and UPI.",
-         });
-        }
-        if (
-         enabledPayments["Cash on Delivery (COD)"] === 1 ||
-         enabledPayments["Cash on Delivery (COD)"] === true ||
-         enabledPayments["Cash on Delivery (COD)"] === undefined
-        ) {
-         paymentOptions.push({
-          id: "cod",
-          label: "Cash on Delivery (COD)",
-          desc: "Pay with cash at your door. Adds flat ₹49 security fee.",
-         });
-        }
+           "Required for checkout. Supports UPI, cards, wallet, and netbanking after secure Razorpay verification.",
+         },
+        ];
 
         return paymentOptions.map((pay) => (
          <div
           key={pay.id}
           className={`payment-row-item ${paymentMethod === pay.id ? "selected" : ""}`}
-          onClick={() => setPaymentMethod(pay.id)}
           style={{
            display: "flex",
            alignItems: "flex-start",
@@ -932,7 +839,7 @@ export default function Checkout() {
              ? "1.5px solid var(--color-gold)"
              : "1px solid rgba(255,255,255,0.05)",
            borderRadius: "6px",
-           cursor: "pointer",
+           cursor: "default",
            backgroundColor:
             paymentMethod === pay.id ? "rgba(201,168,76,0.02)" : "transparent",
            transition: "all 0.2s",
@@ -1157,121 +1064,12 @@ export default function Checkout() {
          Processing Order...
         </>
        ) : (
-        "Place Order Securely"
+        "Pay Securely with Razorpay"
        )}
-      </button>
-     </div>
-    </section>
-   </form>
-
-   {/* Sandbox Payment Simulator Modal */}
-   {showMockPaymentModal && mockOrderPayload && (
-    <div
-     style={{
-      position: "fixed",
-      inset: 0,
-      backgroundColor: "rgba(0,0,0,0.85)",
-      zIndex: 10000,
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      padding: "2rem",
-     }}
-    >
-     <div
-      style={{
-       border: "1px solid var(--color-gold-border)",
-       borderRadius: "12px",
-       width: "100%",
-       maxWidth: "440px",
-       padding: "2.5rem",
-       backgroundColor: "#090909",
-       textAlign: "center",
-       boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
-      }}
-     >
-      <h3
-       style={{
-        fontFamily: "var(--font-heading)",
-        fontSize: "1.5rem",
-        color: "var(--color-gold)",
-        fontWeight: 300,
-        marginBottom: "0.8rem",
-       }}
-      >
-       Razorpay Sandbox Simulator
-      </h3>
-      <p
-       style={{
-        fontSize: "0.85rem",
-        color: "var(--color-muted)",
-        marginBottom: "2rem",
-        lineHeight: 1.5,
-       }}
-      >
-       You are paying <strong>₹{mockOrderPayload.total}</strong> in sandbox test
-       mode. No real money will be charged.
-      </p>
-
-      <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-       <button
-        onClick={async () => {
-         try {
-          setIsSubmitting(true);
-          const mockPaymentId = `pay_mock_${Date.now()}`;
-          await verifyRazorpayPayment({
-           orderId: mockPaymentMeta?.orderId,
-           paymentId: mockPaymentId,
-           signature: "mock_signature",
-           localOrderId: mockOrderPayload.id,
-           amount: mockOrderPayload.total,
-          });
-          const finalPayload = {
-           ...mockOrderPayload,
-           payment_method: "Paid via Razorpay Online (Simulated)",
-           status: "Processing",
-           payment_id: mockPaymentId,
-           razorpay_order_id: mockPaymentMeta?.orderId,
-           razorpay_signature: "mock_signature",
-          };
-          await saveOrderToDB(finalPayload);
-          setShowMockPaymentModal(false);
-          setMockPaymentMeta(null);
-         } catch (err) {
-          alert(`Simulation error: ${err.message}`);
-         } finally {
-          setIsSubmitting(false);
-         }
-        }}
-        disabled={isSubmitting}
-        className="btn btn-primary"
-        style={{ width: "100%", height: "44px" }}
-       >
-        Approve Payment (Simulate Success)
-       </button>
-
-       <button
-        onClick={() => {
-         alert("Payment was cancelled/declined by user in simulation mode.");
-         setShowMockPaymentModal(false);
-         setMockPaymentMeta(null);
-         setIsSubmitting(false);
-        }}
-        disabled={isSubmitting}
-        className="btn btn-outline"
-        style={{
-         width: "100%",
-         height: "44px",
-         border: "1px solid rgba(255,80,80,0.3)",
-         color: "rgba(255,80,80,0.8)",
-        }}
-       >
-        Decline Payment (Simulate Failure)
        </button>
       </div>
-     </div>
-    </div>
-   )}
-  </main>
- );
+     </section>
+    </form>
+   </main>
+  );
 }

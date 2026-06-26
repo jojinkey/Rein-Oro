@@ -32,6 +32,79 @@ function buildRazorpayNotes(receipt, customer = {}) {
  );
 }
 
+async function validatePaidRazorpayPayload({
+ local_order_id,
+ total,
+ payment_id,
+ razorpay_order_id,
+ razorpay_signature,
+}) {
+ if (!payment_id || !razorpay_order_id || !razorpay_signature) {
+  const err = new Error("Only paid Razorpay orders are accepted.");
+  err.statusCode = 400;
+  throw err;
+ }
+
+ const { keySecret, isConfigured } = await getRazorpayCredentials();
+ if (!isConfigured) {
+  const err = new Error("Razorpay live credentials are not configured.");
+  err.statusCode = 503;
+  throw err;
+ }
+
+ const createdPaymentOrder = await getFirestoreDocument(
+  "payments",
+  razorpay_order_id,
+ );
+ if (!createdPaymentOrder) {
+  const err = new Error("Razorpay order was not created by this checkout.");
+  err.statusCode = 400;
+  throw err;
+ }
+
+ if (
+  createdPaymentOrder.local_order_id &&
+  createdPaymentOrder.local_order_id !== local_order_id
+ ) {
+  const err = new Error("Razorpay order does not match this checkout.");
+  err.statusCode = 400;
+  throw err;
+ }
+
+ const expectedAmount = toPaise(total);
+ if (
+  expectedAmount <= 0 ||
+  Number(createdPaymentOrder.amount || 0) !== expectedAmount
+ ) {
+  const err = new Error("Razorpay payment amount does not match this order.");
+  err.statusCode = 400;
+  throw err;
+ }
+
+ const existingPayment = await getFirestoreDocument("payments", payment_id);
+ if (
+  existingPayment?.local_order_id &&
+  existingPayment.local_order_id !== local_order_id
+ ) {
+  const err = new Error("Razorpay payment was already used for another order.");
+  err.statusCode = 400;
+  throw err;
+ }
+
+ const valid = verifyRazorpaySignature({
+  orderId: razorpay_order_id,
+  paymentId: payment_id,
+  signature: razorpay_signature,
+  keySecret,
+ });
+
+ if (!valid) {
+  const err = new Error("Invalid Razorpay payment signature.");
+  err.statusCode = 400;
+  throw err;
+ }
+}
+
 export async function getOrders(req, res) {
  const { email } = req.query;
  try {
@@ -61,7 +134,6 @@ export async function createOrder(req, res) {
   user_email,
   date,
   est_delivery,
-  payment_method,
   subtotal,
   discount,
   shipping,
@@ -70,32 +142,67 @@ export async function createOrder(req, res) {
   total,
   items,
   shipping_address,
+  payment_id,
+  razorpay_order_id,
+  razorpay_signature,
  } = req.body;
  if (!id || !user_email || !items || items.length === 0) {
   return res.status(400).json({ error: "Incomplete order payload" });
  }
  try {
+  await validatePaidRazorpayPayload({
+   local_order_id: id,
+   total,
+   payment_id,
+   razorpay_order_id,
+   razorpay_signature,
+  });
+
+  const paidAt = new Date().toISOString();
+  await mirrorPaymentRecord({
+   local_order_id: id,
+   provider_order_id: razorpay_order_id,
+   provider_payment_id: payment_id,
+   provider_signature: razorpay_signature,
+   amount: total,
+   currency: "INR",
+   status: "Paid",
+   method: "Razorpay",
+   is_mock: 0,
+   raw_payload: {
+    order_id: id,
+    razorpay_order_id,
+    payment_id,
+   },
+  });
+
   // Store order as a single document in Firestore
   await mirrorToFirestore("orders", id, {
    id,
    user_email,
    date,
    est_delivery,
-   payment_method,
+   payment_method: "Paid via Razorpay Online",
    subtotal,
    discount,
    shipping,
    tax,
-   cod_fee,
+   cod_fee: 0,
    total,
    items,
    shipping_address,
+   payment_provider: "razorpay",
+   payment_status: "Paid",
+   payment_id,
+   razorpay_order_id,
+   razorpay_signature,
+   paid_at: paidAt,
    status: "Processing",
-   created_at: new Date().toISOString(),
+   created_at: paidAt,
   });
   res.json({ success: true, orderId: id });
  } catch (err) {
-  res.status(400).json({ error: err.message });
+  res.status(err.statusCode || 400).json({ error: err.message });
  }
 }
 
@@ -105,25 +212,9 @@ export async function createRazorpayOrder(req, res) {
  try {
   const { keyId, keySecret, isConfigured } = await getRazorpayCredentials();
   if (!isConfigured) {
-   const mockOrderId = `order_mock_${Math.floor(100000 + Math.random() * 900000)}`;
-   const record = {
-    local_order_id: receipt || null,
-    provider: "razorpay",
-    provider_order_id: mockOrderId,
-    amount: toPaise(amount),
-    currency: "INR",
-    status: "created",
-    is_mock: 1,
-   };
-   await mirrorPaymentRecord(record);
-   return res.json({
-    success: true,
-    orderId: mockOrderId,
-    keyId: keyId || "rzp_test_defaultKeyId",
-    amount: Math.round(amount * 100),
-    currency: "INR",
-    isMock: true,
-   });
+   return res
+    .status(503)
+    .json({ error: "Razorpay live credentials are not configured." });
   }
 
   const authHeader =
@@ -181,16 +272,20 @@ export async function verifyRazorpayPayment(req, res) {
 
  try {
   const { keySecret, isConfigured } = await getRazorpayCredentials();
-  if (isConfigured) {
-   const valid = verifyRazorpaySignature({
-    orderId: razorpay_order_id,
-    paymentId: razorpay_payment_id,
-    signature: razorpay_signature,
-    keySecret,
-   });
-   if (!valid) {
-    return res.status(400).json({ error: "Invalid payment signature" });
-   }
+  if (!isConfigured) {
+   return res
+    .status(503)
+    .json({ error: "Razorpay live credentials are not configured." });
+  }
+
+  const valid = verifyRazorpaySignature({
+   orderId: razorpay_order_id,
+   paymentId: razorpay_payment_id,
+   signature: razorpay_signature,
+   keySecret,
+  });
+  if (!valid) {
+   return res.status(400).json({ error: "Invalid payment signature" });
   }
 
   const record = await mirrorPaymentRecord({
@@ -202,7 +297,7 @@ export async function verifyRazorpayPayment(req, res) {
    currency: "INR",
    status: "Paid",
    method: "Razorpay",
-   is_mock: isConfigured ? 0 : 1,
+   is_mock: 0,
    raw_payload: req.body,
   });
 

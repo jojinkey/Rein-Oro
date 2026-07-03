@@ -10,6 +10,10 @@ import {
 import {
  register as authRegister,
  login as authLogin,
+ requestLoginOtp,
+ verifyLoginOtp,
+ forgotPassword,
+ createSessionFromFirebaseToken,
  protect as authProtect,
  restrict2,
 } from "./authController.js";
@@ -675,6 +679,10 @@ export function registerApiRoutes(router) {
  // --- Auth Routes ---
  router.post("/api/auth/register", authRegister);
  router.post("/api/auth/login", authLogin);
+ router.post("/api/auth/otp/request", requestLoginOtp);
+ router.post("/api/auth/otp/verify", verifyLoginOtp);
+ router.post("/api/auth/forgot-password", forgotPassword);
+ router.post("/api/auth/firebase-session", createSessionFromFirebaseToken);
  router.post("/api/analytics/visit", recordWebsiteVisit);
 }
 

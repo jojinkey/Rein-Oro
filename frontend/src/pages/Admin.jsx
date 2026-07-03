@@ -2,6 +2,7 @@ import React, { useState, useEffect, useContext, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext, CMSContext } from "../App.jsx";
 import { apiUrl } from "../config/api.js";
+import { getGstSellerProfile } from "../config/gstProfile.js";
 
 // Scoped fetch helper to ensure all API calls in this file use the env-configured backend url
 const originalFetch = window.fetch;
@@ -607,6 +608,124 @@ const toAdminNumber = (value, fallback = 0) => {
 
 const formatINR = (value) =>
  `₹${Math.round(toAdminNumber(value, 0)).toLocaleString("en-IN")}`;
+
+const formatInvoiceINR = (value) =>
+ `Rs. ${Math.round(toAdminNumber(value, 0)).toLocaleString("en-IN")}`;
+
+const getOrderInvoice = (order = {}) => order.gst_invoice || order.invoice || null;
+
+const getSellerAddressLines = (seller = {}) => {
+ if (Array.isArray(seller.address_lines) && seller.address_lines.length) {
+  return seller.address_lines;
+ }
+ return seller.address ? [seller.address] : [];
+};
+
+const escapeAdminHtml = (value) =>
+ String(value || "")
+  .replace(/&/g, "&amp;")
+  .replace(/</g, "&lt;")
+  .replace(/>/g, "&gt;")
+  .replace(/"/g, "&quot;")
+  .replace(/'/g, "&#039;");
+
+const buildAdminInvoiceHtml = (order = {}) => {
+ const invoice = getOrderInvoice(order);
+ if (!invoice) return "";
+ const seller = getGstSellerProfile(invoice.seller || {});
+ const buyer = invoice.buyer || {};
+ const address = buyer.address || {};
+ const sellerAddressRows = getSellerAddressLines(seller)
+  .map((line) => `<p>${escapeAdminHtml(line)}</p>`)
+  .join("");
+ const rows = (invoice.items || [])
+  .map(
+   (item) => `
+    <tr>
+     <td>${escapeAdminHtml(item.name)}</td>
+     <td>${escapeAdminHtml(item.hsn || "-")}</td>
+     <td>${escapeAdminHtml(item.qty)}</td>
+     <td>${formatInvoiceINR(item.unit_price)}</td>
+     <td>${formatInvoiceINR(item.line_total)}</td>
+    </tr>
+   `,
+  )
+  .join("");
+
+ return `
+  <!doctype html>
+  <html>
+   <head>
+    <title>${escapeAdminHtml(invoice.invoice_no)}</title>
+    <style>
+     body { font-family: Arial, sans-serif; color: #111; padding: 32px; }
+     .top { display: flex; justify-content: space-between; gap: 24px; margin-bottom: 28px; }
+     .box { border: 1px solid #ddd; padding: 14px; margin-bottom: 18px; }
+     table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+     th, td { border: 1px solid #ddd; padding: 10px; text-align: left; font-size: 13px; }
+     th { background: #f5f5f5; }
+     .totals { max-width: 360px; margin-left: auto; margin-top: 18px; }
+     .row { display: flex; justify-content: space-between; padding: 6px 0; }
+     .total { font-weight: 700; border-top: 1px solid #111; margin-top: 8px; padding-top: 10px; }
+    </style>
+   </head>
+   <body>
+    <div class="top">
+     <div>
+      <h1>Tax Invoice</h1>
+      <p>Invoice No: <strong>${escapeAdminHtml(invoice.invoice_no)}</strong></p>
+      <p>Order ID: ${escapeAdminHtml(invoice.order_id || order.id)}</p>
+     <p>Date: ${new Date(invoice.invoice_date || Date.now()).toLocaleString("en-IN")}</p>
+     </div>
+     <div>
+      <h2>${escapeAdminHtml(seller.trade_name || seller.name || "Rein Oro Foods")}</h2>
+      <p>Legal Name: ${escapeAdminHtml(seller.legal_name || "-")}</p>
+      <p>GSTIN / Registration No.: ${escapeAdminHtml(seller.gstin || seller.registration_no || "-")}</p>
+      <p>Constitution: ${escapeAdminHtml(seller.constitution || "-")}</p>
+      ${sellerAddressRows}
+     </div>
+    </div>
+    <div class="box">
+     <h3>Bill To</h3>
+     <p><strong>${escapeAdminHtml(buyer.name || order.user_email)}</strong></p>
+     <p>${escapeAdminHtml(buyer.email || order.user_email)} ${buyer.phone ? `| ${escapeAdminHtml(buyer.phone)}` : ""}</p>
+     <p>GSTIN: ${escapeAdminHtml(buyer.gstin || "-")}</p>
+     <p>${escapeAdminHtml(address.street || "")} ${escapeAdminHtml(address.apartment || "")}</p>
+     <p>${escapeAdminHtml(address.city || "")}, ${escapeAdminHtml(address.state || "")} ${escapeAdminHtml(address.pincode || "")}</p>
+    </div>
+    <table>
+     <thead>
+      <tr><th>Item</th><th>HSN</th><th>Qty</th><th>Rate</th><th>Amount</th></tr>
+     </thead>
+     <tbody>${rows}</tbody>
+    </table>
+    <div class="totals">
+     <div class="row"><span>Taxable Value</span><span>${formatInvoiceINR(invoice.taxable_value)}</span></div>
+     <div class="row"><span>CGST</span><span>${formatInvoiceINR(invoice.cgst)}</span></div>
+     <div class="row"><span>SGST</span><span>${formatInvoiceINR(invoice.sgst)}</span></div>
+     <div class="row"><span>IGST</span><span>${formatInvoiceINR(invoice.igst)}</span></div>
+     <div class="row total"><span>Total</span><span>${formatInvoiceINR(invoice.total || order.total)}</span></div>
+    </div>
+    <script>window.print();</script>
+   </body>
+  </html>
+ `;
+};
+
+const openAdminInvoicePrintWindow = (order = {}) => {
+ const html = buildAdminInvoiceHtml(order);
+ if (!html) {
+  alert("GST invoice is not available for this order yet.");
+  return;
+ }
+ const printWindow = window.open("", "_blank", "noopener,noreferrer");
+ if (!printWindow) {
+  alert("Please allow popups to print the GST invoice.");
+  return;
+ }
+ printWindow.document.write(html);
+ printWindow.document.close();
+};
 
 const sumOrderTotals = (rows = []) =>
  rows.reduce((sum, order) => sum + toAdminNumber(order?.total, 0), 0);
@@ -3573,6 +3692,7 @@ export default function Admin() {
             <th>Payment Method</th>
             <th>Payment Status</th>
             <th>Payment ID</th>
+            <th>GST Invoice</th>
             <th>Subtotal</th>
             <th>Total Paid</th>
             <th>Status</th>
@@ -3582,7 +3702,7 @@ export default function Admin() {
           {orders.length === 0 ? (
            <tr>
             <td
-              colSpan="9"
+              colSpan="10"
              style={{
               textAlign: "center",
               padding: "3rem",
@@ -3604,6 +3724,26 @@ export default function Admin() {
               <td>{o.payment_status || "Pending"}</td>
               <td style={{ fontFamily: "monospace", fontSize: "0.72rem" }}>
                {o.payment_id || "-"}
+              </td>
+              <td>
+               {getOrderInvoice(o) ? (
+                <button
+                 type="button"
+                 className="btn btn-outline"
+                 onClick={() => openAdminInvoicePrintWindow(o)}
+                 style={{
+                  height: "28px",
+                  padding: "0 0.7rem",
+                  fontSize: "0.68rem",
+                  color: "var(--color-gold)",
+                  borderColor: "rgba(201,168,76,0.35)",
+                 }}
+                >
+                 {getOrderInvoice(o).invoice_no}
+                </button>
+               ) : (
+                "-"
+               )}
               </td>
               <td>₹{o.subtotal}</td>
              <td style={{ color: "var(--color-gold)", fontWeight: 600 }}>
@@ -4838,6 +4978,7 @@ export default function Admin() {
          <thead>
           <tr>
            <th>Customer Email</th>
+           <th>Mobile Number</th>
            <th>Account Role</th>
            <th>Registered On</th>
            <th>Orders Placed</th>
@@ -4852,6 +4993,9 @@ export default function Admin() {
             <tr key={u.id}>
              <td style={{ fontWeight: 600, color: "var(--color-white)" }}>
               {u.email}
+             </td>
+             <td style={{ color: "var(--color-muted)", fontSize: "0.8rem" }}>
+              {u.phone || "-"}
              </td>
              <td>
               <span
@@ -5592,6 +5736,7 @@ export default function Admin() {
          <thead>
           <tr>
            <th>Account Email</th>
+           <th>Mobile Number</th>
            <th>Registered Date</th>
            <th>Current Role</th>
            <th style={{ textAlign: "right" }}>Actions</th>
@@ -5602,6 +5747,9 @@ export default function Admin() {
            <tr key={u.id}>
             <td style={{ fontWeight: 600, color: "var(--color-white)" }}>
              {u.email}
+            </td>
+            <td style={{ color: "var(--color-muted)", fontSize: "0.8rem" }}>
+             {u.phone || "-"}
             </td>
             <td style={{ color: "var(--color-muted)", fontSize: "0.8rem" }}>
              {u.member_since}
@@ -6588,8 +6736,269 @@ export default function Admin() {
         >
          CANCEL
         </button>
+        </div>
+       </form>
+      </div>
+     </div>
+    )}
+
+   {selectedOrder && (
+    <div
+     style={{
+      position: "fixed",
+      inset: 0,
+      backgroundColor: "rgba(0,0,0,0.85)",
+      zIndex: 10000,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      padding: "2rem",
+     }}
+    >
+     <div
+      style={{
+       border: "1px solid var(--color-gold-border)",
+       borderRadius: "12px",
+       width: "100%",
+       maxWidth: "680px",
+       padding: "2.5rem",
+       backgroundColor: "#090909",
+       position: "relative",
+       maxHeight: "90vh",
+       overflowY: "auto",
+      }}
+     >
+      <button
+       type="button"
+       onClick={() => setSelectedOrder(null)}
+       style={{
+        position: "absolute",
+        top: "1.5rem",
+        right: "1.5rem",
+        background: "none",
+        border: "none",
+        color: "var(--color-muted)",
+        fontSize: "1.5rem",
+        cursor: "pointer",
+        lineHeight: 1,
+       }}
+      >
+       &times;
+      </button>
+
+      <h3
+       style={{
+        fontFamily: "var(--font-heading)",
+        fontSize: "1.8rem",
+        color: "var(--color-white)",
+        fontWeight: 300,
+        marginBottom: "1.5rem",
+       }}
+      >
+       Order Details
+      </h3>
+
+      <div style={{ marginBottom: "1.5rem", display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "1.5rem" }}>
+       <div>
+        <p style={{ margin: "0.2rem 0", color: "var(--color-muted)", fontSize: "0.85rem" }}>
+         Order ID: <span style={{ color: "var(--color-white)", fontFamily: "monospace" }}>#{selectedOrder.id}</span>
+        </p>
+        <p style={{ margin: "0.2rem 0", color: "var(--color-muted)", fontSize: "0.85rem" }}>
+         Date Placed: <span style={{ color: "var(--color-white)" }}>{selectedOrder.date}</span>
+        </p>
+        <p style={{ margin: "0.2rem 0", color: "var(--color-muted)", fontSize: "0.85rem" }}>
+         Customer Email: <span style={{ color: "var(--color-white)" }}>{selectedOrder.user_email}</span>
+        </p>
+        <p style={{ margin: "0.2rem 0", color: "var(--color-muted)", fontSize: "0.85rem" }}>
+         Payment Method: <span style={{ color: "var(--color-white)" }}>{selectedOrder.payment_method}</span>
+        </p>
+        <p style={{ margin: "0.2rem 0", color: "var(--color-muted)", fontSize: "0.85rem" }}>
+         Payment Status: <span style={{ color: "var(--color-white)" }}>{selectedOrder.payment_status || "Pending"}</span>
+        </p>
+        {selectedOrder.payment_id && (
+         <p style={{ margin: "0.2rem 0", color: "var(--color-muted)", fontSize: "0.85rem" }}>
+          Payment ID: <span style={{ color: "var(--color-white)", fontFamily: "monospace" }}>{selectedOrder.payment_id}</span>
+         </p>
+        )}
+        {getOrderInvoice(selectedOrder) && (
+         <p style={{ margin: "0.2rem 0", color: "var(--color-muted)", fontSize: "0.85rem" }}>
+          GST Invoice: <span style={{ color: "var(--color-white)", fontFamily: "monospace" }}>{getOrderInvoice(selectedOrder).invoice_no}</span>
+         </p>
+        )}
        </div>
-      </form>
+       <div style={{ textAlign: "right" }}>
+        <label style={{ display: "block", fontSize: "0.75rem", textTransform: "uppercase", color: "var(--color-gold)", marginBottom: "0.4rem" }}>
+         Order Status
+        </label>
+        <select
+         value={selectedOrder.status || "Processing"}
+         onChange={(e) => {
+          const newStatus = e.target.value;
+          handleUpdateOrderStatus(selectedOrder.id, newStatus);
+          setSelectedOrder(prev => ({ ...prev, status: newStatus }));
+         }}
+         style={{
+          backgroundColor: "#050505",
+          color:
+           selectedOrder.status === "Delivered"
+            ? "#10b981"
+            : selectedOrder.status === "Cancelled"
+              ? "#ef4444"
+              : selectedOrder.status === "Shipped"
+                ? "#3b82f6"
+                : "#c9a84c",
+          border: "1px solid rgba(255,255,255,0.08)",
+          borderRadius: "4px",
+          fontSize: "0.85rem",
+          padding: "6px 12px",
+          cursor: "pointer",
+         }}
+        >
+         <option value="Processing" style={{ backgroundColor: "#050505", color: "#c9a84c" }}>Processing</option>
+         <option value="Confirmed" style={{ backgroundColor: "#050505", color: "#c9a84c" }}>Confirmed</option>
+         <option value="Shipped" style={{ backgroundColor: "#050505", color: "#3b82f6" }}>Shipped</option>
+         <option value="Delivered" style={{ backgroundColor: "#050505", color: "#10b981" }}>Delivered</option>
+         <option value="Cancelled" style={{ backgroundColor: "#050505", color: "#ef4444" }}>Cancelled</option>
+        </select>
+       </div>
+      </div>
+
+      <div style={{ borderTop: "1px solid rgba(255,255,255,0.08)", borderBottom: "1px solid rgba(255,255,255,0.08)", padding: "1.5rem 0", marginBottom: "1.5rem" }}>
+       <h4 style={{ fontFamily: "var(--font-heading)", fontSize: "1.2rem", color: "var(--color-white)", fontWeight: 300, marginBottom: "1rem" }}>
+        Ordered Items
+       </h4>
+       <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+        {Array.isArray(selectedOrder.items) && selectedOrder.items.map((item, idx) => (
+         <div key={idx} style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+           <div style={{
+            width: "50px",
+            height: "50px",
+            backgroundColor: "rgba(255,255,255,0.02)",
+            border: "1px solid rgba(255,255,255,0.08)",
+            borderRadius: "6px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            overflow: "hidden"
+           }}>
+            {item.image ? (
+             <img src={item.image} alt={item.name} style={{ width: "90%", height: "90%", objectFit: "contain" }} />
+            ) : (
+             <span style={{ fontSize: "0.6rem", color: "var(--color-muted)" }}>No image</span>
+            )}
+           </div>
+           <div>
+            <span style={{ display: "block", color: "var(--color-white)", fontSize: "0.9rem", fontWeight: 500 }}>
+             {item.name || item.title || "Gourmet Offering"}
+            </span>
+            <span style={{ display: "block", color: "var(--color-muted)", fontSize: "0.8rem" }}>
+             {item.weight || item.variant || "Standard"} {item.flavor ? `• ${item.flavor}` : ""}
+            </span>
+           </div>
+          </div>
+          <div style={{ textAlign: "right" }}>
+           <span style={{ display: "block", color: "var(--color-white)", fontSize: "0.9rem" }}>
+            {item.qty || item.quantity || 0} x ₹{item.price}
+           </span>
+           <span style={{ display: "block", color: "var(--color-gold)", fontSize: "0.9rem", fontWeight: 600 }}>
+            ₹{((item.qty || item.quantity || 0) * item.price).toLocaleString("en-IN")}
+           </span>
+          </div>
+         </div>
+        ))}
+       </div>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.5rem", marginBottom: "1.5rem" }}>
+       <div>
+        <h4 style={{ fontFamily: "var(--font-heading)", fontSize: "1.2rem", color: "var(--color-white)", fontWeight: 300, marginBottom: "0.8rem" }}>
+         Payment Details
+        </h4>
+        <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem", fontSize: "0.85rem" }}>
+         <div style={{ display: "flex", justifyContent: "space-between" }}>
+          <span style={{ color: "var(--color-muted)" }}>Subtotal</span>
+          <span style={{ color: "var(--color-white)" }}>₹{(selectedOrder.subtotal || 0).toLocaleString("en-IN")}</span>
+         </div>
+         {selectedOrder.discount > 0 && (
+          <div style={{ display: "flex", justifyContent: "space-between" }}>
+           <span style={{ color: "var(--color-muted)" }}>Coupon Discount</span>
+           <span style={{ color: "#ef4444" }}>-₹{(selectedOrder.discount).toLocaleString("en-IN")}</span>
+          </div>
+         )}
+         <div style={{ display: "flex", justifyContent: "space-between" }}>
+          <span style={{ color: "var(--color-muted)" }}>Shipping</span>
+          <span style={{ color: "var(--color-white)" }}>
+           {selectedOrder.shipping > 0 ? `₹${selectedOrder.shipping.toLocaleString("en-IN")}` : "Free"}
+          </span>
+         </div>
+         {selectedOrder.tax > 0 && (
+          <div style={{ display: "flex", justifyContent: "space-between" }}>
+           <span style={{ color: "var(--color-muted)" }}>GST/Tax</span>
+           <span style={{ color: "var(--color-white)" }}>₹{(selectedOrder.tax).toLocaleString("en-IN")}</span>
+          </div>
+         )}
+         {selectedOrder.cod_fee > 0 && (
+          <div style={{ display: "flex", justifyContent: "space-between" }}>
+           <span style={{ color: "var(--color-muted)" }}>COD Fee</span>
+           <span style={{ color: "var(--color-white)" }}>₹{(selectedOrder.cod_fee).toLocaleString("en-IN")}</span>
+          </div>
+         )}
+         <div style={{ display: "flex", justifyContent: "space-between", borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: "0.4rem", marginTop: "0.4rem", fontSize: "1.05rem", fontWeight: 600 }}>
+          <span style={{ color: "var(--color-white)" }}>Total Paid</span>
+          <span style={{ color: "var(--color-gold)" }}>₹{(selectedOrder.total || 0).toLocaleString("en-IN")}</span>
+         </div>
+        </div>
+       </div>
+
+       <div>
+        <h4 style={{ fontFamily: "var(--font-heading)", fontSize: "1.2rem", color: "var(--color-white)", fontWeight: 300, marginBottom: "0.8rem" }}>
+         Delivery Address
+        </h4>
+        {selectedOrder.shipping_address ? (
+         <div style={{ fontSize: "0.85rem", color: "var(--color-white)", display: "flex", flexDirection: "column", gap: "0.2rem" }}>
+          <strong>{selectedOrder.shipping_address.fullName}</strong>
+          <span>{selectedOrder.shipping_address.street} {selectedOrder.shipping_address.apartment ? `, ${selectedOrder.shipping_address.apartment}` : ""}</span>
+          <span>{selectedOrder.shipping_address.city}, {selectedOrder.shipping_address.state} - {selectedOrder.shipping_address.pincode}</span>
+          <span>{selectedOrder.shipping_address.country}</span>
+          <span style={{ color: "var(--color-muted)", marginTop: "0.4rem" }}>Phone: {selectedOrder.shipping_address.phone}</span>
+         </div>
+        ) : loadingAddresses ? (
+         <p style={{ fontSize: "0.85rem", color: "var(--color-muted)" }}>Loading delivery address...</p>
+        ) : selectedOrderAddresses.length > 0 ? (
+         <div style={{ fontSize: "0.85rem", color: "var(--color-white)", display: "flex", flexDirection: "column", gap: "0.2rem" }}>
+          <strong>{selectedOrderAddresses[0].name || selectedOrder.user_email}</strong>
+          <span>{selectedOrderAddresses[0].address}</span>
+          <span>{selectedOrderAddresses[0].city}{selectedOrderAddresses[0].state ? `, ${selectedOrderAddresses[0].state}` : ""} - {selectedOrderAddresses[0].pincode}</span>
+          <span>{selectedOrderAddresses[0].country || "India"}</span>
+          <span style={{ color: "var(--color-muted)", marginTop: "0.4rem" }}>Phone: {selectedOrderAddresses[0].phone || "N/A"}</span>
+         </div>
+        ) : (
+         <p style={{ fontSize: "0.85rem", color: "var(--color-muted)" }}>No delivery address recorded.</p>
+        )}
+       </div>
+      </div>
+
+      <div style={{ display: "flex", justifyContent: "flex-end", gap: "1rem", marginTop: "1.5rem" }}>
+       {getOrderInvoice(selectedOrder) && (
+        <button
+         type="button"
+         className="btn btn-primary"
+         onClick={() => openAdminInvoicePrintWindow(selectedOrder)}
+         style={{ width: "190px", height: "40px" }}
+        >
+         PRINT GST INVOICE
+        </button>
+       )}
+       <button
+        type="button"
+        className="btn btn-outline"
+        onClick={() => setSelectedOrder(null)}
+        style={{ width: "150px", height: "40px" }}
+       >
+        CLOSE
+       </button>
+      </div>
      </div>
     </div>
    )}

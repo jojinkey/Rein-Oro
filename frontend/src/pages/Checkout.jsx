@@ -42,8 +42,9 @@ export default function Checkout() {
  // Form States
  const [formData, setFormData] = useState({
   name: "",
-  phone: "",
+  phone: user ? user.phone || "" : "",
   email: user ? user.email : "",
+  gstin: "",
   address: "",
   apartment: "",
   city: "",
@@ -59,6 +60,9 @@ export default function Checkout() {
  React.useEffect(() => {
   if (user?.email) {
    setFormData((prev) => ({ ...prev, email: user.email }));
+  }
+  if (user?.phone) {
+   setFormData((prev) => ({ ...prev, phone: user.phone }));
   }
  }, [user]);
 
@@ -149,7 +153,8 @@ export default function Checkout() {
    throw new Error(resData.error || "Server rejected order details");
   }
 
-  localStorage.setItem("rein_oro_last_order", JSON.stringify(payload));
+  const savedOrder = resData.order || { ...payload, gst_invoice: resData.invoice };
+  localStorage.setItem("rein_oro_last_order", JSON.stringify(savedOrder));
   clearCart();
   navigate("/confirmation");
  };
@@ -166,6 +171,7 @@ export default function Checkout() {
   const name = (formData.name || "").trim();
   const phone = (formData.phone || "").trim();
   const email = (formData.email || "").trim();
+  const gstin = (formData.gstin || "").trim().toUpperCase();
   const address = (formData.address || "").trim();
   const city = (formData.city || "").trim();
   const state = (formData.state || "").trim();
@@ -188,6 +194,11 @@ export default function Checkout() {
 
   if (!/^\d{6}$/.test(pincode)) {
    alert("Please enter a valid 6-digit PIN code.");
+   return;
+  }
+
+  if (gstin && !/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/.test(gstin)) {
+   alert("Please enter a valid GSTIN or leave the GSTIN field blank.");
    return;
   }
 
@@ -231,6 +242,9 @@ export default function Checkout() {
   const orderPayload = {
    id: orderId,
    user_email: user.email,
+   customer_email: email,
+   customer_phone: phone,
+   customer_gstin: gstin || null,
    date: formattedDate,
    est_delivery: formattedDelivery,
    payment_method: paymentMethodName,
@@ -311,6 +325,7 @@ export default function Checkout() {
      local_order_id: orderPayload.id,
      customer_email: email,
      customer_phone: razorpayContact,
+     customer_gstin: gstin || "",
     },
     readonly: {
      email: true,
@@ -524,6 +539,21 @@ export default function Checkout() {
          required
          value={formData.email}
          onChange={handleInputChange}
+        />
+       </div>
+
+       <div className="contact-form-group">
+        <label htmlFor="gstin" className="contact-form-label">
+         GSTIN (Optional)
+        </label>
+        <input
+         type="text"
+         id="gstin"
+         className="contact-form-input"
+         placeholder="For GST invoice"
+         value={formData.gstin}
+         onChange={handleInputChange}
+         style={{ textTransform: "uppercase" }}
         />
        </div>
 

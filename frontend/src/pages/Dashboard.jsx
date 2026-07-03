@@ -1,16 +1,65 @@
-import React, { useContext, useState, useEffect } from "react";
+import React, { useContext, useState, useEffect, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { AuthContext, CartContext } from "../App.jsx";
 import { apiUrl } from "../config/api.js";
+import {
+ getFirebaseClient,
+ isFirebaseClientConfigured,
+} from "../config/firebase.js";
+
+function normalizeProfilePhone(value) {
+ const raw = String(value || "").trim();
+ const digits = raw.replace(/\D/g, "");
+ if (raw.startsWith("+") && digits.length >= 10 && digits.length <= 15) {
+  return `+${digits}`;
+ }
+ if (digits.length === 10) return `+91${digits}`;
+ if (digits.length === 11 && digits.startsWith("0")) {
+  return `+91${digits.slice(1)}`;
+ }
+ if (digits.length === 12 && digits.startsWith("91")) return `+${digits}`;
+ if (digits.length >= 11 && digits.length <= 15) return `+${digits}`;
+ return raw;
+}
+
+function getProfilePhoneKey(value) {
+ return normalizeProfilePhone(value).replace(/\D/g, "");
+}
 
 export default function Dashboard() {
- const { user, logout, wishlist, toggleWishlist } = useContext(AuthContext);
+ const { user, login, logout, wishlist, toggleWishlist } = useContext(AuthContext);
  const { addToCart } = useContext(CartContext);
  const navigate = useNavigate();
+ const profileRecaptchaRef = useRef(null);
 
  const [activeTab, setActiveTab] = useState("dashboard");
  const [wishlistedProducts, setWishlistedProducts] = useState([]);
  const [wishlistLoading, setWishlistLoading] = useState(false);
+ const [profileForm, setProfileForm] = useState({
+  name: "",
+  email: "",
+  phone: "",
+  phoneOtp: "",
+  currentPassword: "",
+  newPassword: "",
+ });
+ const [profileNotice, setProfileNotice] = useState("");
+ const [profileError, setProfileError] = useState("");
+ const [profileLoading, setProfileLoading] = useState("");
+ const [phoneVerification, setPhoneVerification] = useState(null);
+
+ useEffect(() => {
+  if (!user) return;
+  setProfileForm((prev) => ({
+   ...prev,
+   name: user.name || "",
+   email: user.email || "",
+   phone: user.phone || "",
+   phoneOtp: "",
+   currentPassword: "",
+   newPassword: "",
+  }));
+ }, [user]);
 
  useEffect(() => {
   if (!user || activeTab !== "wishlist") return;
@@ -49,6 +98,290 @@ export default function Dashboard() {
  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
  const [addressToDelete, setAddressToDelete] = useState(null);
  const [orderToCancel, setOrderToCancel] = useState(null);
+
+ const setProfileMessage = (type, message) => {
+  setProfileNotice(type === "success" ? message : "");
+  setProfileError(type === "error" ? message : "");
+ };
+
+ const updateLocalProfile = (updates) => {
+  const nextUser = { ...user, ...updates };
+  login(nextUser, nextUser.role || "user", nextUser.token || user.token || "");
+ };
+
+ const getActiveFirebaseUser = async (auth) => {
+  if (auth.currentUser) return auth.currentUser;
+  const { onAuthStateChanged } = await import("firebase/auth");
+  return new Promise((resolve) => {
+   let done = false;
+   const timer = setTimeout(() => {
+    if (!done) {
+     done = true;
+     resolve(null);
+    }
+   }, 2500);
+   const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+    if (done) return;
+    done = true;
+    clearTimeout(timer);
+    unsubscribe();
+    resolve(firebaseUser);
+   });
+  });
+ };
+
+ const getProfileFirebaseContext = async () => {
+  if (!isFirebaseClientConfigured) {
+   throw new Error("Firebase client is not configured.");
+  }
+  const firebaseClient = await getFirebaseClient();
+  const firebaseUser = await getActiveFirebaseUser(firebaseClient.auth);
+  if (!firebaseUser) {
+   throw new Error("Please sign out and sign in again before changing profile security details.");
+  }
+  return { ...firebaseClient, firebaseUser };
+ };
+
+ const getProfileRecaptchaVerifier = async (auth) => {
+  if (profileRecaptchaRef.current) return profileRecaptchaRef.current;
+  const { RecaptchaVerifier } = await import("firebase/auth");
+  profileRecaptchaRef.current = new RecaptchaVerifier(
+   auth,
+   "profile-phone-recaptcha",
+   { size: "invisible" },
+  );
+  return profileRecaptchaRef.current;
+ };
+
+ const handleSaveProfileName = async (event) => {
+  event.preventDefault();
+  const cleanName = profileForm.name.trim();
+  if (!cleanName) {
+   setProfileMessage("error", "Name is required.");
+   return;
+  }
+  setProfileLoading("name");
+  setProfileMessage("success", "");
+  try {
+   const { auth, db, firebaseUser } = await getProfileFirebaseContext();
+   const [{ updateProfile }, { doc, setDoc, serverTimestamp }] =
+    await Promise.all([import("firebase/auth"), import("firebase/firestore")]);
+   await updateProfile(firebaseUser, { displayName: cleanName });
+   await setDoc(
+    doc(db, "users", firebaseUser.uid),
+    { name: cleanName, updatedAt: serverTimestamp() },
+    { merge: true },
+   );
+   const token = await auth.currentUser.getIdToken(true);
+   updateLocalProfile({ name: cleanName, token });
+   setProfileMessage("success", "Name updated successfully.");
+  } catch (err) {
+   setProfileMessage("error", err.message || "Unable to update name.");
+  } finally {
+   setProfileLoading("");
+  }
+ };
+
+ const handleSendPhoneOtp = async (event) => {
+  event.preventDefault();
+  const cleanPhone = normalizeProfilePhone(profileForm.phone);
+  if (!/^\+[1-9]\d{9,14}$/.test(cleanPhone)) {
+   setProfileMessage("error", "Enter a valid mobile number with country code.");
+   return;
+  }
+  setProfileLoading("phone-send");
+  setProfileMessage("success", "");
+  try {
+   const { auth } = await getProfileFirebaseContext();
+   const { PhoneAuthProvider } = await import("firebase/auth");
+   const appVerifier = await getProfileRecaptchaVerifier(auth);
+   const provider = new PhoneAuthProvider(auth);
+   const verificationId = await provider.verifyPhoneNumber(cleanPhone, appVerifier);
+   setPhoneVerification({ verificationId, phone: cleanPhone });
+   setProfileForm((prev) => ({ ...prev, phone: cleanPhone, phoneOtp: "" }));
+   setProfileMessage("success", "OTP sent to the new mobile number.");
+  } catch (err) {
+   setProfileMessage("error", err.message || "Unable to send mobile OTP.");
+  } finally {
+   setProfileLoading("");
+  }
+ };
+
+ const handleVerifyPhoneOtp = async (event) => {
+  event.preventDefault();
+  const code = profileForm.phoneOtp.trim();
+  if (!phoneVerification?.verificationId) {
+   setProfileMessage("error", "Please send OTP first.");
+   return;
+  }
+  if (!/^\d{6}$/.test(code)) {
+   setProfileMessage("error", "Enter a valid 6-digit OTP.");
+   return;
+  }
+  setProfileLoading("phone-verify");
+  setProfileMessage("success", "");
+  try {
+   const { auth, db, firebaseUser } = await getProfileFirebaseContext();
+   const [
+    { PhoneAuthProvider, updatePhoneNumber },
+    { deleteDoc, doc, setDoc, serverTimestamp },
+   ] = await Promise.all([import("firebase/auth"), import("firebase/firestore")]);
+   const credential = PhoneAuthProvider.credential(
+    phoneVerification.verificationId,
+    code,
+   );
+   await updatePhoneNumber(firebaseUser, credential);
+   const newPhone = phoneVerification.phone;
+   await setDoc(
+    doc(db, "users", firebaseUser.uid),
+    { phone: newPhone, phoneVerifiedAt: serverTimestamp(), updatedAt: serverTimestamp() },
+    { merge: true },
+   );
+   await setDoc(
+    doc(db, "phone_login", getProfilePhoneKey(newPhone)),
+    {
+     uid: firebaseUser.uid,
+     email: firebaseUser.email || user.email,
+     phone: newPhone,
+     updatedAt: serverTimestamp(),
+    },
+    { merge: true },
+   );
+   const oldPhoneKey = getProfilePhoneKey(user.phone);
+   const newPhoneKey = getProfilePhoneKey(newPhone);
+   if (oldPhoneKey && oldPhoneKey !== newPhoneKey) {
+    await deleteDoc(doc(db, "phone_login", oldPhoneKey)).catch(() => {});
+   }
+   const token = await auth.currentUser.getIdToken(true);
+   updateLocalProfile({ phone: newPhone, token });
+   setPhoneVerification(null);
+   setProfileForm((prev) => ({ ...prev, phone: newPhone, phoneOtp: "" }));
+   setProfileMessage("success", "Mobile number verified and updated.");
+  } catch (err) {
+   setProfileMessage("error", err.message || "OTP verification failed.");
+  } finally {
+   setProfileLoading("");
+  }
+ };
+
+ const handleSendEmailVerification = async (event) => {
+  event.preventDefault();
+  const nextEmail = profileForm.email.trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(nextEmail)) {
+   setProfileMessage("error", "Enter a valid email address.");
+   return;
+  }
+  if (nextEmail === String(user.email || "").toLowerCase()) {
+   setProfileMessage("success", "This email is already active on your account.");
+   return;
+  }
+  setProfileLoading("email");
+  setProfileMessage("success", "");
+  try {
+   const { db, firebaseUser } = await getProfileFirebaseContext();
+   const [{ verifyBeforeUpdateEmail }, { doc, setDoc, serverTimestamp }] =
+    await Promise.all([import("firebase/auth"), import("firebase/firestore")]);
+   await verifyBeforeUpdateEmail(firebaseUser, nextEmail);
+   await setDoc(
+    doc(db, "users", firebaseUser.uid),
+    { pendingEmail: nextEmail, emailChangeRequestedAt: serverTimestamp() },
+    { merge: true },
+   );
+   setProfileMessage(
+    "success",
+    "Verification link sent. Open it from your email, then return here and refresh verified email.",
+   );
+  } catch (err) {
+   setProfileMessage("error", err.message || "Unable to send verification email.");
+  } finally {
+   setProfileLoading("");
+  }
+ };
+
+ const handleRefreshVerifiedEmail = async () => {
+  setProfileLoading("email-refresh");
+  setProfileMessage("success", "");
+  try {
+   const { auth, db, firebaseUser } = await getProfileFirebaseContext();
+   const [{ doc, setDoc, deleteField, serverTimestamp }] = await Promise.all([
+    import("firebase/firestore"),
+   ]);
+   await firebaseUser.reload();
+   const refreshedUser = auth.currentUser;
+   const activeEmail = String(refreshedUser.email || "").toLowerCase();
+   if (!activeEmail || activeEmail === String(user.email || "").toLowerCase()) {
+    setProfileMessage("success", "No verified email change found yet.");
+    return;
+   }
+   await setDoc(
+    doc(db, "users", refreshedUser.uid),
+    {
+     email: activeEmail,
+     pendingEmail: deleteField(),
+     emailVerifiedAt: serverTimestamp(),
+     updatedAt: serverTimestamp(),
+    },
+    { merge: true },
+   );
+   const phoneKey = getProfilePhoneKey(user.phone);
+   if (phoneKey) {
+    await setDoc(
+     doc(db, "phone_login", phoneKey),
+     { email: activeEmail, updatedAt: serverTimestamp() },
+     { merge: true },
+    );
+   }
+   const token = await refreshedUser.getIdToken(true);
+   updateLocalProfile({ email: activeEmail, token });
+   setProfileForm((prev) => ({ ...prev, email: activeEmail }));
+   setProfileMessage("success", "Verified email synced successfully.");
+  } catch (err) {
+   setProfileMessage("error", err.message || "Unable to refresh verified email.");
+  } finally {
+   setProfileLoading("");
+  }
+ };
+
+ const handleChangePassword = async (event) => {
+  event.preventDefault();
+  if (!profileForm.currentPassword || profileForm.newPassword.length < 6) {
+   setProfileMessage(
+    "error",
+    "Enter current password and a new password of at least 6 characters.",
+   );
+   return;
+  }
+  setProfileLoading("password");
+  setProfileMessage("success", "");
+  try {
+   const { firebaseUser } = await getProfileFirebaseContext();
+   const {
+    EmailAuthProvider,
+    reauthenticateWithCredential,
+    updatePassword,
+   } = await import("firebase/auth");
+   const emailForAuth = firebaseUser.email || user.email;
+   if (!emailForAuth) {
+    throw new Error("Password change requires an email/password account.");
+   }
+   const credential = EmailAuthProvider.credential(
+    emailForAuth,
+    profileForm.currentPassword,
+   );
+   await reauthenticateWithCredential(firebaseUser, credential);
+   await updatePassword(firebaseUser, profileForm.newPassword);
+   setProfileForm((prev) => ({
+    ...prev,
+    currentPassword: "",
+    newPassword: "",
+   }));
+   setProfileMessage("success", "Password changed successfully.");
+  } catch (err) {
+   setProfileMessage("error", err.message || "Unable to change password.");
+  } finally {
+   setProfileLoading("");
+  }
+ };
 
  const executeDeleteAddress = async () => {
   if (!addressToDelete) return;
@@ -265,8 +598,7 @@ export default function Dashboard() {
 
  if (!user) return null;
 
- // Format greeting name from email prefix
- const username = user.email.split("@")[0];
+ const username = user.name || (user.email ? user.email.split("@")[0] : "Member");
  const greetingName = username.charAt(0).toUpperCase() + username.slice(1);
 
  const handleLogoutConfirm = () => {
@@ -392,6 +724,7 @@ export default function Dashboard() {
      >
       {[
        { id: "dashboard", label: "Dashboard Hub" },
+       { id: "profile", label: "Profile Security" },
        { id: "orders", label: "Order History" },
        { id: "wishlist", label: "Wishlist Items" },
        { id: "addresses", label: "Saved Addresses" },
@@ -749,6 +1082,329 @@ export default function Dashboard() {
           ))}
          </div>
         </div>
+       </div>
+      </div>
+     )}
+
+     {activeTab === "profile" && (
+      <div
+       style={{
+        border: "1px solid rgba(255,255,255,0.04)",
+        borderRadius: "8px",
+        padding: "2rem",
+        backgroundColor: "rgba(15,15,15,0.4)",
+       }}
+      >
+       <div id="profile-phone-recaptcha" style={{ display: "none" }} />
+       <div style={{ marginBottom: "1.8rem" }}>
+        <h2
+         style={{
+          fontFamily: "var(--font-heading)",
+          fontSize: "1.8rem",
+          fontWeight: 300,
+          color: "var(--color-white)",
+          margin: 0,
+         }}
+        >
+         Profile Security
+        </h2>
+        <p
+         style={{
+          color: "var(--color-muted)",
+          fontSize: "0.86rem",
+          marginTop: "0.4rem",
+         }}
+        >
+         Manage your member details with Firebase verification.
+        </p>
+       </div>
+
+       {profileNotice && (
+        <div
+         style={{
+          border: "1px solid rgba(201,168,76,0.28)",
+          backgroundColor: "rgba(201,168,76,0.09)",
+          color: "var(--color-white)",
+          padding: "0.85rem 1rem",
+          borderRadius: "4px",
+          fontSize: "0.82rem",
+          marginBottom: "1.2rem",
+         }}
+        >
+         {profileNotice}
+        </div>
+       )}
+
+       {profileError && (
+        <div
+         style={{
+          border: "1px solid rgba(255,80,80,0.25)",
+          backgroundColor: "rgba(255,80,80,0.1)",
+          color: "#ff9b9b",
+          padding: "0.85rem 1rem",
+          borderRadius: "4px",
+          fontSize: "0.82rem",
+          marginBottom: "1.2rem",
+         }}
+        >
+         {profileError}
+        </div>
+       )}
+
+       <div
+        style={{
+         display: "grid",
+         gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+         gap: "1.4rem",
+        }}
+       >
+        <form
+         onSubmit={handleSaveProfileName}
+         style={{
+          border: "1px solid rgba(201,168,76,0.12)",
+          borderRadius: "6px",
+          padding: "1.4rem",
+          backgroundColor: "rgba(5,5,5,0.25)",
+          display: "flex",
+          flexDirection: "column",
+          gap: "1rem",
+         }}
+        >
+         <h3
+          style={{
+           fontFamily: "var(--font-heading)",
+           fontSize: "1.2rem",
+           fontWeight: 300,
+           color: "var(--color-white)",
+           margin: 0,
+          }}
+         >
+          Name
+         </h3>
+         <div className="contact-form-group">
+          <label htmlFor="profile-name" className="contact-form-label">
+           Full Name
+          </label>
+          <input
+           id="profile-name"
+           type="text"
+           className="contact-form-input"
+           value={profileForm.name}
+           onChange={(e) =>
+            setProfileForm((prev) => ({ ...prev, name: e.target.value }))
+           }
+          />
+         </div>
+         <button
+          type="submit"
+          className="btn btn-primary"
+          disabled={profileLoading === "name"}
+          style={{ height: "40px" }}
+         >
+          {profileLoading === "name" ? "Saving..." : "Save Name"}
+         </button>
+        </form>
+
+        <form
+         onSubmit={handleSendEmailVerification}
+         style={{
+          border: "1px solid rgba(201,168,76,0.12)",
+          borderRadius: "6px",
+          padding: "1.4rem",
+          backgroundColor: "rgba(5,5,5,0.25)",
+          display: "flex",
+          flexDirection: "column",
+          gap: "1rem",
+         }}
+        >
+         <h3
+          style={{
+           fontFamily: "var(--font-heading)",
+           fontSize: "1.2rem",
+           fontWeight: 300,
+           color: "var(--color-white)",
+           margin: 0,
+          }}
+         >
+          Email
+         </h3>
+         <div className="contact-form-group">
+          <label htmlFor="profile-email" className="contact-form-label">
+           Email Address
+          </label>
+          <input
+           id="profile-email"
+           type="email"
+           className="contact-form-input"
+           value={profileForm.email}
+           onChange={(e) =>
+            setProfileForm((prev) => ({ ...prev, email: e.target.value }))
+           }
+          />
+         </div>
+         <div style={{ display: "flex", gap: "0.8rem", flexWrap: "wrap" }}>
+          <button
+           type="submit"
+           className="btn btn-primary"
+           disabled={profileLoading === "email"}
+           style={{ height: "40px", flex: 1, minWidth: "160px" }}
+          >
+           {profileLoading === "email" ? "Sending..." : "Send Verification"}
+          </button>
+          <button
+           type="button"
+           className="btn btn-outline"
+           onClick={handleRefreshVerifiedEmail}
+           disabled={profileLoading === "email-refresh"}
+           style={{ height: "40px", flex: 1, minWidth: "160px" }}
+          >
+           {profileLoading === "email-refresh" ? "Checking..." : "Refresh Verified"}
+          </button>
+         </div>
+        </form>
+
+        <form
+         onSubmit={phoneVerification ? handleVerifyPhoneOtp : handleSendPhoneOtp}
+         style={{
+          border: "1px solid rgba(201,168,76,0.12)",
+          borderRadius: "6px",
+          padding: "1.4rem",
+          backgroundColor: "rgba(5,5,5,0.25)",
+          display: "flex",
+          flexDirection: "column",
+          gap: "1rem",
+         }}
+        >
+         <h3
+          style={{
+           fontFamily: "var(--font-heading)",
+           fontSize: "1.2rem",
+           fontWeight: 300,
+           color: "var(--color-white)",
+           margin: 0,
+          }}
+         >
+          Mobile
+         </h3>
+         <div className="contact-form-group">
+          <label htmlFor="profile-phone" className="contact-form-label">
+           Mobile Number
+          </label>
+          <input
+           id="profile-phone"
+           type="tel"
+           className="contact-form-input"
+           placeholder="+91 99999 99999"
+           value={profileForm.phone}
+           onChange={(e) => {
+            setPhoneVerification(null);
+            setProfileForm((prev) => ({ ...prev, phone: e.target.value }));
+           }}
+          />
+         </div>
+         {phoneVerification && (
+          <div className="contact-form-group">
+           <label htmlFor="profile-phone-otp" className="contact-form-label">
+            OTP Code
+           </label>
+           <input
+            id="profile-phone-otp"
+            type="text"
+            inputMode="numeric"
+            maxLength={6}
+            className="contact-form-input"
+            value={profileForm.phoneOtp}
+            onChange={(e) =>
+             setProfileForm((prev) => ({
+              ...prev,
+              phoneOtp: e.target.value.replace(/\D/g, ""),
+             }))
+            }
+           />
+          </div>
+         )}
+         <button
+          type="submit"
+          className="btn btn-primary"
+          disabled={
+           profileLoading === "phone-send" ||
+           profileLoading === "phone-verify"
+          }
+          style={{ height: "40px" }}
+         >
+          {profileLoading === "phone-send"
+           ? "Sending..."
+           : profileLoading === "phone-verify"
+             ? "Verifying..."
+             : phoneVerification
+               ? "Verify & Update Mobile"
+               : "Send Mobile OTP"}
+         </button>
+        </form>
+
+        <form
+         onSubmit={handleChangePassword}
+         style={{
+          border: "1px solid rgba(201,168,76,0.12)",
+          borderRadius: "6px",
+          padding: "1.4rem",
+          backgroundColor: "rgba(5,5,5,0.25)",
+          display: "flex",
+          flexDirection: "column",
+          gap: "1rem",
+         }}
+        >
+         <h3
+          style={{
+           fontFamily: "var(--font-heading)",
+           fontSize: "1.2rem",
+           fontWeight: 300,
+           color: "var(--color-white)",
+           margin: 0,
+          }}
+         >
+          Password
+         </h3>
+         <div className="contact-form-group">
+          <label htmlFor="profile-current-password" className="contact-form-label">
+           Current Password
+          </label>
+          <input
+           id="profile-current-password"
+           type="password"
+           className="contact-form-input"
+           value={profileForm.currentPassword}
+           onChange={(e) =>
+            setProfileForm((prev) => ({
+             ...prev,
+             currentPassword: e.target.value,
+            }))
+           }
+          />
+         </div>
+         <div className="contact-form-group">
+          <label htmlFor="profile-new-password" className="contact-form-label">
+           New Password
+          </label>
+          <input
+           id="profile-new-password"
+           type="password"
+           className="contact-form-input"
+           value={profileForm.newPassword}
+           onChange={(e) =>
+            setProfileForm((prev) => ({ ...prev, newPassword: e.target.value }))
+           }
+          />
+         </div>
+         <button
+          type="submit"
+          className="btn btn-primary"
+          disabled={profileLoading === "password"}
+          style={{ height: "40px" }}
+         >
+          {profileLoading === "password" ? "Changing..." : "Change Password"}
+         </button>
+        </form>
        </div>
       </div>
      )}

@@ -199,29 +199,54 @@ export default function App() {
   const [user, setUser] = useState(() => {
    const logged = localStorage.getItem("rein_oro_user_logged_in") === "true";
    const email = localStorage.getItem("rein_oro_user_email");
+   const phone = localStorage.getItem("rein_oro_user_phone") || "";
+   const name = localStorage.getItem("rein_oro_user_name") || "";
+   const uid = localStorage.getItem("rein_oro_user_uid") || "";
    const token = localStorage.getItem("rein_oro_auth_token") || "";
    const role = String(localStorage.getItem("rein_oro_user_role") || "user")
     .trim()
     .toLowerCase();
-   return logged ? { email, role, token } : null;
+   return logged ? { uid, name, email, phone, role, token } : null;
   });
 
-  const login = (email, role = "user", token = "") => {
+  const login = (identity, role = "user", token = "") => {
+   const profile =
+    identity && typeof identity === "object" ? identity : { email: identity };
    const normalizedRole = String(role || "user")
     .trim()
     .toLowerCase();
+   const userEmail = profile.email || "";
+   const userPhone = profile.phone || "";
+   const userName = profile.name || "";
+   const userUid = profile.uid || "";
+   const authToken = token || profile.token || "";
    localStorage.setItem("rein_oro_user_logged_in", "true");
-   localStorage.setItem("rein_oro_user_email", email);
+   localStorage.setItem("rein_oro_user_email", userEmail);
+   localStorage.setItem("rein_oro_user_phone", userPhone);
+   localStorage.setItem("rein_oro_user_name", userName);
+   localStorage.setItem("rein_oro_user_uid", userUid);
    localStorage.setItem("rein_oro_user_role", normalizedRole);
-   if (token) {
-    localStorage.setItem("rein_oro_auth_token", token);
+   if (authToken) {
+    localStorage.setItem("rein_oro_auth_token", authToken);
+   } else {
+    localStorage.removeItem("rein_oro_auth_token");
    }
-   setUser({ email, role: normalizedRole, token });
+   setUser({
+    uid: userUid,
+    name: userName,
+    email: userEmail,
+    phone: userPhone,
+    role: normalizedRole,
+    token: authToken,
+   });
   };
 
    const logout = () => {
     localStorage.removeItem("rein_oro_user_logged_in");
     localStorage.removeItem("rein_oro_user_email");
+    localStorage.removeItem("rein_oro_user_phone");
+    localStorage.removeItem("rein_oro_user_name");
+    localStorage.removeItem("rein_oro_user_uid");
     localStorage.removeItem("rein_oro_user_role");
     localStorage.removeItem("rein_oro_auth_token");
     setUser(null);

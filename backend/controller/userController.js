@@ -33,9 +33,11 @@ export async function getUsers(req, res) {
  try {
   const list = await queryFirestoreCollection("users");
   res.json(
-   list.map((u) => ({
+  list.map((u) => ({
     id: u.id || u.email,
+    name: u.name || "",
     email: u.email,
+    phone: u.phone || u.mobile || "",
     role: u.role,
     member_since: formatMemberSince(u),
    })),

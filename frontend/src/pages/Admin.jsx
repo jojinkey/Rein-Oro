@@ -1383,7 +1383,7 @@ export default function Admin() {
     throw new Error("Access Denied. Admin privileges required.");
    }
 
-    login(data.user?.email || authEmail, data.user?.role || "admin", data.token || "");
+    login(data.user?.email || authEmail, data.user?.role || "admin", data.token || "", data.customToken || "");
    setIsAdminLoggedIn(true);
    alert("Administrative authentication successful.");
   } catch (err) {

@@ -648,7 +648,7 @@ export default function Login() {
        {subtitle}
       </p>
      </div>
-
+     <div id="rein-oro-recaptcha" key={recaptchaRenderKey} style={{ display: "none" }} />
      <form
       onSubmit={handleSubmit}
       style={{ display: "flex", flexDirection: "column", gap: "1.2rem" }}

@@ -621,16 +621,15 @@ export async function register(req, res) {
   const userRecord = await auth.createUser(createPayload);
 
   await writeUserProfile(userRecord.uid, payload);
+  const customToken = await auth.createCustomToken(userRecord.uid);
 
   const tokenData = await exchangeCustomTokenForIdToken(userRecord.uid);
   const profile = await getUserProfileByUid(userRecord.uid);
 
   res.status(201).json({
    success: true,
-   token: tokenData.idToken,
-   refreshToken: tokenData.refreshToken,
-   expiresIn: tokenData.expiresIn,
-   user: profile || {
+   customToken,
+   user: {
     uid: userRecord.uid,
     name: payload.name,
     email: payload.email,
@@ -688,10 +687,14 @@ export async function login(req, res) {
    return res.status(404).json({ error: "User profile not found" });
   }
 
+  const authClient = await getAuthClient();
+  const customToken = await authClient.createCustomToken(data.localId);
+
   await updateLastLogin(data.localId);
   res.json({
    success: true,
    token: data.idToken,
+   customToken,
    refreshToken: data.refreshToken,
    expiresIn: data.expiresIn,
    user: profile,
@@ -983,6 +986,19 @@ export async function protect(req, res, next) {
  }
 }
 
+export async function getProfile(req, res) {
+ try {
+  const authClient = await getAuthClient();
+  const customToken = await authClient.createCustomToken(req.user.uid);
+  res.json({
+   ...req.user,
+   customToken,
+  });
+ } catch (err) {
+  res.status(500).json({ error: err.message });
+ }
+}
+
 export function restrict2(...allowedRoles) {
  return (req, res, next) => {
   if (!req.user) {
@@ -996,3 +1012,24 @@ export function restrict2(...allowedRoles) {
   next();
  };
 }
+
+export async function syncUserProfile(req, res) {
+ try {
+  const auth = await getAuthClient();
+  const userRecord = await auth.getUser(req.user.uid);
+  const updatedProfilePayload = {
+   email: userRecord.email,
+   name: userRecord.displayName || req.user.name,
+   phone: userRecord.phoneNumber || req.user.phone || null,
+  };
+  await writeUserProfile(req.user.uid, {
+   ...req.user,
+   ...updatedProfilePayload
+  });
+  res.json({ success: true, user: { ...req.user, ...updatedProfilePayload } });
+ } catch (err) {
+  res.status(400).json({ error: err.message });
+ }
+}
+
+

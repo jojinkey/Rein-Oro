@@ -5,7 +5,10 @@ import path from "path";
 import { fileURLToPath } from "url";
 import apiRouter from "./routes/index.js";
 import { seedDatabase } from "./util/database.js";
-import { notFoundHandler, globalErrorHandler } from "./controller/errorController.js";
+import {
+ notFoundHandler,
+ globalErrorHandler,
+} from "./controller/errorController.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -47,12 +50,16 @@ app.get("*", (req, res, next) => {
  ) {
   return next();
  }
-  const indexPath = path.join(__dirname, "../frontend/dist", "index.html");
-  res.sendFile(indexPath, (err) => {
-    if (err) {
-      res.status(404).send("Frontend static assets not found. Please ensure the frontend has been built successfully.");
-    }
-  });
+ const indexPath = path.join(__dirname, "../frontend/dist", "index.html");
+ res.sendFile(indexPath, (err) => {
+  if (err) {
+   res
+    .status(404)
+    .send(
+     "Frontend static assets not found. Please ensure the frontend has been built successfully.",
+    );
+  }
+ });
 });
 
 app.get("/api", (req, res) => {

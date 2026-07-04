@@ -689,7 +689,7 @@ export default function Login() {
       ) : (
        <div className="contact-form-group">
         <label htmlFor="login-identifier" className="contact-form-label">
-         Email Address
+         Email or Mobile Number
         </label>
         <input
          type="text"

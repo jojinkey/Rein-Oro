@@ -11,6 +11,170 @@ import {
 } from "../util/firestore.js";
 
 const RAZORPAY_BUSINESS_NAME = "Rein Oro Foods";
+const GST_RATE_PERCENT = 18;
+const DEFAULT_GST_BUSINESS_PROFILE = Object.freeze({
+ name: "REIN ORO FOODS",
+ legal_name: "VAIBHAV SINGH PANWAR",
+ trade_name: "REIN ORO FOODS",
+ constitution: "Proprietorship",
+ gstin: "05GMOPP5339F1ZN",
+ registration_no: "05GMOPP5339F1ZN",
+ building_no: "499/3",
+ street: "Street Number 11",
+ landmark: "Vashu Electricals & All Dish Services",
+ locality: "Rajender Nagar",
+ city: "Roorkee",
+ district: "Haridwar",
+ state: "Uttarakhand",
+ pin_code: "247667",
+ address:
+  "499/3, Street Number 11, Rajender Nagar, Near Vashu Electricals & All Dish Services, Roorkee, Haridwar, Uttarakhand - 247667",
+ address_lines: [
+  "Building No./Flat No.: 499/3",
+  "Street Number 11, Rajender Nagar",
+  "Near Vashu Electricals & All Dish Services",
+  "Roorkee, Haridwar, Uttarakhand - 247667",
+ ],
+});
+
+function readEnv(name) {
+ const value = process.env[name];
+ return value && String(value).trim() ? String(value).trim() : "";
+}
+
+function getGstBusinessProfile() {
+ const address = readEnv("GST_BUSINESS_ADDRESS");
+ const addressLines = address
+  ? address
+    .split("|")
+    .map((line) => line.trim())
+    .filter(Boolean)
+  : DEFAULT_GST_BUSINESS_PROFILE.address_lines;
+
+ return {
+  ...DEFAULT_GST_BUSINESS_PROFILE,
+  name: readEnv("GST_BUSINESS_NAME") || DEFAULT_GST_BUSINESS_PROFILE.name,
+  legal_name:
+   readEnv("GST_BUSINESS_LEGAL_NAME") ||
+   DEFAULT_GST_BUSINESS_PROFILE.legal_name,
+  trade_name:
+   readEnv("GST_BUSINESS_TRADE_NAME") ||
+   DEFAULT_GST_BUSINESS_PROFILE.trade_name,
+  constitution:
+   readEnv("GST_BUSINESS_CONSTITUTION") ||
+   DEFAULT_GST_BUSINESS_PROFILE.constitution,
+  gstin: readEnv("GST_BUSINESS_GSTIN") || DEFAULT_GST_BUSINESS_PROFILE.gstin,
+  registration_no:
+   readEnv("GST_BUSINESS_REGISTRATION_NO") ||
+   DEFAULT_GST_BUSINESS_PROFILE.registration_no,
+  address: address || DEFAULT_GST_BUSINESS_PROFILE.address,
+  address_lines: addressLines.length
+   ? addressLines
+   : DEFAULT_GST_BUSINESS_PROFILE.address_lines,
+  city: readEnv("GST_BUSINESS_CITY") || DEFAULT_GST_BUSINESS_PROFILE.city,
+  district:
+   readEnv("GST_BUSINESS_DISTRICT") || DEFAULT_GST_BUSINESS_PROFILE.district,
+  state: readEnv("GST_BUSINESS_STATE") || DEFAULT_GST_BUSINESS_PROFILE.state,
+  pin_code:
+   readEnv("GST_BUSINESS_PIN_CODE") || DEFAULT_GST_BUSINESS_PROFILE.pin_code,
+ };
+}
+
+function toMoney(value) {
+ const amount = Number(value);
+ if (!Number.isFinite(amount)) return 0;
+ return Math.round(amount * 100) / 100;
+}
+
+function normalizeState(value) {
+ return String(value || "")
+  .trim()
+  .toLowerCase()
+  .replace(/\s+/g, " ");
+}
+
+function buildInvoiceNumber(orderId, dateValue = new Date()) {
+ const date = new Date(dateValue);
+ const safeDate = Number.isNaN(date.getTime()) ? new Date() : date;
+ const yyyymmdd = safeDate.toISOString().slice(0, 10).replace(/-/g, "");
+ const safeOrderId = String(orderId || Date.now())
+  .replace(/[^a-zA-Z0-9]/g, "")
+  .slice(-10)
+  .toUpperCase();
+ return `RO-GST-${yyyymmdd}-${safeOrderId}`;
+}
+
+function buildGstInvoice({
+ id,
+ date,
+ user_email,
+ customer_email,
+ customer_phone,
+ customer_gstin,
+ subtotal,
+ discount,
+ shipping,
+ tax,
+ total,
+ items,
+ shipping_address,
+ payment_id,
+}) {
+ const seller = getGstBusinessProfile();
+ const sellerState = seller.state;
+ const buyerState = shipping_address?.state || "";
+ const isIntraState =
+  normalizeState(sellerState) &&
+  normalizeState(sellerState) === normalizeState(buyerState);
+ const gstAmount = toMoney(tax);
+ const taxableValue = toMoney(Math.max(0, Number(total || 0) - gstAmount));
+ const cgst = isIntraState ? toMoney(gstAmount / 2) : 0;
+ const sgst = isIntraState ? toMoney(gstAmount / 2) : 0;
+ const igst = isIntraState ? 0 : gstAmount;
+
+ return {
+  invoice_no: buildInvoiceNumber(id, new Date()),
+  order_id: id,
+  invoice_date: new Date().toISOString(),
+  seller,
+  buyer: {
+   name: shipping_address?.fullName || customer_email || user_email,
+   email: customer_email || user_email,
+   phone: customer_phone || shipping_address?.phone || "",
+   gstin: customer_gstin || "",
+   address: shipping_address || null,
+   state: buyerState,
+  },
+  place_of_supply: buyerState || "India",
+  tax_type: isIntraState ? "CGST_SGST" : "IGST",
+  gst_rate_percent: GST_RATE_PERCENT,
+  taxable_value: taxableValue,
+  cgst,
+  sgst,
+  igst,
+  total_gst: gstAmount,
+  subtotal: toMoney(subtotal),
+  discount: toMoney(discount),
+  shipping: toMoney(shipping),
+  total: toMoney(total),
+  payment_id: payment_id || "",
+  items: (Array.isArray(items) ? items : []).map((item) => {
+   const qty = Number(item.qty || item.quantity || 0);
+   const price = Number(item.price || 0);
+   return {
+    name: item.name || item.title || "Item",
+    flavor: item.flavor || "",
+    weight: item.weight || "",
+    hsn: item.hsn || process.env.GST_DEFAULT_HSN || "",
+    qty,
+    unit_price: toMoney(price),
+    taxable_value: toMoney(qty * price),
+    gst_rate_percent: GST_RATE_PERCENT,
+    line_total: toMoney(qty * price),
+   };
+  }),
+ };
+}
 
 function cleanRazorpayNote(value) {
  return String(value || "")
@@ -132,6 +296,9 @@ export async function createOrder(req, res) {
  const {
   id,
   user_email,
+  customer_email,
+  customer_phone,
+  customer_gstin,
   date,
   est_delivery,
   subtotal,
@@ -159,27 +326,29 @@ export async function createOrder(req, res) {
   });
 
   const paidAt = new Date().toISOString();
-  await mirrorPaymentRecord({
-   local_order_id: id,
-   provider_order_id: razorpay_order_id,
-   provider_payment_id: payment_id,
-   provider_signature: razorpay_signature,
-   amount: total,
-   currency: "INR",
-   status: "Paid",
-   method: "Razorpay",
-   is_mock: 0,
-   raw_payload: {
-    order_id: id,
-    razorpay_order_id,
-    payment_id,
-   },
+  const gstInvoice = buildGstInvoice({
+   id,
+   date,
+   user_email,
+   customer_email,
+   customer_phone,
+   customer_gstin,
+   subtotal,
+   discount,
+   shipping,
+   tax,
+   total,
+   items,
+   shipping_address,
+   payment_id,
   });
 
-  // Store order as a single document in Firestore
-  await mirrorToFirestore("orders", id, {
+  const orderRecord = {
    id,
    user_email,
+   customer_email: customer_email || user_email,
+   customer_phone: customer_phone || shipping_address?.phone || "",
+   customer_gstin: customer_gstin || "",
    date,
    est_delivery,
    payment_method: "Paid via Razorpay Online",
@@ -199,8 +368,35 @@ export async function createOrder(req, res) {
    paid_at: paidAt,
    status: "Processing",
    created_at: paidAt,
+   invoice_no: gstInvoice.invoice_no,
+   gst_invoice: gstInvoice,
+  };
+
+  await mirrorPaymentRecord({
+   local_order_id: id,
+   provider_order_id: razorpay_order_id,
+   provider_payment_id: payment_id,
+   provider_signature: razorpay_signature,
+   amount: total,
+   currency: "INR",
+   status: "Paid",
+   method: "Razorpay",
+   is_mock: 0,
+   raw_payload: {
+    order_id: id,
+    razorpay_order_id,
+    payment_id,
+   },
   });
-  res.json({ success: true, orderId: id });
+
+  // Store order as a single document in Firestore
+  await mirrorToFirestore("orders", id, orderRecord);
+  res.json({
+   success: true,
+   orderId: id,
+   invoice: gstInvoice,
+   order: orderRecord,
+  });
  } catch (err) {
   res.status(err.statusCode || 400).json({ error: err.message });
  }

@@ -47,7 +47,7 @@ export default function Home() {
     let isComponentMounted = true;
     let localGsap = null;
     let localScrollTrigger = null;
-    let imagesLoaded = false;
+    let firstFrameReady = false;
     let gsapLoaded = false;
     let isAnimationsSetup = false;
     let scene1Entrance = null;
@@ -60,11 +60,12 @@ export default function Home() {
     // Helpers
     const getFramePath = (index) => {
       const paddedIndex = String(index + 1).padStart(3, '0');
-      return `frames/ezgif-frame-${paddedIndex}.jpg`;
+      const basePath = import.meta.env.BASE_URL || '/';
+      return `${basePath}${basePath.endsWith('/') ? '' : '/'}frames/ezgif-frame-${paddedIndex}.jpg`;
     };
 
     const drawCanvasFrame = (img) => {
-      if (!img || !canvas || !context) return;
+      if (!img || !canvas || !context || !img.naturalWidth || !img.naturalHeight) return;
 
       const devicePixelRatio = window.devicePixelRatio || 1;
       const canvasW = canvas.width / devicePixelRatio;
@@ -73,8 +74,8 @@ export default function Home() {
       context.fillStyle = '#050505';
       context.fillRect(0, 0, canvasW, canvasH);
 
-      const imgW = img.width;
-      const imgH = img.height;
+      const imgW = img.naturalWidth;
+      const imgH = img.naturalHeight;
 
       const scaleRatio = Math.max(canvasW / imgW, canvasH / imgH);
       const w = imgW * scaleRatio;
@@ -85,6 +86,41 @@ export default function Home() {
       context.drawImage(img, x, y, w, h);
     };
 
+    const getNearestLoadedFrame = (frame) => {
+      const target = Math.max(0, Math.min(frameCount - 1, Math.round(frame)));
+      const exact = imagesRef.current[target];
+      if (exact?.complete && exact.naturalWidth > 0) return exact;
+
+      for (let offset = 1; offset < frameCount; offset++) {
+        const previous = imagesRef.current[target - offset];
+        if (previous?.complete && previous.naturalWidth > 0) return previous;
+
+        const next = imagesRef.current[target + offset];
+        if (next?.complete && next.naturalWidth > 0) return next;
+      }
+
+      return null;
+    };
+
+    const revealFirstScene = () => {
+      const firstScene = document.getElementById('scene-1');
+      if (!firstScene) return;
+
+      if (localGsap) {
+        localGsap.set(firstScene, {
+          autoAlpha: 1,
+          x: 0,
+          y: 0,
+          filter: 'none'
+        });
+      } else {
+        firstScene.style.opacity = '1';
+        firstScene.style.visibility = 'visible';
+        firstScene.style.transform = 'translate(0, 0)';
+        firstScene.style.filter = 'none';
+      }
+    };
+
     const resizeCanvas = () => {
       const devicePixelRatio = window.devicePixelRatio || 1;
       canvas.width = window.innerWidth * devicePixelRatio;
@@ -93,49 +129,68 @@ export default function Home() {
       canvas.style.height = `${window.innerHeight}px`;
       context.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
 
-      const currentFrameImg = imagesRef.current[airpodsRef.current.frame];
+      const currentFrameImg = getNearestLoadedFrame(airpodsRef.current.frame);
       if (currentFrameImg) {
         drawCanvasFrame(currentFrameImg);
       }
     };
 
     const checkAndInit = () => {
-      if (imagesLoaded && gsapLoaded && isComponentMounted && !isAnimationsSetup) {
+      if (firstFrameReady && gsapLoaded && isComponentMounted && !isAnimationsSetup) {
         isAnimationsSetup = true;
         setupAnimations();
       }
     };
 
     // Preload
-    let loadedCount = 0;
-    const preloadImages = () => {
-      for (let i = 0; i < frameCount; i++) {
-        const img = new Image();
-        img.onload = () => {
-          if (!isComponentMounted) return;
-          loadedCount++;
-          if (loadedCount === frameCount) {
-            imagesLoaded = true;
-            checkAndInit();
-          }
-        };
-        img.onerror = () => {
-          if (!isComponentMounted) return;
-          loadedCount++;
-          if (loadedCount === frameCount) {
-            imagesLoaded = true;
-            checkAndInit();
-          }
-        };
-        img.src = getFramePath(i);
-        imagesRef.current.push(img);
+    const loadFrame = (index, onReady) => {
+      const img = new Image();
+      img.decoding = 'async';
+      img.onload = () => {
+        if (!isComponentMounted) return;
+        onReady?.(img);
+      };
+      img.onerror = () => {
+        if (!isComponentMounted) return;
+        onReady?.(null);
+      };
+      img.src = getFramePath(index);
+      imagesRef.current[index] = img;
+      return img;
+    };
+
+    const preloadRemainingFrames = () => {
+      const loadRest = () => {
+        if (!isComponentMounted) return;
+        for (let i = 1; i < frameCount; i++) {
+          loadFrame(i);
+        }
+      };
+
+      if ('requestIdleCallback' in window) {
+        window.requestIdleCallback(loadRest, { timeout: 1200 });
+      } else {
+        window.setTimeout(loadRest, 250);
       }
+    };
+
+    const preloadImages = () => {
+      loadFrame(0, (img) => {
+        if (!isComponentMounted) return;
+        firstFrameReady = true;
+        resizeCanvas();
+        if (img) drawCanvasFrame(img);
+        revealFirstScene();
+        checkAndInit();
+        preloadRemainingFrames();
+      });
     };
 
     // Setup Animations
     const setupAnimations = () => {
       if (!isComponentMounted) return;
 
+      containerRef.current?.classList.remove('scroll-fallback');
       resizeCanvas();
       window.addEventListener('resize', resizeCanvas);
 
@@ -168,19 +223,10 @@ export default function Home() {
       localGsap.set('#scene-2', { x: -30 });
       localGsap.set('#scene-3', { x: 30 });
       localGsap.set('#scene-4', { x: -30 });
-      localGsap.set('#scene-1', { autoAlpha: 0, y: 50, filter: 'blur(12px)' });
+      localGsap.set('#scene-1', { autoAlpha: 1, y: 0, filter: 'none' });
 
       // Entrance animation
-      if (window.scrollY < 50) {
-        scene1Entrance = localGsap.to('#scene-1', {
-          autoAlpha: 1,
-          y: 0,
-          filter: 'blur(0px)',
-          duration: 1.8,
-          ease: 'power3.out',
-          delay: 0.4
-        });
-      } else {
+      if (window.scrollY >= 50) {
         localGsap.set('#scene-1', { autoAlpha: 0, y: -50, filter: 'blur(10px)' });
       }
 
@@ -228,7 +274,7 @@ export default function Home() {
         ease: 'none',
         duration: 100,
         onUpdate: () => {
-          const currentImg = imagesRef.current[Math.round(airpodsRef.current.frame)];
+          const currentImg = getNearestLoadedFrame(airpodsRef.current.frame);
           if (currentImg) drawCanvasFrame(currentImg);
         }
       }, 0);
@@ -317,8 +363,13 @@ export default function Home() {
       localScrollTrigger = ScrollTriggerModule.ScrollTrigger;
       localGsap.registerPlugin(localScrollTrigger);
       gsapLoaded = true;
+      revealFirstScene();
       checkAndInit();
-    }).catch(err => console.error('Failed to dynamically load GSAP:', err));
+    }).catch(err => {
+      console.error('Failed to dynamically load GSAP:', err);
+      containerRef.current?.classList.add('scroll-fallback');
+      revealFirstScene();
+    });
 
     preloadImages();
 

@@ -1,6 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { apiUrl } from "../config/api.js";
+import { GST_BUSINESS_PROFILE } from "../config/gstProfile.js";
 
 const SUPPORT_EMAIL = 'wecare.reinoro@gmail.com';
 const WHATSAPP_URL = 'https://wa.me/916397003303';
@@ -93,7 +94,7 @@ export default function Footer() {
           <span>FSSAI License No.: 22626233000105</span>
           <span>Made in India 🇮🇳</span>
           <span>Roorkee, Uttarakhand</span>
-          <span>GSTIN: Pending Registration</span>
+          <span>GSTIN: {GST_BUSINESS_PROFILE.gstin}</span>
         </div>
         <div className="footer-bottom-links">
           <Link to="/terms">Terms & Conditions</Link> &bull; <Link to="/privacy">Privacy Policy</Link>

@@ -1,0 +1,111 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function isAdmin() {
+      return signedIn() && request.auth.token.admin == true;
+    }
+
+    function ownsIncomingUser(uid) {
+      return isOwner(uid)
+        && request.resource.data.uid == uid
+        && (!("email" in request.resource.data) || request.resource.data.email == request.auth.token.email);
+    }
+
+    match /products/{productId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /cms_content/{contentId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /cms_styles/{styleId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /reviews/{reviewId} {
+      allow read: if true;
+      allow create: if signedIn();
+      allow update, delete: if isAdmin();
+    }
+
+    match /coupons/{couponId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /users/{uid} {
+      allow create: if ownsIncomingUser(uid);
+      allow read: if isOwner(uid)
+        || isAdmin()
+        || (signedIn()
+          && ("phone" in resource.data)
+          && resource.data.phone == request.auth.token.phone_number);
+      allow update: if isOwner(uid) || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /phone_login/{phoneKey} {
+      allow get: if true;
+      allow list: if false;
+      allow create, update: if signedIn()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.email == request.auth.token.email;
+      allow delete: if isAdmin()
+        || (signedIn() && resource.data.uid == request.auth.uid);
+    }
+
+    match /orders/{orderId} {
+      allow create: if signedIn()
+        && request.resource.data.user_uid == request.auth.uid;
+      allow read: if isAdmin()
+        || (signedIn()
+          && resource.data.user_uid == request.auth.uid);
+      allow update, delete: if isAdmin();
+    }
+
+    match /auth_login_otps/{otpId} {
+      allow read, write: if false;
+    }
+
+    match /payments/{paymentId} {
+      allow read, write: if isAdmin();
+    }
+
+    match /newsletter/{subscriberId} {
+      allow create: if true;
+      allow read, update, delete: if isAdmin();
+    }
+
+    match /enquiries/{enquiryId} {
+      allow create: if true;
+      allow read, update, delete: if isAdmin();
+    }
+
+    match /website_visits/{visitId} {
+      allow create: if true;
+      allow read, update, delete: if isAdmin();
+    }
+
+    match /{document=**} {
+      allow read, write: if isAdmin();
+    }
+  }
+}

@@ -399,6 +399,11 @@ body {
     pointer-events: none;
 }
 
+#scene-1 {
+    opacity: 1;
+    visibility: visible;
+}
+
 .scene-content {
     width: 100%;
     padding: 0 2rem;
@@ -8591,6 +8596,165 @@ body.login-page-body .login-card-footer {
     padding-bottom: 1rem;
 }
 
+.gst-invoice-preview-section {
+    border: 1px solid rgba(201, 168, 76, 0.16);
+    border-radius: 8px;
+    background: rgba(15, 15, 15, 0.48);
+    padding: 2rem;
+    color: var(--color-white);
+}
+
+.gst-invoice-preview-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    padding-bottom: 1.5rem;
+}
+
+.gst-invoice-preview-header h2 {
+    font-family: var(--font-heading);
+    font-size: 1.7rem;
+    font-weight: 300;
+    margin: 0.35rem 0 0.4rem 0;
+    color: var(--color-white);
+    overflow-wrap: anywhere;
+}
+
+.gst-invoice-preview-header p,
+.gst-invoice-party p,
+.gst-invoice-total-grid p {
+    color: var(--color-muted);
+    font-size: 0.82rem;
+    line-height: 1.5;
+    margin: 0.22rem 0;
+}
+
+.gst-invoice-kicker,
+.gst-invoice-label {
+    display: inline-block;
+    color: var(--color-gold);
+    font-family: var(--font-body);
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.gst-invoice-party-grid {
+    display: grid;
+    grid-template-columns: 1.15fr 1fr 1fr;
+    gap: 1.4rem;
+    padding: 1.5rem 0;
+}
+
+.gst-invoice-party {
+    min-width: 0;
+}
+
+.gst-invoice-party h3 {
+    color: var(--color-white);
+    font-family: var(--font-serif);
+    font-size: 1rem;
+    font-weight: 500;
+    line-height: 1.35;
+    margin: 0.5rem 0 0.55rem 0;
+    overflow-wrap: anywhere;
+}
+
+.gst-invoice-party p {
+    overflow-wrap: anywhere;
+}
+
+.gst-invoice-meta {
+    border-left: 1px solid rgba(255, 255, 255, 0.06);
+    padding-left: 1.2rem;
+}
+
+.gst-invoice-table-wrap {
+    width: 100%;
+    overflow-x: auto;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 6px;
+}
+
+.gst-invoice-table {
+    width: 100%;
+    min-width: 680px;
+    border-collapse: collapse;
+}
+
+.gst-invoice-table th,
+.gst-invoice-table td {
+    padding: 0.85rem 0.9rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    text-align: left;
+    font-family: var(--font-body);
+    font-size: 0.78rem;
+}
+
+.gst-invoice-table th {
+    color: var(--color-gold);
+    background: rgba(201, 168, 76, 0.05);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.gst-invoice-table td {
+    color: var(--color-white);
+}
+
+.gst-invoice-table td span {
+    display: block;
+    color: var(--color-muted);
+    font-size: 0.72rem;
+    margin-top: 0.18rem;
+}
+
+.gst-invoice-table tr:last-child td {
+    border-bottom: 0;
+}
+
+.gst-invoice-total-grid {
+    display: grid;
+    grid-template-columns: 1fr minmax(280px, 360px);
+    gap: 1.5rem;
+    align-items: flex-start;
+    padding-top: 1.5rem;
+}
+
+.gst-invoice-totals {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+}
+
+.gst-invoice-totals > div {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    color: var(--color-muted);
+    font-size: 0.82rem;
+}
+
+.gst-invoice-totals strong {
+    color: var(--color-white);
+    font-weight: 600;
+}
+
+.gst-invoice-grand-total {
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+    padding-top: 0.7rem;
+    margin-top: 0.2rem;
+}
+
+.gst-invoice-grand-total strong {
+    color: var(--color-gold);
+    font-size: 1rem;
+}
+
 .confirmation-timeline-section {
     border-top: 1px solid rgba(255, 255, 255, 0.05);
     padding-top: 4rem;
@@ -8728,6 +8892,16 @@ body.login-page-body .login-card-footer {
     .confirmation-columns-grid {
         grid-template-columns: 1fr;
         gap: 2rem;
+    }
+
+    .gst-invoice-party-grid,
+    .gst-invoice-total-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .gst-invoice-meta {
+        border-left: 0;
+        padding-left: 0;
     }
     
     .about-hero-section {
@@ -9177,6 +9351,15 @@ body.login-page-body .login-card-footer {
 @media (max-width: 768px) {
     .cart-page-main {
         padding: 6rem 1.2rem 4rem 1.2rem !important;
+    }
+
+    .gst-invoice-preview-section {
+        padding: 1.2rem;
+    }
+
+    .gst-invoice-preview-header {
+        flex-direction: column;
+        align-items: stretch;
     }
     
     .timeline-step div {

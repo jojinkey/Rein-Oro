@@ -687,7 +687,6 @@ export async function login(req, res) {
    return res.status(404).json({ error: "User profile not found" });
   }
 
-  const authClient = await getAuthClient();
   const customToken = await authClient.createCustomToken(data.localId);
 
   await updateLastLogin(data.localId);

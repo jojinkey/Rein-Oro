@@ -71,6 +71,13 @@ function getFirebaseErrorMessage(error) {
 export default function Login() {
  const { user, login } = useContext(AuthContext);
  const navigate = useNavigate();
+  useEffect(() => {
+    document.body.classList.add("login-page-body");
+    return () => {
+      document.body.classList.remove("login-page-body");
+    };
+  }, []);
+
 
  const getPostLoginPath = (role) => {
   const savedPath = sessionStorage.getItem("rein_oro_after_login");
@@ -335,7 +342,7 @@ export default function Login() {
   const cleanMobile = mobile.trim();
 
   if (mode === "login" && (!cleanIdentifier || !password)) return;
-  if (mode === "register" && (!cleanEmail || !password)) return;
+  if (mode === "register" && (!cleanEmail || !cleanMobile || !password)) return;
   if (mode === "forgot" && !cleanIdentifier) return;
 
   setIsSubmitting(true);
@@ -358,7 +365,7 @@ export default function Login() {
     mode === "login"
      ? { identifier: cleanIdentifier, password }
      : mode === "register"
-       ? { name, email: cleanEmail, password }
+       ? { name, email: cleanEmail, phone: cleanMobile, password }
        : { identifier: cleanIdentifier };
 
    const response = await fetch(apiUrl(endpoint), {
@@ -671,21 +678,38 @@ export default function Login() {
       )}
 
       {mode === "register" ? (
-       <div className="contact-form-group">
-        <label htmlFor="register-email" className="contact-form-label">
-         Email Address
-        </label>
-        <input
-         type="email"
-         id="register-email"
-         className="contact-form-input"
-         placeholder="Enter your email"
-         required
-         value={email}
-         onChange={(e) => setEmail(e.target.value)}
-         disabled={isSubmitting}
-        />
-       </div>
+       <>
+        <div className="contact-form-group">
+         <label htmlFor="register-email" className="contact-form-label">
+          Email Address
+         </label>
+         <input
+          type="email"
+          id="register-email"
+          className="contact-form-input"
+          placeholder="Enter your email"
+          required
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          disabled={isSubmitting}
+         />
+        </div>
+        <div className="contact-form-group">
+         <label htmlFor="register-mobile" className="contact-form-label">
+          Mobile Number
+         </label>
+         <input
+          type="tel"
+          id="register-mobile"
+          className="contact-form-input"
+          placeholder="Enter your mobile number"
+          required
+          value={mobile}
+          onChange={(e) => setMobile(e.target.value)}
+          disabled={isSubmitting}
+         />
+        </div>
+       </>
       ) : (
        <div className="contact-form-group">
         <label htmlFor="login-identifier" className="contact-form-label">

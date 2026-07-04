@@ -692,7 +692,7 @@ export default function Login() {
          Email Address
         </label>
         <input
-         type="email"
+         type="text"
          id="login-identifier"
          className="contact-form-input"
          placeholder="Enter your email"

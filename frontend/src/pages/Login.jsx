@@ -342,7 +342,7 @@ export default function Login() {
   const cleanMobile = mobile.trim();
 
   if (mode === "login" && (!cleanIdentifier || !password)) return;
-  if (mode === "register" && (!cleanEmail || !cleanMobile || !password)) return;
+  if (mode === "register" && (!cleanEmail || !password)) return;
   if (mode === "forgot" && !cleanIdentifier) return;
 
   setIsSubmitting(true);
@@ -678,7 +678,6 @@ export default function Login() {
       )}
 
       {mode === "register" ? (
-       <>
         <div className="contact-form-group">
          <label htmlFor="register-email" className="contact-form-label">
           Email Address
@@ -694,22 +693,6 @@ export default function Login() {
           disabled={isSubmitting}
          />
         </div>
-        <div className="contact-form-group">
-         <label htmlFor="register-mobile" className="contact-form-label">
-          Mobile Number
-         </label>
-         <input
-          type="tel"
-          id="register-mobile"
-          className="contact-form-input"
-          placeholder="Enter your mobile number"
-          required
-          value={mobile}
-          onChange={(e) => setMobile(e.target.value)}
-          disabled={isSubmitting}
-         />
-        </div>
-       </>
       ) : (
        <div className="contact-form-group">
         <label htmlFor="login-identifier" className="contact-form-label">

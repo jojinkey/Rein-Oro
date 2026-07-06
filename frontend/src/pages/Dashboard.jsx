@@ -844,7 +844,6 @@ export default function Dashboard() {
      >
       {[
        { id: "dashboard", label: "Dashboard Hub" },
-       { id: "profile", label: "Profile Security" },
        { id: "orders", label: "Order History" },
        { id: "wishlist", label: "Wishlist Items" },
        { id: "addresses", label: "Saved Addresses" },
@@ -956,13 +955,7 @@ export default function Dashboard() {
           <h4 style={{ color: "var(--color-white)", fontSize: "1.1rem", fontWeight: 400, marginTop: "0.2rem", wordBreak: "break-word" }}>
            {user.email}
           </h4>
-         </div>
-         <div>
-          <span style={{ fontSize: "0.7rem", color: "var(--color-muted)", textTransform: "uppercase" }}>Phone Number</span>
-          <h4 style={{ color: "var(--color-white)", fontSize: "1.1rem", fontWeight: 400, marginTop: "0.2rem", wordBreak: "break-word" }}>
-           {user.phone || "Not set"}
-          </h4>
-         </div>
+         </div>
         </div>
 
         <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", borderTop: "1px solid rgba(255,255,255,0.05)", paddingTop: "1.2rem" }}>

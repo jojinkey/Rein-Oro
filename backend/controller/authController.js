@@ -621,22 +621,27 @@ export async function register(req, res) {
   const userRecord = await auth.createUser(createPayload);
 
   await writeUserProfile(userRecord.uid, payload);
-  const customToken = await auth.createCustomToken(userRecord.uid);
-
+  
+  // Exchange custom token for ID token to send the verification link
   const tokenData = await exchangeCustomTokenForIdToken(userRecord.uid);
-  const profile = await getUserProfileByUid(userRecord.uid);
+  
+  // Send email verification link via Google REST API
+  await fetch(
+   `https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${FIREBASE_API_KEY}`,
+   {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+     requestType: "VERIFY_EMAIL",
+     idToken: tokenData.idToken,
+    }),
+   }
+  ).catch((err) => console.error("Backend verification email failed:", err));
 
   res.status(201).json({
    success: true,
-   customToken,
-   user: {
-    uid: userRecord.uid,
-    name: payload.name,
-    email: payload.email,
-    phone: payload.phone,
-    photoURL: payload.photoURL || null,
-    role: payload.role || "user",
-   },
+   emailVerified: false,
+   message: "Account registered successfully. A verification link has been sent to your email. Please verify it before logging in.",
   });
  } catch (err) {
   const message = err?.message || "Unable to register user";
@@ -681,6 +686,26 @@ export async function login(req, res) {
 
   const authClient = await getAuthClient();
   const userRecord = await authClient.getUser(data.localId);
+   // Enforce email verification for email login on the backend
+   if (userRecord.email && !userRecord.emailVerified) {
+    // Attempt to resend the verification link dynamically via Google REST API
+    const tokenData = await exchangeCustomTokenForIdToken(data.localId);
+    await fetch(
+     `https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${FIREBASE_API_KEY}`,
+     {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+       requestType: "VERIFY_EMAIL",
+       idToken: tokenData.idToken,
+      }),
+     }
+    ).catch((err) => console.error("Backend login verification resend failed:", err));
+
+    return res.status(403).json({
+     error: "Your email address is not verified. A new verification link has been sent to your email."
+    });
+   }
   const profile = await ensureUserProfileFromRecord(userRecord, resolved.email);
 
   if (!profile) {

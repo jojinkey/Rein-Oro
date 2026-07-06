@@ -648,7 +648,7 @@ export default function Login() {
        {subtitle}
       </p>
      </div>
-
+     <div id="rein-oro-recaptcha" key={recaptchaRenderKey} style={{ display: "none" }} />
      <form
       onSubmit={handleSubmit}
       style={{ display: "flex", flexDirection: "column", gap: "1.2rem" }}
@@ -689,10 +689,10 @@ export default function Login() {
       ) : (
        <div className="contact-form-group">
         <label htmlFor="login-identifier" className="contact-form-label">
-         Email Address
+         Email or Mobile Number
         </label>
         <input
-         type="email"
+         type="text"
          id="login-identifier"
          className="contact-form-input"
          placeholder="Enter your email"

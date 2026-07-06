@@ -22,6 +22,8 @@ router.post("/api/upload", upload.single("image"), async (req, res) => {
       folder = "Renoro/alternate images";
     } else if (type === "benefit") {
       folder = "Renoro/benefit images";
+    } else if (type === "ingredient") {
+      folder = "Renoro/ingredients";
     }
 
     // Include productId, type, and a timestamp to guarantee uniqueness and clear identification

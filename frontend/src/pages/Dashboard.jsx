@@ -32,6 +32,21 @@ export default function Dashboard() {
  const navigate = useNavigate();
  const profileRecaptchaRef = useRef(null);
 
+ // Profile state
+ const [showEditProfileModal, setShowEditProfileModal] = useState(false);
+ const [profileForm, setProfileForm] = useState({ name: "" });
+ const [profileLoading, setProfileLoading] = useState(false);
+
+ // Email update state
+ const [showEmailModal, setShowEmailModal] = useState(false);
+ const [emailForm, setEmailForm] = useState({ newEmail: "" });
+ const [emailLoading, setEmailLoading] = useState(false);
+
+ // Password change state
+ const [showPasswordModal, setShowPasswordModal] = useState(false);
+ const [passwordForm, setPasswordForm] = useState({ currentPassword: "", newPassword: "", confirmPassword: "" });
+ const [passwordLoading, setPasswordLoading] = useState(false);
+
  const [activeTab, setActiveTab] = useState("dashboard");
  const [wishlistedProducts, setWishlistedProducts] = useState([]);
  const [wishlistLoading, setWishlistLoading] = useState(false);
@@ -594,17 +609,109 @@ export default function Dashboard() {
     setRecProducts(data.slice(0, 5));
    })
    .catch((err) => console.error("Failed to load recommendations:", err));
- }, []);
+  }, []);
 
- if (!user) return null;
+   const handleOpenEditProfile = () => {
+    setProfileForm({
+     name: user.name || "",
+    });
+    setShowEditProfileModal(true);
+   };
 
  const username = user.name || (user.email ? user.email.split("@")[0] : "Member");
  const greetingName = username.charAt(0).toUpperCase() + username.slice(1);
 
- const handleLogoutConfirm = () => {
-  logout();
-  navigate("/");
- };
+    setProfileLoading(true);
+    try {
+     const currentUser = auth.currentUser;
+     if (!currentUser) throw new Error("Firebase Auth user is not available.");
+
+     // Update name if changed
+     if (profileForm.name.trim() !== (user.name || "")) {
+      await updateProfile(currentUser, { displayName: profileForm.name.trim() });
+     }
+
+     const syncRes = await syncProfile();
+     if (syncRes && syncRes.success) {
+      alert("Profile name updated successfully.");
+      setShowEditProfileModal(false);
+     } else {
+      throw new Error(syncRes?.error || "Sync failed");
+     }
+    } catch (err) {
+     alert("Profile update error: [" + (err.code || "Error") + "] " + err.message);
+    } finally {
+     setProfileLoading(false);
+    }
+   };
+
+   const handleUpdateEmail = async (e) => {
+    e.preventDefault();
+    const newEmail = emailForm.newEmail.trim().toLowerCase();
+    if (!newEmail || !/\S+@\S+\.\S+/.test(newEmail)) {
+     alert("Please enter a valid email address.");
+     return;
+    }
+
+    setEmailLoading(true);
+    try {
+     const currentUser = auth.currentUser;
+     await verifyBeforeUpdateEmail(currentUser, newEmail);
+     alert(
+      "A verification link has been sent to " +
+       newEmail +
+       ".\n\nPlease verify by clicking the link in the email, then click 'Sync Profile' to complete the change."
+     );
+     setShowEmailModal(false);
+     setEmailForm({ newEmail: "" });
+    } catch (err) {
+     alert("Email update error: " + err.message);
+    } finally {
+     setEmailLoading(false);
+    }
+   };
+
+  const handleChangePassword = async (e) => {
+   e.preventDefault();
+   if (!passwordForm.currentPassword) {
+    alert("Please enter your current password.");
+    return;
+   }
+   if (passwordForm.newPassword.length < 6) {
+    alert("New password must be at least 6 characters.");
+    return;
+   }
+   if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+    alert("Passwords do not match.");
+    return;
+   }
+
+   setPasswordLoading(true);
+   try {
+    const currentUser = auth.currentUser;
+    const credential = EmailAuthProvider.credential(currentUser.email, passwordForm.currentPassword);
+    await reauthenticateWithCredential(currentUser, credential);
+    await updatePassword(currentUser, passwordForm.newPassword);
+    alert("Password updated successfully.");
+    setShowPasswordModal(false);
+    setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
+   } catch (err) {
+    alert("Password update error: " + err.message);
+   } finally {
+    setPasswordLoading(false);
+   }
+  };
+
+  if (!user) return null;
+
+  // Format greeting name from email prefix
+  const username = user.email.split("@")[0];
+  const greetingName = user.name || (username.charAt(0).toUpperCase() + username.slice(1));
+
+  const handleLogoutConfirm = () => {
+   logout();
+   navigate("/");
+  };
 
  // Recommendations carousel navigation
  const handleRecNext = () => {
@@ -788,6 +895,104 @@ export default function Dashboard() {
     >
      {activeTab === "dashboard" && (
       <div style={{ display: "flex", flexDirection: "column", gap: "2.5rem" }}>
+       {/* Royal Profile Details */}
+       <div
+        style={{
+         border: "1px solid rgba(201, 168, 76, 0.15)",
+         borderRadius: "8px",
+         padding: "2rem",
+         backgroundColor: "rgba(15,15,15,0.4)",
+         display: "flex",
+         flexDirection: "column",
+         gap: "1.5rem",
+        }}
+       >
+        <div style={{ borderBottom: "1px solid rgba(255, 255, 255, 0.05)", paddingBottom: "1rem" }}>
+         <h3
+          style={{
+           fontFamily: "var(--font-heading)",
+           fontSize: "1.4rem",
+           fontWeight: 300,
+           color: "var(--color-white)",
+           margin: 0,
+          }}
+         >
+          👑 Royal Profile Details
+         </h3>
+         <p style={{ color: "var(--color-muted)", fontSize: "0.8rem", marginTop: "0.2rem" }}>
+          Manage your personal information, contact credentials, and security preferences.
+         </p>
+        </div>
+
+        <div
+         style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+          gap: "2rem",
+         }}
+        >
+         <div>
+          <span style={{ fontSize: "0.7rem", color: "var(--color-muted)", textTransform: "uppercase" }}>Name</span>
+          <h4 style={{ color: "var(--color-white)", fontSize: "1.1rem", fontWeight: 400, marginTop: "0.2rem", wordBreak: "break-word" }}>
+           {user.name || "Not set"}
+          </h4>
+         </div>
+         <div>
+          <span style={{ fontSize: "0.7rem", color: "var(--color-muted)", textTransform: "uppercase" }}>Email Address</span>
+          <h4 style={{ color: "var(--color-white)", fontSize: "1.1rem", fontWeight: 400, marginTop: "0.2rem", wordBreak: "break-word" }}>
+           {user.email}
+          </h4>
+         </div>
+         <div>
+          <span style={{ fontSize: "0.7rem", color: "var(--color-muted)", textTransform: "uppercase" }}>Phone Number</span>
+          <h4 style={{ color: "var(--color-white)", fontSize: "1.1rem", fontWeight: 400, marginTop: "0.2rem", wordBreak: "break-word" }}>
+           {user.phone || "Not set"}
+          </h4>
+         </div>
+        </div>
+
+        <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", borderTop: "1px solid rgba(255,255,255,0.05)", paddingTop: "1.2rem" }}>
+         <button
+          className="btn btn-outline"
+          onClick={handleOpenEditProfile}
+          style={{ height: "36px", fontSize: "0.75rem", padding: "0 1.2rem", borderColor: "rgba(201, 168, 76, 0.3)", color: "var(--color-gold)" }}
+         >
+          Edit Name
+         </button>
+         <button
+          className="btn btn-outline"
+          onClick={() => setShowEmailModal(true)}
+          style={{ height: "36px", fontSize: "0.75rem", padding: "0 1.2rem", borderColor: "rgba(201, 168, 76, 0.3)", color: "var(--color-gold)" }}
+         >
+          Update Email
+         </button>
+         <button
+          className="btn btn-outline"
+          onClick={() => setShowPasswordModal(true)}
+          style={{ height: "36px", fontSize: "0.75rem", padding: "0 1.2rem", borderColor: "rgba(201, 168, 76, 0.3)", color: "var(--color-gold)" }}
+         >
+          Change Password
+         </button>
+         <button
+          className="btn btn-outline"
+          onClick={async () => {
+            const res = await syncProfile();
+            if (res && res.success) {
+              alert("Profile synced successfully with Firebase!");
+            } else {
+              alert("Sync failed: " + (res?.error || "Unknown error"));
+            }
+          }}
+          style={{ height: "36px", fontSize: "0.75rem", padding: "0 1.2rem", borderColor: "rgba(255, 255, 255, 0.1)", color: "var(--color-white)" }}
+         >
+          Sync Profile
+         </button>
+        </div>
+       </div>
+
+       {/* Recaptcha container placeholder */}
+       <div id="recaptcha-container"></div>
+
        {/* Summary Cards */}
        <div className="dashboard-summary-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}>
         <div className="summary-metric-card" style={{ textAlign: "center" }}>
@@ -2429,6 +2634,339 @@ export default function Dashboard() {
        </button>
       </div>
      </div>
+    </div>
+   )}
+
+   {/* Edit Profile Modal */}
+   {showEditProfileModal && (
+    <div
+     style={{
+      position: "fixed",
+      top: 0,
+      left: 0,
+      width: "100%",
+      height: "100%",
+      backgroundColor: "rgba(0, 0, 0, 0.8)",
+      backdropFilter: "blur(6px)",
+      zIndex: 99999,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+     }}
+    >
+     <form
+      onSubmit={handleSaveProfile}
+      style={{
+       width: "100%",
+       maxWidth: "450px",
+       backgroundColor: "#0B0B0B",
+       border: "1px solid rgba(201, 168, 76, 0.25)",
+       borderRadius: "8px",
+       padding: "2.2rem",
+       boxShadow: "0 10px 45px rgba(0,0,0,0.8)",
+       display: "flex",
+       flexDirection: "column",
+       gap: "1.2rem",
+      }}
+     >
+      <h3
+       style={{
+        fontFamily: "var(--font-heading)",
+        fontSize: "1.4rem",
+        color: "var(--color-white)",
+        fontWeight: 400,
+        marginBottom: "0.5rem",
+        borderBottom: "1px solid rgba(255, 255, 255, 0.05)",
+        paddingBottom: "0.5rem",
+       }}
+      >
+       Edit Royal Profile
+      </h3>
+
+      <div className="contact-form-group">
+       <label htmlFor="profileNameInput" className="contact-form-label">
+        Full Name
+       </label>
+       <input
+        type="text"
+        id="profileNameInput"
+        className="contact-form-input"
+        placeholder="e.g. Vaibhav Bharti"
+        required
+        value={profileForm.name}
+        onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })}
+       />
+      </div>
+
+      <div style={{ display: "flex", gap: "1rem", marginTop: "1rem" }}>
+       <button
+        type="submit"
+        className="btn btn-primary"
+        disabled={profileLoading}
+        style={{
+         flex: 1,
+         height: "40px",
+         backgroundColor: "var(--color-gold)",
+         color: "#000",
+         fontWeight: "bold",
+         border: "none",
+         cursor: "pointer",
+         borderRadius: "4px",
+        }}
+       >
+        {profileLoading ? "Verifying..." : "SAVE PROFILE"}
+       </button>
+       <button
+        type="button"
+        className="btn btn-outline"
+        onClick={() => setShowEditProfileModal(false)}
+        style={{
+         flex: 1,
+         height: "40px",
+         backgroundColor: "transparent",
+         color: "var(--color-white)",
+         border: "1px solid rgba(255,255,255,0.2)",
+         cursor: "pointer",
+         borderRadius: "4px",
+        }}
+       >
+        CANCEL
+       </button>
+      </div>
+     </form>
+    </div>
+   )}
+
+      {/* Email Update Modal */}
+   {showEmailModal && (
+    <div
+     style={{
+      position: "fixed",
+      top: 0,
+      left: 0,
+      width: "100%",
+      height: "100%",
+      backgroundColor: "rgba(0, 0, 0, 0.8)",
+      backdropFilter: "blur(6px)",
+      zIndex: 99999,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+     }}
+    >
+     <form
+      onSubmit={handleUpdateEmail}
+      style={{
+       width: "100%",
+       maxWidth: "450px",
+       backgroundColor: "#0B0B0B",
+       border: "1px solid rgba(201, 168, 76, 0.25)",
+       borderRadius: "8px",
+       padding: "2.2rem",
+       boxShadow: "0 10px 45px rgba(0,0,0,0.8)",
+       display: "flex",
+       flexDirection: "column",
+       gap: "1.2rem",
+      }}
+     >
+      <h3
+       style={{
+        fontFamily: "var(--font-heading)",
+        fontSize: "1.4rem",
+        color: "var(--color-white)",
+        fontWeight: 400,
+        marginBottom: "0.5rem",
+        borderBottom: "1px solid rgba(255, 255, 255, 0.05)",
+        paddingBottom: "0.5rem",
+       }}
+      >
+       Change Royal Email
+      </h3>
+
+      <div className="contact-form-group">
+       <label htmlFor="newEmailInput" className="contact-form-label">
+        New Email Address
+       </label>
+       <input
+        type="email"
+        id="newEmailInput"
+        className="contact-form-input"
+        placeholder="e.g. new.email@reinoro.com"
+        required
+        value={emailForm.newEmail}
+        onChange={(e) => setEmailForm({ ...emailForm, newEmail: e.target.value })}
+       />
+       <span style={{ fontSize: "0.65rem", color: "var(--color-muted)", marginTop: "0.2rem", display: "block" }}>
+        Note: You will receive a verification link at this address. You must verify it before syncing changes.
+       </span>
+      </div>
+
+      <div style={{ display: "flex", gap: "1rem", marginTop: "1rem" }}>
+       <button
+        type="submit"
+        className="btn btn-primary"
+        disabled={emailLoading}
+        style={{
+         flex: 1,
+         height: "40px",
+         backgroundColor: "var(--color-gold)",
+         color: "#000",
+         fontWeight: "bold",
+         border: "none",
+         cursor: "pointer",
+         borderRadius: "4px",
+        }}
+       >
+        {emailLoading ? "Sending Link..." : "SEND VERIFICATION"}
+       </button>
+       <button
+        type="button"
+        className="btn btn-outline"
+        onClick={() => setShowEmailModal(false)}
+        style={{
+         flex: 1,
+         height: "40px",
+         backgroundColor: "transparent",
+         color: "var(--color-white)",
+         border: "1px solid rgba(255,255,255,0.2)",
+         cursor: "pointer",
+         borderRadius: "4px",
+        }}
+       >
+        CANCEL
+       </button>
+      </div>
+     </form>
+    </div>
+   )}
+
+   {/* Password Change Modal */}
+   {showPasswordModal && (
+    <div
+     style={{
+      position: "fixed",
+      top: 0,
+      left: 0,
+      width: "100%",
+      height: "100%",
+      backgroundColor: "rgba(0, 0, 0, 0.8)",
+      backdropFilter: "blur(6px)",
+      zIndex: 99999,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+     }}
+    >
+     <form
+      onSubmit={handleChangePassword}
+      style={{
+       width: "100%",
+       maxWidth: "450px",
+       backgroundColor: "#0B0B0B",
+       border: "1px solid rgba(201, 168, 76, 0.25)",
+       borderRadius: "8px",
+       padding: "2.2rem",
+       boxShadow: "0 10px 45px rgba(0,0,0,0.8)",
+       display: "flex",
+       flexDirection: "column",
+       gap: "1.2rem",
+      }}
+     >
+      <h3
+       style={{
+        fontFamily: "var(--font-heading)",
+        fontSize: "1.4rem",
+        color: "var(--color-white)",
+        fontWeight: 400,
+        marginBottom: "0.5rem",
+        borderBottom: "1px solid rgba(255, 255, 255, 0.05)",
+        paddingBottom: "0.5rem",
+       }}
+      >
+       Change Royal Password
+      </h3>
+
+      <div className="contact-form-group">
+       <label htmlFor="currentPasswordInput" className="contact-form-label">
+        Current Password
+       </label>
+       <input
+        type="password"
+        id="currentPasswordInput"
+        className="contact-form-input"
+        placeholder="Enter your current password"
+        required
+        value={passwordForm.currentPassword}
+        onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
+       />
+      </div>
+
+      <div className="contact-form-group">
+       <label htmlFor="newPasswordInput" className="contact-form-label">
+        New Password
+       </label>
+       <input
+        type="password"
+        id="newPasswordInput"
+        className="contact-form-input"
+        placeholder="At least 6 characters"
+        required
+        value={passwordForm.newPassword}
+        onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
+       />
+      </div>
+
+      <div className="contact-form-group">
+       <label htmlFor="confirmPasswordInput" className="contact-form-label">
+        Confirm New Password
+       </label>
+       <input
+        type="password"
+        id="confirmPasswordInput"
+        className="contact-form-input"
+        placeholder="Repeat new password"
+        required
+        value={passwordForm.confirmPassword}
+        onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
+       />
+      </div>
+
+      <div style={{ display: "flex", gap: "1rem", marginTop: "1rem" }}>
+       <button
+        type="submit"
+        className="btn btn-primary"
+        disabled={passwordLoading}
+        style={{
+         flex: 1,
+         height: "40px",
+         backgroundColor: "var(--color-gold)",
+         color: "#000",
+         fontWeight: "bold",
+         border: "none",
+         cursor: "pointer",
+         borderRadius: "4px",
+        }}
+       >
+        {passwordLoading ? "Updating..." : "UPDATE PASSWORD"}
+       </button>
+       <button
+        type="button"
+        className="btn btn-outline"
+        onClick={() => setShowPasswordModal(false)}
+        style={{
+         flex: 1,
+         height: "40px",
+         backgroundColor: "transparent",
+         color: "var(--color-white)",
+         border: "1px solid rgba(255,255,255,0.2)",
+         cursor: "pointer",
+         borderRadius: "4px",
+        }}
+       >
+        CANCEL
+       </button>
+      </div>
+     </form>
     </div>
    )}
   </main>

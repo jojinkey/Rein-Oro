@@ -272,6 +272,11 @@ export default function Login() {
     cleanEmail.toLowerCase(),
     password,
    );
+   
+   // Send email verification
+   const { sendEmailVerification, signOut } = await import("firebase/auth");
+   await sendEmailVerification(credential.user);
+   
    await updateProfile(credential.user, {
     displayName: name.trim() || cleanEmail.split("@")[0],
    });
@@ -305,9 +310,12 @@ export default function Login() {
      { merge: true },
     );
    }
-   const token = await credential.user.getIdToken();
-   completeLogin({ success: true, token, user: profile }, cleanEmail);
-   alert("Account registered successfully.");
+   
+   // Sign out immediately so they cannot access the dashboard before verifying
+   await signOut(firebaseClient.auth);
+   
+   alert("Account registered successfully. A verification link has been sent to your email. Please verify it before logging in.");
+   resetForm("login");
    return true;
   }
 
@@ -320,6 +328,14 @@ export default function Login() {
    loginEmail,
    password,
   );
+  
+  if (!credential.user.emailVerified) {
+   const { sendEmailVerification, signOut } = await import("firebase/auth");
+   await sendEmailVerification(credential.user).catch((err) => console.error("Resend error:", err));
+   await signOut(firebaseClient.auth);
+   throw new Error("Your email address is not verified. A new verification link has been sent to your email.");
+  }
+  
   const profile = await getFirebaseProfile(firebaseClient.db, credential.user, {
    email: loginEmail,
   });
@@ -332,7 +348,7 @@ export default function Login() {
   alert("Welcome back to Rein Oro.");
   completeLogin({ success: true, token, user: profile }, cleanIdentifier);
   return true;
- };
+  };
 
  const handleSubmit = async (e) => {
   e.preventDefault();

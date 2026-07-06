@@ -613,6 +613,7 @@ const formatInvoiceINR = (value) =>
  `Rs. ${Math.round(toAdminNumber(value, 0)).toLocaleString("en-IN")}`;
 
 const getOrderInvoice = (order = {}) => order.gst_invoice || order.invoice || null;
+const getOrderShipment = (order = {}) => order.shiprocket || order.shipment || null;
 
 const getSellerAddressLines = (seller = {}) => {
  if (Array.isArray(seller.address_lines) && seller.address_lines.length) {
@@ -1021,6 +1022,7 @@ export default function Admin() {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [selectedOrderAddresses, setSelectedOrderAddresses] = useState([]);
   const [loadingAddresses, setLoadingAddresses] = useState(false);
+  const [shiprocketLoadingOrderId, setShiprocketLoadingOrderId] = useState("");
 
   const handleOpenOrderDetails = (order) => {
    setSelectedOrder(order);
@@ -2059,6 +2061,53 @@ export default function Admin() {
     );
    } catch (err) {
     alert(err.message);
+   }
+  };
+
+  const handleCreateShiprocketShipment = async (id) => {
+   setShiprocketLoadingOrderId(id);
+   try {
+    const res = await fetch(`/api/orders/${id}/shiprocket`, {
+     method: "POST",
+     headers: {
+      "Content-Type": "application/json",
+      ...(user?.token ? { Authorization: `Bearer ${user.token}` } : {}),
+     },
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+     const missing = Array.isArray(data.details?.missing)
+      ? ` Missing: ${data.details.missing.join(", ")}.`
+      : "";
+     throw new Error(`${data.error || "Shiprocket shipment creation failed."}${missing}`);
+    }
+    const updatedOrder = data.order || null;
+    const shipment = data.shipment || updatedOrder?.shiprocket || null;
+    setOrders((prev) =>
+     prev.map((order) =>
+      order.id === id
+       ? {
+          ...order,
+          ...(updatedOrder || {}),
+          ...(shipment ? { shiprocket: shipment } : {}),
+         }
+       : order,
+     ),
+    );
+    setSelectedOrder((prev) =>
+     prev && prev.id === id
+      ? {
+         ...prev,
+         ...(updatedOrder || {}),
+         ...(shipment ? { shiprocket: shipment } : {}),
+        }
+      : prev,
+    );
+    alert(data.alreadyExists ? "Shiprocket shipment already exists for this order." : "Shiprocket shipment created successfully.");
+   } catch (err) {
+    alert(err.message);
+   } finally {
+    setShiprocketLoadingOrderId("");
    }
   };
 
@@ -3785,6 +3834,7 @@ export default function Admin() {
             <th>Payment Status</th>
             <th>Payment ID</th>
             <th>GST Invoice</th>
+            <th>Shiprocket</th>
             <th>Subtotal</th>
             <th>Total Paid</th>
             <th>Status</th>
@@ -3794,7 +3844,7 @@ export default function Admin() {
           {orders.length === 0 ? (
            <tr>
             <td
-              colSpan="10"
+              colSpan="11"
              style={{
               textAlign: "center",
               padding: "3rem",
@@ -3844,6 +3894,53 @@ export default function Admin() {
                 </button>
                ) : (
                 "-"
+               )}
+              </td>
+              <td>
+               {getOrderShipment(o)?.shipment_id ? (
+                <button
+                 type="button"
+                 className="btn btn-outline"
+                 onClick={() => handleOpenOrderDetails(o)}
+                 style={{
+                  height: "28px",
+                  padding: "0 0.7rem",
+                  fontSize: "0.68rem",
+                  color: "#3b82f6",
+                  borderColor: "rgba(59,130,246,0.45)",
+                 }}
+                >
+                 #{getOrderShipment(o).shipment_id}
+                </button>
+               ) : (
+                <button
+                 type="button"
+                 className="btn btn-outline"
+                 disabled={
+                  shiprocketLoadingOrderId === o.id ||
+                  o.status === "Cancelled" ||
+                  (o.payment_status || "Pending") !== "Paid"
+                 }
+                 onClick={() =>
+                  triggerConfirm(
+                   `Create Shiprocket shipment for order ${o.id}?`,
+                   () => handleCreateShiprocketShipment(o.id),
+                  )
+                 }
+                 style={{
+                  height: "28px",
+                  padding: "0 0.7rem",
+                  fontSize: "0.68rem",
+                  opacity:
+                   shiprocketLoadingOrderId === o.id ||
+                   o.status === "Cancelled" ||
+                   (o.payment_status || "Pending") !== "Paid"
+                    ? 0.55
+                    : 1,
+                 }}
+                >
+                 {shiprocketLoadingOrderId === o.id ? "Creating..." : "Create"}
+                </button>
                )}
               </td>
               <td>₹{o.subtotal}</td>
@@ -6940,6 +7037,16 @@ export default function Admin() {
           Payment ID: <span style={{ color: "var(--color-white)", fontFamily: "monospace" }}>{selectedOrder.payment_id}</span>
          </p>
         )}
+        {getOrderShipment(selectedOrder)?.shipment_id && (
+         <p style={{ margin: "0.2rem 0", color: "var(--color-muted)", fontSize: "0.85rem" }}>
+          Shiprocket Shipment: <span style={{ color: "#3b82f6", fontFamily: "monospace" }}>#{getOrderShipment(selectedOrder).shipment_id}</span>
+         </p>
+        )}
+        {getOrderShipment(selectedOrder)?.awb_code && (
+         <p style={{ margin: "0.2rem 0", color: "var(--color-muted)", fontSize: "0.85rem" }}>
+          AWB: <span style={{ color: "var(--color-white)", fontFamily: "monospace" }}>{getOrderShipment(selectedOrder).awb_code}</span>
+         </p>
+        )}
        </div>
        <div style={{ textAlign: "right" }}>
         <label style={{ display: "block", fontSize: "0.75rem", textTransform: "uppercase", color: "var(--color-gold)", marginBottom: "0.4rem" }}>
@@ -7095,6 +7202,24 @@ export default function Admin() {
       </div>
 
       <div style={{ display: "flex", justifyContent: "flex-end", gap: "1rem", marginTop: "1.5rem" }}>
+       {!getOrderShipment(selectedOrder)?.shipment_id &&
+        selectedOrder.status !== "Cancelled" &&
+        (selectedOrder.payment_status || "Pending") === "Paid" && (
+        <button
+         type="button"
+         className="btn btn-outline"
+         disabled={shiprocketLoadingOrderId === selectedOrder.id}
+         onClick={() =>
+          triggerConfirm(
+           `Create Shiprocket shipment for order ${selectedOrder.id}?`,
+           () => handleCreateShiprocketShipment(selectedOrder.id),
+          )
+         }
+         style={{ width: "190px", height: "40px" }}
+        >
+         {shiprocketLoadingOrderId === selectedOrder.id ? "CREATING..." : "CREATE SHIPROCKET"}
+        </button>
+       )}
        {getOrderInvoice(selectedOrder) && (
         <button
          type="button"

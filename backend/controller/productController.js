@@ -4,6 +4,7 @@ import {
  mirrorToFirestore,
  queryFirestoreCollection,
 } from "../util/firestore.js";
+import { defaultProducts } from "../util/defaultCatalog.js";
 
 const PRODUCT_COLLECTION = "products";
 const PRODUCT_FIELDS = [
@@ -21,6 +22,22 @@ const PRODUCT_FIELDS = [
  "specs",
  "nutrition",
 ];
+
+function getDefaultProducts() {
+ return defaultProducts
+  .slice()
+  .sort((a, b) => String(a.title || "").localeCompare(String(b.title || "")));
+}
+
+function findDefaultProduct(value) {
+ const lookup = String(value || "").trim().toLowerCase();
+ if (!lookup) return null;
+ return defaultProducts.find((product) => {
+  return [product.id, product.slug, product.title]
+   .filter(Boolean)
+   .some((candidate) => String(candidate).trim().toLowerCase() === lookup);
+ });
+}
 
 function cleanText(value) {
  return value === undefined || value === null ? "" : String(value).trim();
@@ -194,7 +211,7 @@ export async function getProducts(req, res) {
   const products = await queryFirestoreCollection(PRODUCT_COLLECTION, {
    orderBy: [["title", "asc"]],
   });
-  res.json(products);
+  res.json(products.length ? products : getDefaultProducts());
  } catch (err) {
   res.status(500).json({ error: err.message });
  }
@@ -208,7 +225,11 @@ export async function getProductById(req, res) {
  try {
   const product = await getFirestoreDocument(PRODUCT_COLLECTION, productId);
   if (!product) {
-   return res.status(404).json({ error: "Product not found" });
+   const fallbackProduct = findDefaultProduct(productId);
+   if (!fallbackProduct) {
+    return res.status(404).json({ error: "Product not found" });
+   }
+   return res.json(fallbackProduct);
   }
   res.json(product);
  } catch (err) {

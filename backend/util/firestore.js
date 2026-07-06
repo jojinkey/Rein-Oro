@@ -1,3 +1,5 @@
+import fs from "fs";
+
 let cachedDb = null;
 let cachedFieldValue = null;
 let cachedStatus = null;
@@ -6,11 +8,76 @@ function cleanPrivateKey(value) {
  return value ? value.replace(/\\n/g, "\n") : "";
 }
 
+function parseJsonCredential(value) {
+ if (!value) return null;
+ const raw = String(value).trim();
+ if (!raw) return null;
+
+ const candidates = [raw];
+ try {
+  candidates.push(Buffer.from(raw, "base64").toString("utf8"));
+ } catch {
+  // Ignore invalid base64 input and try the raw value only.
+ }
+
+ for (const candidate of candidates) {
+  try {
+   const parsed = JSON.parse(candidate);
+   if (parsed && typeof parsed === "object") {
+    return parsed;
+   }
+  } catch {
+   // Continue trying other candidate formats.
+  }
+ }
+
+ return null;
+}
+
+function readJsonCredentialFile(filePath) {
+ const cleanPath = String(filePath || "").trim();
+ if (!cleanPath) return null;
+ try {
+  return parseJsonCredential(fs.readFileSync(cleanPath, "utf8"));
+ } catch {
+  return null;
+ }
+}
+
+export function getFirebaseAdminConfig() {
+ const inlineCredential = parseJsonCredential(
+  process.env.FIREBASE_SERVICE_ACCOUNT_JSON || process.env.VITE_FIREBASE_SERVICE_ACCOUNT_JSON,
+ );
+ const fileCredential =
+  readJsonCredentialFile(process.env.FIREBASE_SERVICE_ACCOUNT_PATH) ||
+  readJsonCredentialFile(process.env.VITE_FIREBASE_SERVICE_ACCOUNT_PATH) ||
+  readJsonCredentialFile(process.env.GOOGLE_APPLICATION_CREDENTIALS);
+
+ const credential = inlineCredential || fileCredential;
+ const projectId =
+  process.env.FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID || credential?.project_id || "";
+ const clientEmail =
+  process.env.FIREBASE_CLIENT_EMAIL || process.env.VITE_FIREBASE_CLIENT_EMAIL || credential?.client_email || "";
+ const privateKey = cleanPrivateKey(
+  process.env.FIREBASE_PRIVATE_KEY || process.env.VITE_FIREBASE_PRIVATE_KEY || credential?.private_key || "",
+ );
+
+ return {
+  projectId,
+  clientEmail,
+  privateKey,
+  configured: Boolean(projectId && clientEmail && privateKey),
+  source: inlineCredential
+   ? "FIREBASE_SERVICE_ACCOUNT_JSON"
+   : fileCredential
+     ? (process.env.FIREBASE_SERVICE_ACCOUNT_PATH ? "FIREBASE_SERVICE_ACCOUNT_PATH" : "VITE_FIREBASE_SERVICE_ACCOUNT_PATH")
+     : "split_env",
+ };
+}
+
 export function getFirestoreStatus() {
- const projectId = process.env.FIREBASE_PROJECT_ID || "";
- const clientEmail = process.env.FIREBASE_CLIENT_EMAIL || "";
- const privateKey = cleanPrivateKey(process.env.FIREBASE_PRIVATE_KEY || "");
- const configured = Boolean(projectId && clientEmail && privateKey);
+ const config = getFirebaseAdminConfig();
+ const configured = config.configured;
 
  const firestoreEnabledEnv =
   typeof process.env.FIRESTORE_ENABLED === "string"
@@ -23,7 +90,15 @@ export function getFirestoreStatus() {
   enabled,
   configured,
   ready: Boolean(cachedDb),
-  projectId: projectId || null,
+  projectId: config.projectId || null,
+  credentialSource: configured ? config.source : null,
+  missing: configured
+   ? []
+   : [
+      !config.projectId ? "FIREBASE_PROJECT_ID" : null,
+      !config.clientEmail ? "FIREBASE_CLIENT_EMAIL" : null,
+      !config.privateKey ? "FIREBASE_PRIVATE_KEY" : null,
+     ].filter(Boolean),
   mode: enabled && configured ? "firestore" : "sqlite-local",
   message: enabled
    ? configured
@@ -49,13 +124,14 @@ export async function getFirestoreDb() {
 
  const { initializeApp, cert, getApps } = await import("firebase-admin/app");
  const { getFirestore, FieldValue } = await import("firebase-admin/firestore");
+ const config = getFirebaseAdminConfig();
 
  if (getApps().length === 0) {
   initializeApp({
    credential: cert({
-    projectId: process.env.FIREBASE_PROJECT_ID,
-    clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-    privateKey: cleanPrivateKey(process.env.FIREBASE_PRIVATE_KEY || ""),
+    projectId: config.projectId,
+    clientEmail: config.clientEmail,
+    privateKey: config.privateKey,
    }),
   });
  }

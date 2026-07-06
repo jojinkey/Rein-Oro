@@ -2,6 +2,126 @@ import React, { useEffect, useState, useContext } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { CartContext } from "../App.jsx";
 import { apiUrl } from "../config/api.js";
+import { getGstSellerProfile } from "../config/gstProfile.js";
+
+const formatINR = (value) =>
+ `Rs. ${Math.round(Number(value || 0)).toLocaleString("en-IN")}`;
+
+function escapeHtml(value) {
+ return String(value || "")
+  .replace(/&/g, "&amp;")
+  .replace(/</g, "&lt;")
+  .replace(/>/g, "&gt;")
+  .replace(/"/g, "&quot;")
+  .replace(/'/g, "&#039;");
+}
+
+function getOrderInvoice(order) {
+ return order?.gst_invoice || order?.invoice || null;
+}
+
+function getSellerAddressLines(seller = {}) {
+ if (Array.isArray(seller.address_lines) && seller.address_lines.length) {
+  return seller.address_lines;
+ }
+ return seller.address ? [seller.address] : [];
+}
+
+function buildInvoiceHtml(order) {
+ const invoice = getOrderInvoice(order);
+ if (!invoice) return "";
+ const buyer = invoice.buyer || {};
+ const seller = getGstSellerProfile(invoice.seller || {});
+ const address = buyer.address || {};
+ const sellerAddressRows = getSellerAddressLines(seller)
+  .map((line) => `<p>${escapeHtml(line)}</p>`)
+  .join("");
+ const itemRows = (invoice.items || [])
+  .map(
+   (item) => `
+    <tr>
+     <td>${escapeHtml(item.name)}</td>
+     <td>${escapeHtml(item.hsn || "-")}</td>
+     <td>${escapeHtml(item.qty)}</td>
+     <td>${formatINR(item.unit_price)}</td>
+     <td>${formatINR(item.line_total)}</td>
+    </tr>
+   `,
+  )
+  .join("");
+
+ return `
+  <!doctype html>
+  <html>
+   <head>
+    <title>${escapeHtml(invoice.invoice_no)}</title>
+    <style>
+     body { font-family: Arial, sans-serif; color: #111; padding: 32px; }
+     h1, h2, h3 { margin: 0; }
+     .top { display: flex; justify-content: space-between; gap: 24px; margin-bottom: 28px; }
+     .box { border: 1px solid #ddd; padding: 14px; margin-bottom: 18px; }
+     table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+     th, td { border: 1px solid #ddd; padding: 10px; text-align: left; font-size: 13px; }
+     th { background: #f5f5f5; }
+     .totals { max-width: 360px; margin-left: auto; }
+     .row { display: flex; justify-content: space-between; padding: 6px 0; }
+     .total { font-weight: 700; border-top: 1px solid #111; margin-top: 8px; padding-top: 10px; }
+    </style>
+   </head>
+   <body>
+    <div class="top">
+     <div>
+      <h1>Tax Invoice</h1>
+      <p>Invoice No: <strong>${escapeHtml(invoice.invoice_no)}</strong></p>
+      <p>Order ID: ${escapeHtml(invoice.order_id || order.id || order.orderId)}</p>
+      <p>Date: ${new Date(invoice.invoice_date || Date.now()).toLocaleString("en-IN")}</p>
+     </div>
+     <div>
+      <h2>${escapeHtml(seller.trade_name || seller.name || "Rein Oro Foods")}</h2>
+      <p>Legal Name: ${escapeHtml(seller.legal_name || "-")}</p>
+      <p>GSTIN / Registration No.: ${escapeHtml(seller.gstin || seller.registration_no || "-")}</p>
+      <p>Constitution: ${escapeHtml(seller.constitution || "-")}</p>
+      ${sellerAddressRows}
+     </div>
+    </div>
+    <div class="box">
+     <h3>Bill To</h3>
+     <p><strong>${escapeHtml(buyer.name || order.customer_email || order.user_email)}</strong></p>
+     <p>${escapeHtml(buyer.email || order.customer_email || order.user_email)} ${buyer.phone ? `| ${escapeHtml(buyer.phone)}` : ""}</p>
+     <p>GSTIN: ${escapeHtml(buyer.gstin || "-")}</p>
+     <p>${escapeHtml(address.street || "")} ${escapeHtml(address.apartment || "")}</p>
+     <p>${escapeHtml(address.city || "")}, ${escapeHtml(address.state || "")} ${escapeHtml(address.pincode || "")}</p>
+    </div>
+    <table>
+     <thead>
+      <tr><th>Item</th><th>HSN</th><th>Qty</th><th>Rate</th><th>Amount</th></tr>
+     </thead>
+     <tbody>${itemRows}</tbody>
+    </table>
+    <div class="totals">
+     <div class="row"><span>Taxable Value</span><span>${formatINR(invoice.taxable_value)}</span></div>
+     <div class="row"><span>CGST</span><span>${formatINR(invoice.cgst)}</span></div>
+     <div class="row"><span>SGST</span><span>${formatINR(invoice.sgst)}</span></div>
+     <div class="row"><span>IGST</span><span>${formatINR(invoice.igst)}</span></div>
+     <div class="row total"><span>Total</span><span>${formatINR(invoice.total || order.total)}</span></div>
+    </div>
+    <script>window.print();</script>
+   </body>
+  </html>
+ `;
+}
+
+function printInvoice(order) {
+ const html = buildInvoiceHtml(order);
+ if (!html) return;
+ const printWindow = window.open("", "_blank", "noopener,noreferrer");
+ if (!printWindow) {
+  alert("Please allow popups to print the GST invoice.");
+  return;
+ }
+ printWindow.document.write(html);
+ printWindow.document.close();
+}
 
 export default function Confirmation() {
  const navigate = useNavigate();
@@ -36,6 +156,12 @@ export default function Confirmation() {
  }, [navigate]);
 
  if (!order) return null;
+ const invoice = getOrderInvoice(order);
+ const seller = invoice ? getGstSellerProfile(invoice.seller || {}) : null;
+ const sellerAddressLines = seller ? getSellerAddressLines(seller) : [];
+ const buyer = invoice?.buyer || {};
+ const buyerAddress = buyer.address || {};
+ const invoiceItems = Array.isArray(invoice?.items) ? invoice.items : [];
 
  return (
   <main className="cart-page-main">
@@ -85,8 +211,14 @@ export default function Confirmation() {
        </div>
        <div>
         <span className="label">Payment Method:</span>
-        <span className="value">{order.paymentMethod || order.payment_method}</span>
+       <span className="value">{order.paymentMethod || order.payment_method}</span>
        </div>
+       {invoice && (
+        <div>
+         <span className="label">GST Invoice:</span>
+         <span className="value">{invoice.invoice_no}</span>
+        </div>
+       )}
        <button
         className="btn btn-outline"
         onClick={() => navigate("/dashboard")}
@@ -94,6 +226,15 @@ export default function Confirmation() {
        >
         Track Your Order
        </button>
+       {invoice && (
+        <button
+         className="btn btn-primary"
+         onClick={() => printInvoice(order)}
+         style={{ width: "100%", marginTop: "0.8rem", height: "40px", padding: 0 }}
+        >
+         Download GST Invoice
+        </button>
+       )}
       </div>
      </div>
 
@@ -159,6 +300,127 @@ export default function Confirmation() {
       </p>
      </div>
     </section>
+
+    {invoice && seller && (
+     <section className="gst-invoice-preview-section">
+      <div className="gst-invoice-preview-header">
+       <div>
+        <span className="gst-invoice-kicker">GST Tax Invoice</span>
+        <h2>{invoice.invoice_no}</h2>
+        <p>Generated after verified Razorpay payment.</p>
+       </div>
+       <button
+        className="btn btn-primary"
+        onClick={() => printInvoice(order)}
+        type="button"
+       >
+        Download GST Invoice
+       </button>
+      </div>
+
+      <div className="gst-invoice-party-grid">
+       <div className="gst-invoice-party">
+        <span className="gst-invoice-label">Seller</span>
+        <h3>{seller.trade_name || seller.name}</h3>
+        <p>Legal Name: {seller.legal_name}</p>
+        <p>GSTIN / Registration No.: {seller.gstin || seller.registration_no}</p>
+        <p>Constitution: {seller.constitution}</p>
+        {sellerAddressLines.map((line) => (
+         <p key={line}>{line}</p>
+        ))}
+       </div>
+
+       <div className="gst-invoice-party">
+        <span className="gst-invoice-label">Bill To</span>
+        <h3>{buyer.name || order.customer_email || order.user_email}</h3>
+        <p>{buyer.email || order.customer_email || order.user_email}</p>
+        {buyer.phone && <p>Phone: {buyer.phone}</p>}
+        <p>GSTIN: {buyer.gstin || "-"}</p>
+        <p>
+         {[buyerAddress.street, buyerAddress.apartment]
+          .filter(Boolean)
+          .join(", ")}
+        </p>
+        <p>
+         {[buyerAddress.city, buyerAddress.state].filter(Boolean).join(", ")}
+         {buyerAddress.pincode ? ` - ${buyerAddress.pincode}` : ""}
+        </p>
+       </div>
+
+       <div className="gst-invoice-party gst-invoice-meta">
+        <span className="gst-invoice-label">Invoice Details</span>
+        <p>Order ID: {invoice.order_id || order.id}</p>
+        <p>
+         Date:{" "}
+         {new Date(invoice.invoice_date || Date.now()).toLocaleString("en-IN")}
+        </p>
+        <p>Payment ID: {invoice.payment_id || order.payment_id || "-"}</p>
+        <p>Place of Supply: {invoice.place_of_supply || buyer.state || "-"}</p>
+        <p>
+         Tax Type:{" "}
+         {invoice.tax_type === "CGST_SGST" ? "CGST + SGST" : "IGST"}
+        </p>
+       </div>
+      </div>
+
+      <div className="gst-invoice-table-wrap">
+       <table className="gst-invoice-table">
+        <thead>
+         <tr>
+          <th>Item</th>
+          <th>HSN</th>
+          <th>Qty</th>
+          <th>Rate</th>
+          <th>Amount</th>
+         </tr>
+        </thead>
+        <tbody>
+         {invoiceItems.map((item, index) => (
+          <tr key={`${item.name || "item"}-${index}`}>
+           <td>
+            {item.name}
+            {item.weight ? <span>{item.weight}</span> : null}
+           </td>
+           <td>{item.hsn || "-"}</td>
+           <td>{item.qty}</td>
+           <td>{formatINR(item.unit_price)}</td>
+           <td>{formatINR(item.line_total)}</td>
+          </tr>
+         ))}
+        </tbody>
+       </table>
+      </div>
+
+      <div className="gst-invoice-total-grid">
+       <div>
+        <span className="gst-invoice-label">Registered Address</span>
+        <p>{seller.address}</p>
+       </div>
+       <div className="gst-invoice-totals">
+        <div>
+         <span>Taxable Value</span>
+         <strong>{formatINR(invoice.taxable_value)}</strong>
+        </div>
+        <div>
+         <span>CGST</span>
+         <strong>{formatINR(invoice.cgst)}</strong>
+        </div>
+        <div>
+         <span>SGST</span>
+         <strong>{formatINR(invoice.sgst)}</strong>
+        </div>
+        <div>
+         <span>IGST</span>
+         <strong>{formatINR(invoice.igst)}</strong>
+        </div>
+        <div className="gst-invoice-grand-total">
+         <span>Total Paid</span>
+         <strong>{formatINR(invoice.total || order.total)}</strong>
+        </div>
+       </div>
+      </div>
+     </section>
+    )}
 
     {/* Progress tracking timeline */}
     <section className="confirmation-timeline-section">

@@ -9,6 +9,7 @@ export default defineConfig(({ mode }) => {
 
  return {
   plugins: [react()],
+  envPrefix: ["VITE_", "FIREBASE_"],
   server: {
    port: 3000,
    host: "127.0.0.1",

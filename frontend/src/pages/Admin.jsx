@@ -2,6 +2,7 @@ import React, { useState, useEffect, useContext, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext, CMSContext } from "../App.jsx";
 import { apiUrl } from "../config/api.js";
+import { getGstSellerProfile } from "../config/gstProfile.js";
 
 // Scoped fetch helper to ensure all API calls in this file use the env-configured backend url
 const originalFetch = window.fetch;
@@ -607,6 +608,124 @@ const toAdminNumber = (value, fallback = 0) => {
 
 const formatINR = (value) =>
  `₹${Math.round(toAdminNumber(value, 0)).toLocaleString("en-IN")}`;
+
+const formatInvoiceINR = (value) =>
+ `Rs. ${Math.round(toAdminNumber(value, 0)).toLocaleString("en-IN")}`;
+
+const getOrderInvoice = (order = {}) => order.gst_invoice || order.invoice || null;
+
+const getSellerAddressLines = (seller = {}) => {
+ if (Array.isArray(seller.address_lines) && seller.address_lines.length) {
+  return seller.address_lines;
+ }
+ return seller.address ? [seller.address] : [];
+};
+
+const escapeAdminHtml = (value) =>
+ String(value || "")
+  .replace(/&/g, "&amp;")
+  .replace(/</g, "&lt;")
+  .replace(/>/g, "&gt;")
+  .replace(/"/g, "&quot;")
+  .replace(/'/g, "&#039;");
+
+const buildAdminInvoiceHtml = (order = {}) => {
+ const invoice = getOrderInvoice(order);
+ if (!invoice) return "";
+ const seller = getGstSellerProfile(invoice.seller || {});
+ const buyer = invoice.buyer || {};
+ const address = buyer.address || {};
+ const sellerAddressRows = getSellerAddressLines(seller)
+  .map((line) => `<p>${escapeAdminHtml(line)}</p>`)
+  .join("");
+ const rows = (invoice.items || [])
+  .map(
+   (item) => `
+    <tr>
+     <td>${escapeAdminHtml(item.name)}</td>
+     <td>${escapeAdminHtml(item.hsn || "-")}</td>
+     <td>${escapeAdminHtml(item.qty)}</td>
+     <td>${formatInvoiceINR(item.unit_price)}</td>
+     <td>${formatInvoiceINR(item.line_total)}</td>
+    </tr>
+   `,
+  )
+  .join("");
+
+ return `
+  <!doctype html>
+  <html>
+   <head>
+    <title>${escapeAdminHtml(invoice.invoice_no)}</title>
+    <style>
+     body { font-family: Arial, sans-serif; color: #111; padding: 32px; }
+     .top { display: flex; justify-content: space-between; gap: 24px; margin-bottom: 28px; }
+     .box { border: 1px solid #ddd; padding: 14px; margin-bottom: 18px; }
+     table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+     th, td { border: 1px solid #ddd; padding: 10px; text-align: left; font-size: 13px; }
+     th { background: #f5f5f5; }
+     .totals { max-width: 360px; margin-left: auto; margin-top: 18px; }
+     .row { display: flex; justify-content: space-between; padding: 6px 0; }
+     .total { font-weight: 700; border-top: 1px solid #111; margin-top: 8px; padding-top: 10px; }
+    </style>
+   </head>
+   <body>
+    <div class="top">
+     <div>
+      <h1>Tax Invoice</h1>
+      <p>Invoice No: <strong>${escapeAdminHtml(invoice.invoice_no)}</strong></p>
+      <p>Order ID: ${escapeAdminHtml(invoice.order_id || order.id)}</p>
+     <p>Date: ${new Date(invoice.invoice_date || Date.now()).toLocaleString("en-IN")}</p>
+     </div>
+     <div>
+      <h2>${escapeAdminHtml(seller.trade_name || seller.name || "Rein Oro Foods")}</h2>
+      <p>Legal Name: ${escapeAdminHtml(seller.legal_name || "-")}</p>
+      <p>GSTIN / Registration No.: ${escapeAdminHtml(seller.gstin || seller.registration_no || "-")}</p>
+      <p>Constitution: ${escapeAdminHtml(seller.constitution || "-")}</p>
+      ${sellerAddressRows}
+     </div>
+    </div>
+    <div class="box">
+     <h3>Bill To</h3>
+     <p><strong>${escapeAdminHtml(buyer.name || order.user_email)}</strong></p>
+     <p>${escapeAdminHtml(buyer.email || order.user_email)} ${buyer.phone ? `| ${escapeAdminHtml(buyer.phone)}` : ""}</p>
+     <p>GSTIN: ${escapeAdminHtml(buyer.gstin || "-")}</p>
+     <p>${escapeAdminHtml(address.street || "")} ${escapeAdminHtml(address.apartment || "")}</p>
+     <p>${escapeAdminHtml(address.city || "")}, ${escapeAdminHtml(address.state || "")} ${escapeAdminHtml(address.pincode || "")}</p>
+    </div>
+    <table>
+     <thead>
+      <tr><th>Item</th><th>HSN</th><th>Qty</th><th>Rate</th><th>Amount</th></tr>
+     </thead>
+     <tbody>${rows}</tbody>
+    </table>
+    <div class="totals">
+     <div class="row"><span>Taxable Value</span><span>${formatInvoiceINR(invoice.taxable_value)}</span></div>
+     <div class="row"><span>CGST</span><span>${formatInvoiceINR(invoice.cgst)}</span></div>
+     <div class="row"><span>SGST</span><span>${formatInvoiceINR(invoice.sgst)}</span></div>
+     <div class="row"><span>IGST</span><span>${formatInvoiceINR(invoice.igst)}</span></div>
+     <div class="row total"><span>Total</span><span>${formatInvoiceINR(invoice.total || order.total)}</span></div>
+    </div>
+    <script>window.print();</script>
+   </body>
+  </html>
+ `;
+};
+
+const openAdminInvoicePrintWindow = (order = {}) => {
+ const html = buildAdminInvoiceHtml(order);
+ if (!html) {
+  alert("GST invoice is not available for this order yet.");
+  return;
+ }
+ const printWindow = window.open("", "_blank", "noopener,noreferrer");
+ if (!printWindow) {
+  alert("Please allow popups to print the GST invoice.");
+  return;
+ }
+ printWindow.document.write(html);
+ printWindow.document.close();
+};
 
 const sumOrderTotals = (rows = []) =>
  rows.reduce((sum, order) => sum + toAdminNumber(order?.total, 0), 0);
@@ -1383,7 +1502,7 @@ export default function Admin() {
     throw new Error("Access Denied. Admin privileges required.");
    }
 
-    login(data.user?.email || authEmail, data.user?.role || "admin", data.token || "");
+    login(data.user?.email || authEmail, data.user?.role || "admin", data.token || "", data.customToken || "");
    setIsAdminLoggedIn(true);
    alert("Administrative authentication successful.");
   } catch (err) {
@@ -3665,6 +3784,7 @@ export default function Admin() {
             <th>Payment Method</th>
             <th>Payment Status</th>
             <th>Payment ID</th>
+            <th>GST Invoice</th>
             <th>Subtotal</th>
             <th>Total Paid</th>
             <th>Status</th>
@@ -3674,7 +3794,7 @@ export default function Admin() {
           {orders.length === 0 ? (
            <tr>
             <td
-              colSpan="9"
+              colSpan="10"
              style={{
               textAlign: "center",
               padding: "3rem",
@@ -3705,6 +3825,26 @@ export default function Admin() {
               <td>{o.payment_status || "Pending"}</td>
               <td style={{ fontFamily: "monospace", fontSize: "0.72rem" }}>
                {o.payment_id || "-"}
+              </td>
+              <td>
+               {getOrderInvoice(o) ? (
+                <button
+                 type="button"
+                 className="btn btn-outline"
+                 onClick={() => openAdminInvoicePrintWindow(o)}
+                 style={{
+                  height: "28px",
+                  padding: "0 0.7rem",
+                  fontSize: "0.68rem",
+                  color: "var(--color-gold)",
+                  borderColor: "rgba(201,168,76,0.35)",
+                 }}
+                >
+                 {getOrderInvoice(o).invoice_no}
+                </button>
+               ) : (
+                "-"
+               )}
               </td>
               <td>₹{o.subtotal}</td>
              <td style={{ color: "var(--color-gold)", fontWeight: 600 }}>
@@ -4939,6 +5079,7 @@ export default function Admin() {
          <thead>
           <tr>
            <th>Customer Email</th>
+           <th>Mobile Number</th>
            <th>Account Role</th>
            <th>Registered On</th>
            <th>Orders Placed</th>
@@ -4953,6 +5094,9 @@ export default function Admin() {
             <tr key={u.id}>
              <td style={{ fontWeight: 600, color: "var(--color-white)" }}>
               {u.email}
+             </td>
+             <td style={{ color: "var(--color-muted)", fontSize: "0.8rem" }}>
+              {u.phone || "-"}
              </td>
              <td>
               <span
@@ -5693,6 +5837,7 @@ export default function Admin() {
          <thead>
           <tr>
            <th>Account Email</th>
+           <th>Mobile Number</th>
            <th>Registered Date</th>
            <th>Current Role</th>
            <th style={{ textAlign: "right" }}>Actions</th>
@@ -5703,6 +5848,9 @@ export default function Admin() {
            <tr key={u.id}>
             <td style={{ fontWeight: 600, color: "var(--color-white)" }}>
              {u.email}
+            </td>
+            <td style={{ color: "var(--color-muted)", fontSize: "0.8rem" }}>
+             {u.phone || "-"}
             </td>
             <td style={{ color: "var(--color-muted)", fontSize: "0.8rem" }}>
              {u.member_since}
@@ -6866,10 +7014,10 @@ export default function Admin() {
           </div>
           <div style={{ textAlign: "right" }}>
            <span style={{ display: "block", color: "var(--color-white)", fontSize: "0.9rem" }}>
-            {item.quantity} x ₹{item.price}
+            {item.qty || item.quantity || 0} x ₹{item.price}
            </span>
            <span style={{ display: "block", color: "var(--color-gold)", fontSize: "0.9rem", fontWeight: 600 }}>
-            ₹{(item.quantity * item.price).toLocaleString("en-IN")}
+            ₹{((item.qty || item.quantity || 0) * item.price).toLocaleString("en-IN")}
            </span>
           </div>
          </div>
@@ -6946,7 +7094,17 @@ export default function Admin() {
        </div>
       </div>
 
-      <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "1.5rem" }}>
+      <div style={{ display: "flex", justifyContent: "flex-end", gap: "1rem", marginTop: "1.5rem" }}>
+       {getOrderInvoice(selectedOrder) && (
+        <button
+         type="button"
+         className="btn btn-primary"
+         onClick={() => openAdminInvoicePrintWindow(selectedOrder)}
+         style={{ width: "190px", height: "40px" }}
+        >
+         PRINT GST INVOICE
+        </button>
+       )}
        <button
         type="button"
         className="btn btn-outline"

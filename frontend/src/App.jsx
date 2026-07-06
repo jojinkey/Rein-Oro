@@ -6,6 +6,8 @@ import Preloader from "./components/Preloader.jsx";
 import ExitIntentModal from "./components/ExitIntentModal.jsx";
 import WhatsAppFloat from "./components/WhatsAppFloat.jsx";
 import { apiUrl } from "./config/api.js";
+import { auth } from "./config/firebase.js";
+import { signInWithCustomToken, onIdTokenChanged } from "firebase/auth";
 
 // Pages
 import Home from "./pages/Home.jsx";
@@ -199,33 +201,164 @@ export default function App() {
   const [user, setUser] = useState(() => {
    const logged = localStorage.getItem("rein_oro_user_logged_in") === "true";
    const email = localStorage.getItem("rein_oro_user_email");
+   const phone = localStorage.getItem("rein_oro_user_phone") || "";
+   const name = localStorage.getItem("rein_oro_user_name") || "";
+   const uid = localStorage.getItem("rein_oro_user_uid") || "";
    const token = localStorage.getItem("rein_oro_auth_token") || "";
+   const customToken = localStorage.getItem("rein_oro_custom_token") || "";
    const role = String(localStorage.getItem("rein_oro_user_role") || "user")
     .trim()
     .toLowerCase();
-   return logged ? { email, role, token } : null;
+   return logged ? { uid, name, email, phone, role, token } : null;
   });
 
-  const login = (email, role = "user", token = "") => {
+  const login = (identity, role = "user", token = "") => {
+   const profile =
+    identity && typeof identity === "object" ? identity : { email: identity };
    const normalizedRole = String(role || "user")
     .trim()
     .toLowerCase();
+   const userEmail = profile.email || "";
+   const userPhone = profile.phone || "";
+   const userName = profile.name || "";
+   const userUid = profile.uid || "";
+   const authToken = token || profile.token || "";
    localStorage.setItem("rein_oro_user_logged_in", "true");
-   localStorage.setItem("rein_oro_user_email", email);
+   localStorage.setItem("rein_oro_user_email", userEmail);
+   localStorage.setItem("rein_oro_user_phone", userPhone);
+   localStorage.setItem("rein_oro_user_name", userName);
+   localStorage.setItem("rein_oro_user_uid", userUid);
    localStorage.setItem("rein_oro_user_role", normalizedRole);
-   if (token) {
-    localStorage.setItem("rein_oro_auth_token", token);
+   if (authToken) {
+    localStorage.setItem("rein_oro_auth_token", authToken);
+   } else {
+    localStorage.removeItem("rein_oro_auth_token");
    }
-   setUser({ email, role: normalizedRole, token });
+   setUser({
+    uid: userUid,
+    name: userName,
+    email: userEmail,
+    phone: userPhone,
+    role: normalizedRole,
+    token: authToken,
+   });
   };
 
    const logout = () => {
     localStorage.removeItem("rein_oro_user_logged_in");
     localStorage.removeItem("rein_oro_user_email");
+    localStorage.removeItem("rein_oro_user_phone");
+    localStorage.removeItem("rein_oro_user_name");
+    localStorage.removeItem("rein_oro_user_uid");
     localStorage.removeItem("rein_oro_user_role");
     localStorage.removeItem("rein_oro_auth_token");
+    localStorage.removeItem("rein_oro_custom_token");
     setUser(null);
+    auth.signOut().catch((err) => console.error(err));
    };
+ 
+   // Fetch user profile on startup/login and sign in client-side to Firebase
+   useEffect(() => {
+    if (!user || !user.token) return;
+ 
+    // 1. Fetch user profile from backend
+    fetch(apiUrl("/api/auth/profile"), {
+      headers: {
+        "Authorization": `Bearer ${user.token}`
+      }
+    })
+    .then((res) => {
+      if (res.status === 401) {
+        logout();
+        throw new Error("Expired or invalid session token");
+      }
+      if (!res.ok) throw new Error("Failed to fetch profile");
+      return res.json();
+    })
+    .then((profile) => {
+      if (profile.customToken) {
+        localStorage.setItem("rein_oro_custom_token", profile.customToken);
+      }
+      setUser((prev) => ({
+        ...prev,
+        name: profile.name || "",
+        phone: profile.phone || "",
+        customToken: profile.customToken || prev.customToken || "",
+      }));
+    })
+    .catch((err) => {
+      console.error("Profile fetch error:", err);
+    });
+ 
+    // 2. Client-side sign in to Firebase Auth using Custom Token
+    if (user.customToken && !auth.currentUser) {
+      signInWithCustomToken(auth, user.customToken)
+        .then((cred) => {
+          console.log("Firebase Auth client signed in:", cred.user.email);
+        })
+        .catch((err) => {
+          console.error("Firebase custom token sign in failed:", err);
+        });
+    }
+   }, [user?.token, user?.customToken]);
+
+   // Listen to Firebase ID token changes to automatically refresh the token on the frontend/localStorage
+   useEffect(() => {
+    const unsubscribe = onIdTokenChanged(auth, async (firebaseUser) => {
+     if (firebaseUser) {
+      try {
+       const freshToken = await firebaseUser.getIdToken();
+       console.log("Firebase ID Token updated/refreshed automatically.");
+       localStorage.setItem("rein_oro_auth_token", freshToken);
+       setUser((prev) => {
+        if (!prev) return null;
+        if (prev.token === freshToken) return prev;
+        return {
+         ...prev,
+         token: freshToken,
+        };
+       });
+      } catch (err) {
+       console.error("Failed to refresh Firebase ID token:", err);
+      }
+     }
+    });
+    return () => unsubscribe();
+   }, []);
+
+  const syncProfile = async (explicitToken) => {
+   const tokenToUse = explicitToken || (user && user.token);
+   if (!tokenToUse) return;
+   try {
+    const res = await fetch(apiUrl("/api/auth/profile/sync"), {
+     method: "POST",
+     headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${tokenToUse}`,
+     },
+    });
+    if (!res.ok) {
+     const errData = await res.json().catch(() => ({}));
+     throw new Error(errData.error || "Profile sync failed");
+    }
+    const data = await res.json();
+    if (data.success && data.user) {
+     if (data.user.email && data.user.email !== (user && user.email)) {
+      localStorage.setItem("rein_oro_user_email", data.user.email);
+     }
+     setUser((prev) => ({
+      ...prev,
+      email: data.user.email || prev.email,
+      name: data.user.name || prev.name,
+      phone: data.user.phone || prev.phone,
+     }));
+     return { success: true, user: data.user };
+    }
+   } catch (err) {
+    console.error("Profile sync failed:", err);
+    return { success: false, error: err.message };
+   }
+  };
 
   const [wishlist, setWishlist] = useState([]);
 
@@ -405,7 +538,7 @@ export default function App() {
     applyGlobalStyles,
    }}
   >
-   <AuthContext.Provider value={{ user, login, logout, wishlist, toggleWishlist, reviewsSummary }}>
+   <AuthContext.Provider value={{ user, login, logout, wishlist, toggleWishlist, reviewsSummary, syncProfile }}>
     <CartContext.Provider
      value={{
       cart,

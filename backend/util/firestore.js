@@ -46,19 +46,20 @@ function readJsonCredentialFile(filePath) {
 
 export function getFirebaseAdminConfig() {
  const inlineCredential = parseJsonCredential(
-  process.env.FIREBASE_SERVICE_ACCOUNT_JSON,
+  process.env.FIREBASE_SERVICE_ACCOUNT_JSON || process.env.VITE_FIREBASE_SERVICE_ACCOUNT_JSON,
  );
  const fileCredential =
   readJsonCredentialFile(process.env.FIREBASE_SERVICE_ACCOUNT_PATH) ||
+  readJsonCredentialFile(process.env.VITE_FIREBASE_SERVICE_ACCOUNT_PATH) ||
   readJsonCredentialFile(process.env.GOOGLE_APPLICATION_CREDENTIALS);
 
  const credential = inlineCredential || fileCredential;
  const projectId =
-  process.env.FIREBASE_PROJECT_ID || credential?.project_id || "";
+  process.env.FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID || credential?.project_id || "";
  const clientEmail =
-  process.env.FIREBASE_CLIENT_EMAIL || credential?.client_email || "";
+  process.env.FIREBASE_CLIENT_EMAIL || process.env.VITE_FIREBASE_CLIENT_EMAIL || credential?.client_email || "";
  const privateKey = cleanPrivateKey(
-  process.env.FIREBASE_PRIVATE_KEY || credential?.private_key || "",
+  process.env.FIREBASE_PRIVATE_KEY || process.env.VITE_FIREBASE_PRIVATE_KEY || credential?.private_key || "",
  );
 
  return {
@@ -69,9 +70,7 @@ export function getFirebaseAdminConfig() {
   source: inlineCredential
    ? "FIREBASE_SERVICE_ACCOUNT_JSON"
    : fileCredential
-     ? process.env.FIREBASE_SERVICE_ACCOUNT_PATH
-       ? "FIREBASE_SERVICE_ACCOUNT_PATH"
-       : "GOOGLE_APPLICATION_CREDENTIALS"
+     ? (process.env.FIREBASE_SERVICE_ACCOUNT_PATH ? "FIREBASE_SERVICE_ACCOUNT_PATH" : "VITE_FIREBASE_SERVICE_ACCOUNT_PATH")
      : "split_env",
  };
 }

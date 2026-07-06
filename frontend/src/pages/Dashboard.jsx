@@ -27,15 +27,15 @@ function getProfilePhoneKey(value) {
 }
 
 export default function Dashboard() {
- const { user, login, logout, wishlist, toggleWishlist } = useContext(AuthContext);
+ const { user, login, logout, wishlist, toggleWishlist, syncProfile } = useContext(AuthContext);
  const { addToCart } = useContext(CartContext);
  const navigate = useNavigate();
  const profileRecaptchaRef = useRef(null);
 
  // Profile state
  const [showEditProfileModal, setShowEditProfileModal] = useState(false);
- const [profileForm, setProfileForm] = useState({ name: "" });
- const [profileLoading, setProfileLoading] = useState(false);
+ const [modalProfileForm, setModalProfileForm] = useState({ name: "" });
+ const [modalProfileLoading, setModalProfileLoading] = useState(false);
 
  // Email update state
  const [showEmailModal, setShowEmailModal] = useState(false);
@@ -618,91 +618,104 @@ export default function Dashboard() {
     setShowEditProfileModal(true);
    };
 
- const username = user.name || (user.email ? user.email.split("@")[0] : "Member");
- const greetingName = username.charAt(0).toUpperCase() + username.slice(1);
-
-    setProfileLoading(true);
-    try {
-     const currentUser = auth.currentUser;
-     if (!currentUser) throw new Error("Firebase Auth user is not available.");
-
-     // Update name if changed
-     if (profileForm.name.trim() !== (user.name || "")) {
-      await updateProfile(currentUser, { displayName: profileForm.name.trim() });
+    const handleSaveProfile = async (e) => {
+     e.preventDefault();
+     const cleanName = modalProfileForm.name.trim();
+     if (!cleanName) {
+      alert("Please enter your name.");
+      return;
      }
+     setModalProfileLoading(true);
+     try {
+      const { auth, db, firebaseUser } = await getProfileFirebaseContext();
+      const { updateProfile } = await import("firebase/auth");
+      const { doc, setDoc, serverTimestamp } = await import("firebase/firestore");
 
-     const syncRes = await syncProfile();
-     if (syncRes && syncRes.success) {
+      // Update name if changed
+      if (cleanName !== (user.name || "")) {
+       await updateProfile(firebaseUser, { displayName: cleanName });
+       await setDoc(
+        doc(db, "users", firebaseUser.uid),
+        { name: cleanName, updatedAt: serverTimestamp() },
+        { merge: true }
+       );
+       const token = await auth.currentUser.getIdToken(true);
+       updateLocalProfile({ name: cleanName, token });
+       const syncRes = await syncProfile(token);
+       if (!syncRes || !syncRes.success) {
+        throw new Error(syncRes?.error || "Failed to sync name changes to the database.");
+       }
+      }
+
       alert("Profile name updated successfully.");
       setShowEditProfileModal(false);
-     } else {
-      throw new Error(syncRes?.error || "Sync failed");
+     } catch (err) {
+      alert("Profile update error: [" + (err.code || "Error") + "] " + err.message);
+     } finally {
+      setModalProfileLoading(false);
      }
-    } catch (err) {
-     alert("Profile update error: [" + (err.code || "Error") + "] " + err.message);
-    } finally {
-     setProfileLoading(false);
-    }
-   };
+    };
 
-   const handleUpdateEmail = async (e) => {
+    const handleUpdateEmail = async (e) => {
+     e.preventDefault();
+     const newEmail = emailForm.newEmail.trim().toLowerCase();
+     if (!newEmail || !/\S+@\S+\.\S+/.test(newEmail)) {
+      alert("Please enter a valid email address.");
+      return;
+     }
+
+     setEmailLoading(true);
+     try {
+      const { firebaseUser } = await getProfileFirebaseContext();
+      const { verifyBeforeUpdateEmail } = await import("firebase/auth");
+      await verifyBeforeUpdateEmail(firebaseUser, newEmail);
+      alert(
+       "A verification link has been sent to " +
+        newEmail +
+        ".\n\nPlease verify by clicking the link in the email, then click 'Sync Profile' to complete the change."
+      );
+      setShowEmailModal(false);
+      setEmailForm({ newEmail: "" });
+     } catch (err) {
+      alert("Email update error: " + err.message);
+     } finally {
+      setEmailLoading(false);
+     }
+    };
+
+   const handleModalChangePassword = async (e) => {
     e.preventDefault();
-    const newEmail = emailForm.newEmail.trim().toLowerCase();
-    if (!newEmail || !/\S+@\S+\.\S+/.test(newEmail)) {
-     alert("Please enter a valid email address.");
+    if (!passwordForm.currentPassword) {
+     alert("Please enter your current password.");
+     return;
+    }
+    if (passwordForm.newPassword.length < 6) {
+     alert("New password must be at least 6 characters.");
+     return;
+    }
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+     alert("Passwords do not match.");
      return;
     }
 
-    setEmailLoading(true);
+    setPasswordLoading(true);
     try {
-     const currentUser = auth.currentUser;
-     await verifyBeforeUpdateEmail(currentUser, newEmail);
-     alert(
-      "A verification link has been sent to " +
-       newEmail +
-       ".\n\nPlease verify by clicking the link in the email, then click 'Sync Profile' to complete the change."
-     );
-     setShowEmailModal(false);
-     setEmailForm({ newEmail: "" });
+     const { firebaseUser } = await getProfileFirebaseContext();
+     const { EmailAuthProvider, reauthenticateWithCredential, updatePassword } = await import("firebase/auth");
+     const credential = EmailAuthProvider.credential(firebaseUser.email, passwordForm.currentPassword);
+     await reauthenticateWithCredential(firebaseUser, credential);
+     await updatePassword(firebaseUser, passwordForm.newPassword);
+     alert("Password updated successfully.");
+     setShowPasswordModal(false);
+     setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
     } catch (err) {
-     alert("Email update error: " + err.message);
+     alert("Password update error: " + err.message);
     } finally {
-     setEmailLoading(false);
+     setPasswordLoading(false);
     }
    };
 
-  const handleChangePassword = async (e) => {
-   e.preventDefault();
-   if (!passwordForm.currentPassword) {
-    alert("Please enter your current password.");
-    return;
-   }
-   if (passwordForm.newPassword.length < 6) {
-    alert("New password must be at least 6 characters.");
-    return;
-   }
-   if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-    alert("Passwords do not match.");
-    return;
-   }
-
-   setPasswordLoading(true);
-   try {
-    const currentUser = auth.currentUser;
-    const credential = EmailAuthProvider.credential(currentUser.email, passwordForm.currentPassword);
-    await reauthenticateWithCredential(currentUser, credential);
-    await updatePassword(currentUser, passwordForm.newPassword);
-    alert("Password updated successfully.");
-    setShowPasswordModal(false);
-    setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
-   } catch (err) {
-    alert("Password update error: " + err.message);
-   } finally {
-    setPasswordLoading(false);
-   }
-  };
-
-  if (!user) return null;
+     if (!user) return null;
 
   // Format greeting name from email prefix
   const username = user.email.split("@")[0];
@@ -887,6 +900,7 @@ export default function Dashboard() {
       </li>
      </ul>
     </aside>
+      <div id="profile-phone-recaptcha" style={{ display: "none" }} />
 
     {/* Right Main Content Area */}
     <section
@@ -1291,330 +1305,7 @@ export default function Dashboard() {
       </div>
      )}
 
-     {activeTab === "profile" && (
-      <div
-       style={{
-        border: "1px solid rgba(255,255,255,0.04)",
-        borderRadius: "8px",
-        padding: "2rem",
-        backgroundColor: "rgba(15,15,15,0.4)",
-       }}
-      >
-       <div id="profile-phone-recaptcha" style={{ display: "none" }} />
-       <div style={{ marginBottom: "1.8rem" }}>
-        <h2
-         style={{
-          fontFamily: "var(--font-heading)",
-          fontSize: "1.8rem",
-          fontWeight: 300,
-          color: "var(--color-white)",
-          margin: 0,
-         }}
-        >
-         Profile Security
-        </h2>
-        <p
-         style={{
-          color: "var(--color-muted)",
-          fontSize: "0.86rem",
-          marginTop: "0.4rem",
-         }}
-        >
-         Manage your member details with Firebase verification.
-        </p>
-       </div>
-
-       {profileNotice && (
-        <div
-         style={{
-          border: "1px solid rgba(201,168,76,0.28)",
-          backgroundColor: "rgba(201,168,76,0.09)",
-          color: "var(--color-white)",
-          padding: "0.85rem 1rem",
-          borderRadius: "4px",
-          fontSize: "0.82rem",
-          marginBottom: "1.2rem",
-         }}
-        >
-         {profileNotice}
-        </div>
-       )}
-
-       {profileError && (
-        <div
-         style={{
-          border: "1px solid rgba(255,80,80,0.25)",
-          backgroundColor: "rgba(255,80,80,0.1)",
-          color: "#ff9b9b",
-          padding: "0.85rem 1rem",
-          borderRadius: "4px",
-          fontSize: "0.82rem",
-          marginBottom: "1.2rem",
-         }}
-        >
-         {profileError}
-        </div>
-       )}
-
-       <div
-        style={{
-         display: "grid",
-         gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-         gap: "1.4rem",
-        }}
-       >
-        <form
-         onSubmit={handleSaveProfileName}
-         style={{
-          border: "1px solid rgba(201,168,76,0.12)",
-          borderRadius: "6px",
-          padding: "1.4rem",
-          backgroundColor: "rgba(5,5,5,0.25)",
-          display: "flex",
-          flexDirection: "column",
-          gap: "1rem",
-         }}
-        >
-         <h3
-          style={{
-           fontFamily: "var(--font-heading)",
-           fontSize: "1.2rem",
-           fontWeight: 300,
-           color: "var(--color-white)",
-           margin: 0,
-          }}
-         >
-          Name
-         </h3>
-         <div className="contact-form-group">
-          <label htmlFor="profile-name" className="contact-form-label">
-           Full Name
-          </label>
-          <input
-           id="profile-name"
-           type="text"
-           className="contact-form-input"
-           value={profileForm.name}
-           onChange={(e) =>
-            setProfileForm((prev) => ({ ...prev, name: e.target.value }))
-           }
-          />
-         </div>
-         <button
-          type="submit"
-          className="btn btn-primary"
-          disabled={profileLoading === "name"}
-          style={{ height: "40px" }}
-         >
-          {profileLoading === "name" ? "Saving..." : "Save Name"}
-         </button>
-        </form>
-
-        <form
-         onSubmit={handleSendEmailVerification}
-         style={{
-          border: "1px solid rgba(201,168,76,0.12)",
-          borderRadius: "6px",
-          padding: "1.4rem",
-          backgroundColor: "rgba(5,5,5,0.25)",
-          display: "flex",
-          flexDirection: "column",
-          gap: "1rem",
-         }}
-        >
-         <h3
-          style={{
-           fontFamily: "var(--font-heading)",
-           fontSize: "1.2rem",
-           fontWeight: 300,
-           color: "var(--color-white)",
-           margin: 0,
-          }}
-         >
-          Email
-         </h3>
-         <div className="contact-form-group">
-          <label htmlFor="profile-email" className="contact-form-label">
-           Email Address
-          </label>
-          <input
-           id="profile-email"
-           type="email"
-           className="contact-form-input"
-           value={profileForm.email}
-           onChange={(e) =>
-            setProfileForm((prev) => ({ ...prev, email: e.target.value }))
-           }
-          />
-         </div>
-         <div style={{ display: "flex", gap: "0.8rem", flexWrap: "wrap" }}>
-          <button
-           type="submit"
-           className="btn btn-primary"
-           disabled={profileLoading === "email"}
-           style={{ height: "40px", flex: 1, minWidth: "160px" }}
-          >
-           {profileLoading === "email" ? "Sending..." : "Send Verification"}
-          </button>
-          <button
-           type="button"
-           className="btn btn-outline"
-           onClick={handleRefreshVerifiedEmail}
-           disabled={profileLoading === "email-refresh"}
-           style={{ height: "40px", flex: 1, minWidth: "160px" }}
-          >
-           {profileLoading === "email-refresh" ? "Checking..." : "Refresh Verified"}
-          </button>
-         </div>
-        </form>
-
-        <form
-         onSubmit={phoneVerification ? handleVerifyPhoneOtp : handleSendPhoneOtp}
-         style={{
-          border: "1px solid rgba(201,168,76,0.12)",
-          borderRadius: "6px",
-          padding: "1.4rem",
-          backgroundColor: "rgba(5,5,5,0.25)",
-          display: "flex",
-          flexDirection: "column",
-          gap: "1rem",
-         }}
-        >
-         <h3
-          style={{
-           fontFamily: "var(--font-heading)",
-           fontSize: "1.2rem",
-           fontWeight: 300,
-           color: "var(--color-white)",
-           margin: 0,
-          }}
-         >
-          Mobile
-         </h3>
-         <div className="contact-form-group">
-          <label htmlFor="profile-phone" className="contact-form-label">
-           Mobile Number
-          </label>
-          <input
-           id="profile-phone"
-           type="tel"
-           className="contact-form-input"
-           placeholder="+91 99999 99999"
-           value={profileForm.phone}
-           onChange={(e) => {
-            setPhoneVerification(null);
-            setProfileForm((prev) => ({ ...prev, phone: e.target.value }));
-           }}
-          />
-         </div>
-         {phoneVerification && (
-          <div className="contact-form-group">
-           <label htmlFor="profile-phone-otp" className="contact-form-label">
-            OTP Code
-           </label>
-           <input
-            id="profile-phone-otp"
-            type="text"
-            inputMode="numeric"
-            maxLength={6}
-            className="contact-form-input"
-            value={profileForm.phoneOtp}
-            onChange={(e) =>
-             setProfileForm((prev) => ({
-              ...prev,
-              phoneOtp: e.target.value.replace(/\D/g, ""),
-             }))
-            }
-           />
-          </div>
-         )}
-         <button
-          type="submit"
-          className="btn btn-primary"
-          disabled={
-           profileLoading === "phone-send" ||
-           profileLoading === "phone-verify"
-          }
-          style={{ height: "40px" }}
-         >
-          {profileLoading === "phone-send"
-           ? "Sending..."
-           : profileLoading === "phone-verify"
-             ? "Verifying..."
-             : phoneVerification
-               ? "Verify & Update Mobile"
-               : "Send Mobile OTP"}
-         </button>
-        </form>
-
-        <form
-         onSubmit={handleChangePassword}
-         style={{
-          border: "1px solid rgba(201,168,76,0.12)",
-          borderRadius: "6px",
-          padding: "1.4rem",
-          backgroundColor: "rgba(5,5,5,0.25)",
-          display: "flex",
-          flexDirection: "column",
-          gap: "1rem",
-         }}
-        >
-         <h3
-          style={{
-           fontFamily: "var(--font-heading)",
-           fontSize: "1.2rem",
-           fontWeight: 300,
-           color: "var(--color-white)",
-           margin: 0,
-          }}
-         >
-          Password
-         </h3>
-         <div className="contact-form-group">
-          <label htmlFor="profile-current-password" className="contact-form-label">
-           Current Password
-          </label>
-          <input
-           id="profile-current-password"
-           type="password"
-           className="contact-form-input"
-           value={profileForm.currentPassword}
-           onChange={(e) =>
-            setProfileForm((prev) => ({
-             ...prev,
-             currentPassword: e.target.value,
-            }))
-           }
-          />
-         </div>
-         <div className="contact-form-group">
-          <label htmlFor="profile-new-password" className="contact-form-label">
-           New Password
-          </label>
-          <input
-           id="profile-new-password"
-           type="password"
-           className="contact-form-input"
-           value={profileForm.newPassword}
-           onChange={(e) =>
-            setProfileForm((prev) => ({ ...prev, newPassword: e.target.value }))
-           }
-          />
-         </div>
-         <button
-          type="submit"
-          className="btn btn-primary"
-          disabled={profileLoading === "password"}
-          style={{ height: "40px" }}
-         >
-          {profileLoading === "password" ? "Changing..." : "Change Password"}
-         </button>
-        </form>
-       </div>
-      </div>
-     )}
-
-     {activeTab === "orders" && (
+          {activeTab === "orders" && (
       <div
        style={{
         border: "1px solid rgba(255,255,255,0.04)",
@@ -2429,15 +2120,17 @@ export default function Dashboard() {
         className="btn btn-primary"
         onClick={handleLogoutConfirm}
         style={{
-         flex: 1,
-         height: "40px",
-         backgroundColor: "var(--color-gold)",
-         color: "#000",
-         border: "none",
-         fontWeight: "bold",
-         cursor: "pointer",
-         borderRadius: "4px",
-        }}
+          flex: 1,
+          height: "40px",
+          backgroundColor: "var(--color-gold)",
+          color: "#000",
+          border: "none",
+          fontWeight: "bold",
+          cursor: "pointer",
+          borderRadius: "4px",
+          fontSize: "0.75rem",
+          padding: 0,
+         }}
        >
         YES, SIGN OUT
        </button>
@@ -2445,14 +2138,16 @@ export default function Dashboard() {
         className="btn btn-outline"
         onClick={() => setShowLogoutConfirm(false)}
         style={{
-         flex: 1,
-         height: "40px",
-         backgroundColor: "transparent",
-         color: "var(--color-white)",
-         border: "1px solid rgba(255,255,255,0.2)",
-         cursor: "pointer",
-         borderRadius: "4px",
-        }}
+          flex: 1,
+          height: "40px",
+          backgroundColor: "transparent",
+          color: "var(--color-white)",
+          border: "1px solid rgba(255,255,255,0.2)",
+          cursor: "pointer",
+          borderRadius: "4px",
+          fontSize: "0.75rem",
+          padding: 0,
+         }}
        >
         CANCEL
        </button>
@@ -2858,7 +2553,7 @@ export default function Dashboard() {
      }}
     >
      <form
-      onSubmit={handleChangePassword}
+      onSubmit={handleModalChangePassword}
       style={{
        width: "100%",
        maxWidth: "450px",

@@ -268,6 +268,10 @@ export default function App() {
       }
     })
     .then((res) => {
+      if (res.status === 401) {
+        logout();
+        throw new Error("Expired or invalid session token");
+      }
       if (!res.ok) throw new Error("Failed to fetch profile");
       return res.json();
     })
@@ -322,14 +326,15 @@ export default function App() {
     return () => unsubscribe();
    }, []);
 
-  const syncProfile = async () => {
-   if (!user || !user.token) return;
+  const syncProfile = async (explicitToken) => {
+   const tokenToUse = explicitToken || (user && user.token);
+   if (!tokenToUse) return;
    try {
     const res = await fetch(apiUrl("/api/auth/profile/sync"), {
      method: "POST",
      headers: {
       "Content-Type": "application/json",
-      "Authorization": `Bearer ${user.token}`,
+      "Authorization": `Bearer ${tokenToUse}`,
      },
     });
     if (!res.ok) {
@@ -338,7 +343,7 @@ export default function App() {
     }
     const data = await res.json();
     if (data.success && data.user) {
-     if (data.user.email && data.user.email !== user.email) {
+     if (data.user.email && data.user.email !== (user && user.email)) {
       localStorage.setItem("rein_oro_user_email", data.user.email);
      }
      setUser((prev) => ({

@@ -5,6 +5,19 @@ import ProductCard from '../components/ProductCard.jsx';
 import useSEO from '../hooks/useSEO.js';
 import { apiUrl } from '../config/api.js';
 
+const HOME_FRAME_COUNT = 68;
+const configuredHomeFrameCdnBaseUrl =
+  (import.meta.env.VITE_HOME_FRAME_CDN_BASE_URL || '').trim();
+
+const joinUrl = (baseUrl, path) =>
+  `${baseUrl.replace(/\/+$/, '')}/${path.replace(/^\/+/, '')}`;
+
+const getHomeFrameFileName = (index) =>
+  `ezgif-frame-${String(index + 1).padStart(3, '0')}.jpg`;
+
+const getCdnHomeFramePath = (index) =>
+  joinUrl(configuredHomeFrameCdnBaseUrl, getHomeFrameFileName(index));
+
 export default function Home() {
   const navigate = useNavigate();
   const { addToCart } = useContext(CartContext);
@@ -21,7 +34,7 @@ export default function Home() {
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
 
-  const frameCount = 68;
+  const frameCount = HOME_FRAME_COUNT;
   const imagesRef = useRef([]);
   const airpodsRef = useRef({ frame: 0 });
 
@@ -56,13 +69,6 @@ export default function Home() {
 
     imagesRef.current = [];
     airpodsRef.current.frame = 0;
-
-    // Helpers
-    const getFramePath = (index) => {
-      const paddedIndex = String(index + 1).padStart(3, '0');
-      const basePath = import.meta.env.BASE_URL || '/';
-      return `${basePath}${basePath.endsWith('/') ? '' : '/'}frames/ezgif-frame-${paddedIndex}.jpg`;
-    };
 
     const drawCanvasFrame = (img) => {
       if (!img || !canvas || !context || !img.naturalWidth || !img.naturalHeight) return;
@@ -145,7 +151,9 @@ export default function Home() {
     // Preload
     const loadFrame = (index, onReady) => {
       const img = new Image();
+      img.crossOrigin = 'anonymous';
       img.decoding = 'async';
+      img.fetchPriority = index === 0 ? 'high' : 'low';
       img.onload = () => {
         if (!isComponentMounted) return;
         onReady?.(img);
@@ -154,7 +162,11 @@ export default function Home() {
         if (!isComponentMounted) return;
         onReady?.(null);
       };
-      img.src = getFramePath(index);
+      if (!configuredHomeFrameCdnBaseUrl) {
+        onReady?.(null);
+        return img;
+      }
+      img.src = getCdnHomeFramePath(index);
       imagesRef.current[index] = img;
       return img;
     };

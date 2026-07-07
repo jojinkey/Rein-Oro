@@ -9,6 +9,10 @@ import {
  queryFirestoreCollection,
  getFirestoreDocument,
 } from "../util/firestore.js";
+import {
+ createShiprocketOrder,
+ getShiprocketStatus,
+} from "../util/shiprocket.js";
 
 const RAZORPAY_BUSINESS_NAME = "Rein Oro Foods";
 const GST_RATE_PERCENT = 18;
@@ -552,6 +556,68 @@ export async function updateOrderStatus(req, res) {
   res.json({ success: true, status });
  } catch (err) {
   res.status(500).json({ error: err.message });
+ }
+}
+
+export async function getShiprocketConfigStatus(req, res) {
+ res.json(getShiprocketStatus());
+}
+
+export async function createOrderShiprocketShipment(req, res) {
+ const orderId = String(req.params.id || "").trim();
+ if (!orderId) {
+  return res.status(400).json({ error: "Order id is required" });
+ }
+
+ try {
+  const existing = await getFirestoreDocument("orders", orderId);
+  if (!existing) {
+   return res.status(404).json({ error: "Order not found" });
+  }
+
+  if (existing.shiprocket?.shipment_id) {
+   return res.json({
+    success: true,
+    alreadyExists: true,
+    shipment: existing.shiprocket,
+    order: existing,
+   });
+  }
+
+  if (String(existing.status || "").toLowerCase() === "cancelled") {
+   return res
+    .status(400)
+    .json({ error: "Cancelled orders cannot be sent to Shiprocket." });
+  }
+
+  if (String(existing.payment_status || "").toLowerCase() !== "paid") {
+   return res
+    .status(400)
+    .json({ error: "Only paid orders can be sent to Shiprocket." });
+  }
+
+  const shipment = await createShiprocketOrder(existing);
+  const shiprocket = {
+   ...shipment,
+   created_at: new Date().toISOString(),
+  };
+  const status =
+   existing.status && existing.status !== "Processing"
+    ? existing.status
+    : "Confirmed";
+  const updates = { shiprocket, status };
+
+  await mirrorToFirestore("orders", orderId, updates);
+  res.json({
+   success: true,
+   shipment: shiprocket,
+   order: { ...existing, ...updates },
+  });
+ } catch (err) {
+  res.status(err.statusCode || 500).json({
+   error: err.message || "Unable to create Shiprocket shipment",
+   ...(err.details ? { details: err.details } : {}),
+  });
  }
 }
 

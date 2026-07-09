@@ -33,18 +33,65 @@ function buildInvoiceHtml(order) {
  const buyer = invoice.buyer || {};
  const seller = getGstSellerProfile(invoice.seller || {});
  const address = buyer.address || {};
+
+ const formatINR = (val) => {
+  const num = Number(val || 0);
+  return "Rs. " + num.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+ };
+
+ const escapeHtml = (str) => {
+  return String(str || "")
+   .replace(/&/g, "&amp;")
+   .replace(/</g, "&lt;")
+   .replace(/>/g, "&gt;")
+   .replace(/"/g, "&quot;")
+   .replace(/'/g, "&#039;");
+ };
+
  const sellerAddressRows = getSellerAddressLines(seller)
-  .map((line) => `<p>${escapeHtml(line)}</p>`)
+  .map((line) => `<p style="margin: 2px 0;">${escapeHtml(line)}</p>`)
   .join("");
+
+ const sellerState = seller.state || "Uttarakhand";
+ const buyerState = address.state || buyer.state || "";
+ const isIntraState = sellerState.trim().toLowerCase() === buyerState.trim().toLowerCase();
+
+ const rawSubtotal = Number(invoice.subtotal || order.subtotal || 0);
+ const rawDiscount = Number(invoice.discount || order.discount || 0);
+ const shipping = Number(invoice.shipping || order.shipping || 0);
+
+ // Taxable Value is subtotal - discount (product value)
+ const taxableBase = Math.max(0, rawSubtotal - rawDiscount);
+
+ // GST amount (18% of taxable base)
+ const totalGst = Math.round(taxableBase * 0.18);
+ const cgst = isIntraState ? Math.round(totalGst / 2) : 0;
+ const sgst = isIntraState ? Math.round(totalGst / 2) : 0;
+ const igst = isIntraState ? 0 : totalGst;
+
+ const totalVal = taxableBase + totalGst + shipping;
+
+ const shippingRow = shipping > 0
+  ? `
+    <div style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 13px;">
+      <span style="color: #555;">Delivery Charges</span>
+      <strong style="color: #111;">${formatINR(shipping)}</strong>
+    </div>`
+  : "";
+
  const itemRows = (invoice.items || [])
   .map(
    (item) => `
-    <tr>
-     <td>${escapeHtml(item.name)}</td>
-     <td>${escapeHtml(item.hsn || "-")}</td>
-     <td>${escapeHtml(item.qty)}</td>
-     <td>${formatINR(item.unit_price)}</td>
-     <td>${formatINR(item.line_total)}</td>
+    <tr style="border-bottom: 1px solid #eee;">
+     <td style="padding: 10px 12px; color: #111; font-size: 13px; text-align: left; border: 1px solid #ddd;">
+       <div style="font-weight: bold; color: #111;">${escapeHtml(item.name)}</div>
+       ${item.flavor ? `<div style="color: #666; font-size: 11px;">Flavor: ${escapeHtml(item.flavor)}</div>` : ""}
+       ${item.weight ? `<div style="color: #666; font-size: 11px;">Weight: ${escapeHtml(item.weight)}</div>` : ""}
+     </td>
+     <td style="padding: 10px 12px; color: #333; font-size: 13px; text-align: left; border: 1px solid #ddd;">${escapeHtml(item.hsn || "-")}</td>
+     <td style="padding: 10px 12px; color: #333; font-size: 13px; text-align: left; border: 1px solid #ddd;">${escapeHtml(item.qty)}</td>
+     <td style="padding: 10px 12px; color: #333; font-size: 13px; text-align: left; border: 1px solid #ddd;">${formatINR(item.unit_price)}</td>
+     <td style="padding: 10px 12px; color: #111; font-size: 13px; text-align: right; font-weight: bold; border: 1px solid #ddd;">${formatINR(item.line_total)}</td>
     </tr>
    `,
   )
@@ -56,71 +103,200 @@ function buildInvoiceHtml(order) {
    <head>
     <title>${escapeHtml(invoice.invoice_no)}</title>
     <style>
-     body { font-family: Arial, sans-serif; color: #111; padding: 32px; }
-     h1, h2, h3 { margin: 0; }
-     .top { display: flex; justify-content: space-between; gap: 24px; margin-bottom: 28px; }
-     .box { border: 1px solid #ddd; padding: 14px; margin-bottom: 18px; }
-     table { width: 100%; border-collapse: collapse; margin-top: 16px; }
-     th, td { border: 1px solid #ddd; padding: 10px; text-align: left; font-size: 13px; }
-     th { background: #f5f5f5; }
-     .totals { max-width: 360px; margin-left: auto; }
-     .row { display: flex; justify-content: space-between; padding: 6px 0; }
-     .total { font-weight: 700; border-top: 1px solid #111; margin-top: 8px; padding-top: 10px; }
+     * { box-sizing: border-box; }
+     body {
+       font-family: Arial, sans-serif;
+       color: #111;
+       background: #fff;
+       padding: 0;
+       margin: 0;
+     }
+     .invoice-card {
+       background: #ffffff;
+       padding: 10px;
+       max-width: 800px;
+       margin: 0 auto;
+     }
+     table {
+       width: 100%;
+       border-collapse: collapse;
+       margin: 15px 0;
+     }
+     th {
+       color: #000;
+       background: #f2f2f2;
+       font-weight: bold;
+       text-transform: uppercase;
+       font-size: 11px;
+       letter-spacing: 0.05em;
+       padding: 10px 12px;
+       text-align: left;
+       border: 1px solid #ddd;
+     }
+     .grand-total {
+       border-top: 2px solid #000;
+       padding-top: 8px;
+       margin-top: 4px;
+       color: #000 !important;
+       font-size: 16px !important;
+       font-weight: bold;
+     }
+     .footer-note {
+       text-align: center;
+       font-size: 11px;
+       color: #666;
+       margin-top: 35px;
+       border-top: 1px dashed #ccc;
+       padding-top: 15px;
+     }
     </style>
    </head>
    <body>
-    <div class="top">
-     <div>
-      <h1>Tax Invoice</h1>
-      <p>Invoice No: <strong>${escapeHtml(invoice.invoice_no)}</strong></p>
-      <p>Order ID: ${escapeHtml(invoice.order_id || order.id || order.orderId)}</p>
-      <p>Date: ${new Date(invoice.invoice_date || Date.now()).toLocaleString("en-IN")}</p>
-     </div>
-     <div>
-      <h2>${escapeHtml(seller.trade_name || seller.name || "Rein Oro Foods")}</h2>
-      <p>Legal Name: ${escapeHtml(seller.legal_name || "-")}</p>
-      <p>GSTIN / Registration No.: ${escapeHtml(seller.gstin || seller.registration_no || "-")}</p>
-      <p>Constitution: ${escapeHtml(seller.constitution || "-")}</p>
-      ${sellerAddressRows}
-     </div>
+    <div class="invoice-card">
+      <table style="width: 100%; margin-bottom: 25px; border: none !important;">
+        <tr style="border: none !important;">
+          <td style="text-align: left; width: 50%; vertical-align: top; border: none !important; padding: 0;">
+            <h1 style="margin: 0; font-size: 32px; font-weight: bold; color: #000;">Tax Invoice</h1>
+            <p style="margin: 12px 0 4px 0; font-size: 13px; color: #111;"><strong>Invoice No:</strong> ${escapeHtml(invoice.invoice_no)}</p>
+            <p style="margin: 4px 0; font-size: 13px; color: #111;"><strong>Order ID:</strong> ${escapeHtml(invoice.order_id || order.id || order.orderId)}</p>
+            <p style="margin: 4px 0; font-size: 13px; color: #111;"><strong>Date:</strong> ${new Date(invoice.invoice_date || Date.now()).toLocaleString("en-IN")}</p>
+          </td>
+          <td style="text-align: right; width: 50%; vertical-align: top; border: none !important; padding: 0;">
+            <h2 style="margin: 0 0 6px 0; font-size: 22px; font-weight: bold; color: #000;">REIN ORO FOODS</h2>
+            <p style="margin: 3px 0; font-size: 13px; color: #333;"><strong>Legal Name:</strong> ${escapeHtml(seller.legal_name || "VAIBHAV SINGH PANWAR")}</p>
+            <p style="margin: 3px 0; font-size: 13px; color: #333;"><strong>GSTIN / Registration No.:</strong> ${escapeHtml(seller.gstin || "05GMOPP5339F1ZN")}</p>
+            <p style="margin: 3px 0; font-size: 13px; color: #333;"><strong>Constitution:</strong> Proprietorship</p>
+            <p style="margin: 3px 0; font-size: 13px; color: #333;">Building No./Flat No.: 499/3</p>
+            <p style="margin: 3px 0; font-size: 13px; color: #333;">Street Number 11, Rajender Nagar</p>
+            <p style="margin: 3px 0; font-size: 13px; color: #333;">Near Vashu Electricals & All Dish Services</p>
+            <p style="margin: 3px 0; font-size: 13px; color: #333;">Roorkee, Haridwar, Uttarakhand - 247667</p>
+          </td>
+        </tr>
+      </table>
+      
+      <div style="border: 1px solid #ddd; border-radius: 6px; padding: 15px; background: #fafafa; margin-bottom: 20px;">
+        <h3 style="margin: 0 0 8px 0; font-size: 14px; font-weight: bold; text-transform: uppercase; color: #000; border-bottom: 1px solid #eee; padding-bottom: 4px;">Bill To</h3>
+        <p style="margin: 4px 0; font-size: 13px; font-weight: bold; color: #000;">${escapeHtml(buyer.name || order.customer_email || order.user_email)}</p>
+        <p style="margin: 3px 0; font-size: 13px; color: #333;">${escapeHtml(buyer.email || order.customer_email || order.user_email)} | ${escapeHtml(buyer.phone || order.customer_phone || address.phone || "-")}</p>
+        <p style="margin: 3px 0; font-size: 13px; color: #333;"><strong>GSTIN:</strong> ${escapeHtml(buyer.gstin || "-")}</p>
+        <p style="margin: 3px 0; font-size: 13px; color: #333;">${escapeHtml(address.street || "")} ${escapeHtml(address.apartment || "")}</p>
+        <p style="margin: 3px 0; font-size: 13px; color: #333;">${escapeHtml(address.city || "")}, ${escapeHtml(address.state || "")} ${escapeHtml(address.pincode || "")}</p>
+      </div>
+
+      <table style="width: 100%; border: 1px solid #ddd; border-collapse: collapse;">
+        <thead>
+          <tr>
+            <th style="border: 1px solid #ddd; background: #f2f2f2; padding: 10px; font-size: 12px; text-align: left;">Item</th>
+            <th style="border: 1px solid #ddd; background: #f2f2f2; padding: 10px; font-size: 12px; text-align: left;">HSN</th>
+            <th style="border: 1px solid #ddd; background: #f2f2f2; padding: 10px; font-size: 12px; text-align: left;">Qty</th>
+            <th style="border: 1px solid #ddd; background: #f2f2f2; padding: 10px; font-size: 12px; text-align: left;">Rate</th>
+            <th style="border: 1px solid #ddd; background: #f2f2f2; padding: 10px; font-size: 12px; text-align: right;">Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${itemRows}
+        </tbody>
+      </table>
+      
+      <table style="width: 100%; margin-top: 15px; border: none !important;">
+        <tr style="border: none !important;">
+          <td style="width: 55%; text-align: left; padding-right: 20px; vertical-align: top; border: none !important;">
+            <p style="margin: 0; font-size: 12px; font-weight: bold; text-transform: uppercase; color: #000; border-bottom: 1px solid #eee; padding-bottom: 4px;">Payment Information</p>
+            <p style="margin: 6px 0 3px 0; font-size: 13px; color: #333;"><strong>Method:</strong> ${escapeHtml(order.payment_method || invoice.payment_method || "Paid via Razorpay Online")}</p>
+            <p style="margin: 3px 0; font-size: 13px; color: #333;"><strong>Transaction ID:</strong> ${escapeHtml(invoice.payment_id || order.payment_id || "-")}</p>
+            <p style="margin: 3px 0; font-size: 13px; color: #333;"><strong>Place of Supply:</strong> ${escapeHtml(invoice.place_of_supply || buyerState || "Uttarakhand")}</p>
+            <p style="margin: 3px 0; font-size: 13px; color: #333;"><strong>Tax Type:</strong> ${isIntraState ? "CGST + SGST (Intra-State)" : "IGST (Inter-State)"}</p>
+          </td>
+          <td style="width: 45%; vertical-align: top; border: none !important;">
+            <div style="width: 100%;">
+              <div style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 13px;">
+                <span style="color: #555;">Taxable Value</span>
+                <strong style="color: #111;">${formatINR(taxableBase)}</strong>
+              </div>
+              ${shippingRow}
+              <div style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 13px;">
+                <span style="color: #555;">CGST (9%)</span>
+                <strong style="color: #111;">${formatINR(cgst)}</strong>
+              </div>
+              <div style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 13px;">
+                <span style="color: #555;">SGST (9%)</span>
+                <strong style="color: #111;">${formatINR(sgst)}</strong>
+              </div>
+              <div style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 13px;">
+                <span style="color: #555;">IGST (18%)</span>
+                <strong style="color: #111;">${formatINR(igst)}</strong>
+              </div>
+              <div class="grand-total" style="display: flex; justify-content: space-between; font-size: 16px;">
+                <span>Total</span>
+                <strong>${formatINR(totalVal)}</strong>
+              </div>
+            </div>
+          </td>
+        </tr>
+      </table>
+      
+      <p class="footer-note">
+        This is a system-generated invoice and does not require a physical signature.<br/>
+        Website: <strong>www.reinoro.com</strong> | Thank you for shopping with us!
+      </p>
     </div>
-    <div class="box">
-     <h3>Bill To</h3>
-     <p><strong>${escapeHtml(buyer.name || order.customer_email || order.user_email)}</strong></p>
-     <p>${escapeHtml(buyer.email || order.customer_email || order.user_email)} ${buyer.phone ? `| ${escapeHtml(buyer.phone)}` : ""}</p>
-     <p>GSTIN: ${escapeHtml(buyer.gstin || "-")}</p>
-     <p>${escapeHtml(address.street || "")} ${escapeHtml(address.apartment || "")}</p>
-     <p>${escapeHtml(address.city || "")}, ${escapeHtml(address.state || "")} ${escapeHtml(address.pincode || "")}</p>
-    </div>
-    <table>
-     <thead>
-      <tr><th>Item</th><th>HSN</th><th>Qty</th><th>Rate</th><th>Amount</th></tr>
-     </thead>
-     <tbody>${itemRows}</tbody>
-    </table>
-    <div class="totals">
-     <div class="row"><span>Taxable Value</span><span>${formatINR(invoice.taxable_value)}</span></div>
-     <div class="row"><span>CGST</span><span>${formatINR(invoice.cgst)}</span></div>
-     <div class="row"><span>SGST</span><span>${formatINR(invoice.sgst)}</span></div>
-     <div class="row"><span>IGST</span><span>${formatINR(invoice.igst)}</span></div>
-     <div class="row total"><span>Total</span><span>${formatINR(invoice.total || order.total)}</span></div>
-    </div>
-    <script>window.print();</script>
    </body>
   </html>
- `;
+  `;
 }
 
-function printInvoice(order) {
- const html = buildInvoiceHtml(order);
- if (!html) return;
- const printWindow = window.open("", "_blank", "noopener,noreferrer");
- if (!printWindow) {
-  alert("Please allow popups to print the GST invoice.");
+const loadHtml2Pdf = () => {
+ return new Promise((resolve, reject) => {
+  if (window.html2pdf) {
+   resolve(window.html2pdf);
+   return;
+  }
+  const script = document.createElement("script");
+  script.src = "https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js";
+  script.crossOrigin = "anonymous";
+  script.referrerPolicy = "no-referrer";
+  script.onload = () => resolve(window.html2pdf);
+  script.onerror = (err) => reject(err);
+  document.body.appendChild(script);
+ });
+};
+
+async function printInvoice(order) {
+ const invoice = order?.gst_invoice || order?.invoice || null;
+ if (!invoice) {
+  alert("GST invoice is not available for this order yet.");
   return;
  }
- printWindow.document.write(html);
- printWindow.document.close();
+ const html = buildInvoiceHtml(order);
+ if (!html) return;
+
+ try {
+  const html2pdf = await loadHtml2Pdf();
+  const element = document.createElement("div");
+  const bodyContent = html.substring(html.indexOf("<body>") + 6, html.indexOf("</body>"));
+  element.innerHTML = `
+    <div style="font-family: Arial, sans-serif; padding: 20px; color: #111; max-width: 800px; margin: 0 auto; background: #fff;">
+      ${bodyContent}
+    </div>
+  `;
+  const scripts = element.getElementsByTagName("script");
+  for (let i = scripts.length - 1; i >= 0; i--) {
+   scripts[i].parentNode.removeChild(scripts[i]);
+  }
+
+  const opt = {
+   margin: [0.5, 0.5, 0.5, 0.5],
+   filename: `${invoice.invoice_no}.pdf`,
+   image: { type: "jpeg", quality: 0.98 },
+   html2canvas: { scale: 2, logging: false, useCORS: true },
+   jsPDF: { unit: "in", format: "letter", orientation: "portrait" }
+  };
+
+  await html2pdf().from(element).set(opt).save();
+ } catch (err) {
+  console.error("PDF generation failed:", err);
+  alert("Failed to download PDF invoice. Please check your connection.");
+ }
 }
 
 export default function Confirmation() {
@@ -206,8 +382,17 @@ export default function Confirmation() {
         <span className="value">{order.date}</span>
        </div>
        <div>
-        <span className="label">Estimated Delivery:</span>
-        <span className="value">{order.estDelivery || order.est_delivery}</span>
+        {order.status === "Delivered" ? (
+         <>
+          <span className="label">Delivery Status:</span>
+          <span className="value" style={{ color: "#10b981", fontWeight: 600 }}>✓ Delivered</span>
+         </>
+        ) : (
+         <>
+          <span className="label">Estimated Delivery:</span>
+          <span className="value">{order.estDelivery || order.est_delivery}</span>
+         </>
+        )}
        </div>
        <div>
         <span className="label">Payment Method:</span>

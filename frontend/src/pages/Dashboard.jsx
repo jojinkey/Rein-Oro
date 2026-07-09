@@ -620,12 +620,12 @@ export default function Dashboard() {
 
     const handleSaveProfile = async (e) => {
      e.preventDefault();
-     const cleanName = modalProfileForm.name.trim();
+     const cleanName = profileForm.name.trim();
      if (!cleanName) {
       alert("Please enter your name.");
       return;
      }
-     setModalProfileLoading(true);
+     setProfileLoading("name");
      try {
       const { auth, db, firebaseUser } = await getProfileFirebaseContext();
       const { updateProfile } = await import("firebase/auth");
@@ -652,7 +652,7 @@ export default function Dashboard() {
      } catch (err) {
       alert("Profile update error: [" + (err.code || "Error") + "] " + err.message);
      } finally {
-      setModalProfileLoading(false);
+      setProfileLoading("");
      }
     };
 
@@ -702,7 +702,7 @@ export default function Dashboard() {
     try {
      const { firebaseUser } = await getProfileFirebaseContext();
      const { EmailAuthProvider, reauthenticateWithCredential, updatePassword } = await import("firebase/auth");
-     const credential = EmailAuthProvider.credential(firebaseUser.email, passwordForm.currentPassword);
+     const credential = EmailAuthProvider.credential(firebaseUser.email || user.email, passwordForm.currentPassword);
      await reauthenticateWithCredential(firebaseUser, credential);
      await updatePassword(firebaseUser, passwordForm.newPassword);
      alert("Password updated successfully.");
@@ -955,7 +955,7 @@ export default function Dashboard() {
           <h4 style={{ color: "var(--color-white)", fontSize: "1.1rem", fontWeight: 400, marginTop: "0.2rem", wordBreak: "break-word" }}>
            {user.email}
           </h4>
-         </div>
+         </div>
         </div>
 
         <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", borderTop: "1px solid rgba(255,255,255,0.05)", paddingTop: "1.2rem" }}>
@@ -1476,10 +1476,21 @@ export default function Dashboard() {
                marginBottom: "0.8rem",
               }}
              >
-              Estimated Delivery:{" "}
-              <strong style={{ color: "var(--color-gold)" }}>
-               {order.est_delivery || "Updating soon"}
-              </strong>
+              {order.status === "Delivered" ? (
+               <span>
+                Delivery Status:{" "}
+                <strong style={{ color: "#10b981", fontWeight: 600 }}>
+                 ✓ Delivered
+                </strong>
+               </span>
+              ) : (
+               <span>
+                Estimated Delivery:{" "}
+                <strong style={{ color: "var(--color-gold)" }}>
+                 {order.est_delivery || "Updating soon"}
+                </strong>
+               </span>
+              )}
              </p>
             )}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "1rem" }}>

@@ -4,6 +4,7 @@ import App from './App.jsx';
 import './index.css';
 import { apiUrl } from './config/api.js';
 import CustomAlertProvider from './components/CustomAlertProvider.jsx';
+import ErrorBoundary from './components/ErrorBoundary.jsx';
 
 // Global fetch interceptor to rewrite relative '/api/...' calls dynamically in production
 const originalFetch = window.fetch;
@@ -16,8 +17,10 @@ window.fetch = function (resource, options) {
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <CustomAlertProvider>
-      <App />
-    </CustomAlertProvider>
+    <ErrorBoundary>
+      <CustomAlertProvider>
+        <App />
+      </CustomAlertProvider>
+    </ErrorBoundary>
   </React.StrictMode>
 );

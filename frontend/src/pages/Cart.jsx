@@ -13,6 +13,7 @@ export default function Cart() {
   const freeShippingThreshold = 599;
   const progressPercent = Math.min(100, (subtotal / freeShippingThreshold) * 100);
   const awayAmount = freeShippingThreshold - subtotal;
+  const localTotal = subtotal - discount + tax;
 
   if (cart.length === 0) {
     return (
@@ -121,20 +122,13 @@ export default function Cart() {
               </div>
             )}
             <div className="summary-row">
-              <span>Shipping</span>
-              <div className="shipping-value-col">
-                <span>{shipping === 0 ? 'Free' : `₹${shipping}`}</span>
-                <p className="shipping-hint">Free shipping on orders above ₹599</p>
-              </div>
-            </div>
-            <div className="summary-row">
               <span>Tax (18%)</span>
               <span>₹{tax}</span>
             </div>
             <hr className="summary-divider" />
             <div className="summary-row total-row" style={{ marginBottom: '1.8rem' }}>
               <span>Total</span>
-              <span>₹{total}</span>
+              <span>₹{localTotal}</span>
             </div>
 
             {/* Shipping Progress tracker */}

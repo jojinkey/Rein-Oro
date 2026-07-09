@@ -53,19 +53,21 @@ function buildShiprocketApiError(message, response, data) {
 export function getShiprocketConfig() {
  const email = readEnv("SHIPROCKET_EMAIL");
  const password = readEnv("SHIPROCKET_PASSWORD");
- const pickupLocation = readEnv("SHIPROCKET_PICKUP_LOCATION");
+ const pickupLocation = readEnv("SHIPROCKET_PICKUP_LOCATION") || "Primary";
+ const pickupPostcode = readEnv("SHIPROCKET_PICKUP_POSTCODE");
  const baseUrl = readEnv("SHIPROCKET_BASE_URL") || DEFAULT_BASE_URL;
  const channelId = readEnv("SHIPROCKET_CHANNEL_ID");
  const missing = [
   !email ? "SHIPROCKET_EMAIL" : null,
   !password ? "SHIPROCKET_PASSWORD" : null,
-  !pickupLocation ? "SHIPROCKET_PICKUP_LOCATION" : null,
+  !pickupPostcode ? "SHIPROCKET_PICKUP_POSTCODE" : null,
  ].filter(Boolean);
 
  return {
   email,
   password,
   pickupLocation,
+  pickupPostcode,
   baseUrl: baseUrl.replace(/\/+$/, ""),
   channelId,
   configured: missing.length === 0,
@@ -79,6 +81,7 @@ export function getShiprocketStatus() {
   configured: config.configured,
   emailConfigured: Boolean(config.email),
   pickupLocationConfigured: Boolean(config.pickupLocation),
+  pickupPostcodeConfigured: Boolean(config.pickupPostcode),
   channelIdConfigured: Boolean(config.channelId),
   baseUrl: config.baseUrl,
   missing: config.missing,
@@ -322,4 +325,78 @@ export async function createShiprocketOrder(order) {
   body: JSON.stringify(payload),
  });
  return normalizeShiprocketShipment(data);
+}
+
+export async function getShiprocketBillingServiceability(deliveryPostcode, items) {
+ try {
+  const config = assertConfigured();
+  const weight = estimateOrderWeightKg(items);
+  const path = `/courier/serviceability/?pickup_postcode=${config.pickupPostcode}&delivery_postcode=${deliveryPostcode}&weight=${weight}&cod=0`;
+
+  const response = await shiprocketRequest(path, {
+   method: "GET",
+  });
+
+  const couriers = response?.data?.available_courier_companies || [];
+  if (!couriers.length) {
+   return { serviceable: false };
+  }
+
+  // Find the cheapest courier
+  let cheapestCourier = null;
+  for (const courier of couriers) {
+   const rate = toNumber(courier.rate || courier.freight_charge, -1);
+   if (rate >= 0) {
+    if (!cheapestCourier || rate < cheapestCourier.rate) {
+     cheapestCourier = {
+      rate,
+      etd: courier.etd || "",
+      courier_name: courier.courier_name || "",
+     };
+    }
+   }
+  }
+
+  if (!cheapestCourier) {
+   return { serviceable: false };
+  }
+
+  return {
+   serviceable: true,
+   rate: cheapestCourier.rate,
+   etd: cheapestCourier.etd,
+   courier_name: cheapestCourier.courier_name,
+  };
+ } catch (err) {
+  console.error("getShiprocketBillingServiceability error:", err);
+  return {
+   serviceable: true,
+   is_fallback: true,
+   error: err.message || "Failed to query serviceability",
+  };
+ }
+}
+
+export async function assignShiprocketAwb(shipmentId) {
+ const data = await shiprocketRequest("/courier/assign/awb", {
+  method: "POST",
+  body: JSON.stringify({ shipment_id: Number(shipmentId) }),
+ });
+ return {
+  awb_code: data?.response?.data?.awb_code || data?.awb_code || null,
+  courier_name: data?.response?.data?.courier_name || data?.courier_name || null,
+  raw: data,
+ };
+}
+
+export async function generateShiprocketLabel(shipmentId) {
+ const data = await shiprocketRequest("/courier/generate/label", {
+  method: "POST",
+  body: JSON.stringify({ shipment_id: [Number(shipmentId)] }),
+ });
+ return {
+  label_created: data?.label_created || 0,
+  label_url: data?.label_url || null,
+  raw: data,
+ };
 }

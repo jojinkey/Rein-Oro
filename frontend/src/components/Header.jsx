@@ -49,6 +49,7 @@ export default function Header() {
   const freeShippingThreshold = 599;
   const progressPercent = Math.min(100, (subtotal / freeShippingThreshold) * 100);
   const awayAmount = freeShippingThreshold - subtotal;
+  const localTotal = subtotal - discount + tax;
 
   const handleAccountClick = () => {
     if (user) {
@@ -281,21 +282,14 @@ export default function Header() {
                   </div>
                 )}
                 <div className="summary-row">
-                  <span>Shipping</span>
-                  <div className="shipping-value-col">
-                    <span>{shipping === 0 ? 'Free' : `₹${shipping}`}</span>
-                    <p className="shipping-hint">Free shipping on orders above ₹599</p>
-                  </div>
-                </div>
-                <div className="summary-row">
-                  <span>Tax (18%)</span>
-                  <span>₹{tax}</span>
-                </div>
-                <hr className="summary-divider" />
-                <div className="summary-row total-row">
-                  <span>Total</span>
-                  <span>₹{total}</span>
-                </div>
+                   <span>Tax (18%)</span>
+                   <span>₹{tax}</span>
+                 </div>
+                 <hr className="summary-divider" />
+                 <div className="summary-row total-row">
+                   <span>Total</span>
+                   <span>₹{localTotal}</span>
+                 </div>
               </div>
 
               {/* Free Shipping Tracker */}

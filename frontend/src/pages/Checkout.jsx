@@ -18,6 +18,14 @@ function getRazorpayLogoUrl() {
  return `${window.location.origin}/images/logo.png`;
 }
 
+function formatEtdDate(etdString) {
+ if (!etdString) return "";
+ const dateObj = new Date(etdString);
+ if (Number.isNaN(dateObj.getTime())) return etdString;
+ const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+ return `${dateObj.getDate()} ${months[dateObj.getMonth()]} ${dateObj.getFullYear()}`;
+}
+
 export default function Checkout() {
  const {
   cart,
@@ -57,6 +65,12 @@ export default function Checkout() {
  const [agreed, setAgreed] = useState(false);
  const [isSubmitting, setIsSubmitting] = useState(false);
 
+ // Shiprocket shipping estimation states
+ const [dynamicShippingFee, setDynamicShippingFee] = useState(null);
+ const [shippingLoading, setShippingLoading] = useState(false);
+ const [shippingError, setShippingError] = useState(null);
+ const [shippingDetails, setShippingDetails] = useState(null);
+
  React.useEffect(() => {
   if (user?.email) {
    setFormData((prev) => ({ ...prev, email: user.email }));
@@ -88,6 +102,54 @@ export default function Checkout() {
   }
  }, [formData.pincode]);
 
+ // Fetch real-time shipping estimate from Shiprocket
+ React.useEffect(() => {
+  const pincode = formData.pincode.trim();
+  if (pincode.length === 6 && /^\d+$/.test(pincode) && cart.length > 0) {
+   setShippingLoading(true);
+   setShippingError(null);
+   fetch(apiUrl("/api/shipping/estimate"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ pincode, items: cart }),
+   })
+    .then((res) => {
+     if (!res.ok) {
+      throw new Error("Failed to fetch shipping rate from server.");
+     }
+     return res.json();
+    })
+    .then((data) => {
+     if (data.serviceable === false) {
+      setShippingError(data.error || "This pincode is not serviceable by our courier partners.");
+      setDynamicShippingFee(0);
+      setShippingDetails(null);
+     } else {
+      setDynamicShippingFee(Number(data.rate) ?? 0);
+      setShippingDetails({
+       etd: data.etd || "",
+       courier_name: data.courier_name || "",
+       is_fallback: data.is_fallback || false,
+      });
+      setShippingError(null);
+     }
+    })
+    .catch((err) => {
+     console.warn("Shiprocket serviceability query failed:", err);
+     setDynamicShippingFee(null);
+     setShippingDetails(null);
+     setShippingError(err.message || "Failed to calculate Shiprocket shipping price.");
+    })
+    .finally(() => {
+     setShippingLoading(false);
+    });
+  } else {
+   setDynamicShippingFee(null);
+   setShippingDetails(null);
+   setShippingError(null);
+  }
+ }, [formData.pincode, cart]);
+
  const loadRazorpayScript = () => {
   return new Promise((resolve) => {
    if (window.Razorpay) {
@@ -103,10 +165,13 @@ export default function Checkout() {
  };
 
  // Recalculations based on checkout selections
+ const standardShippingFee = dynamicShippingFee !== null ? dynamicShippingFee : 0;
+ const expressShippingFee = dynamicShippingFee !== null ? dynamicShippingFee + 50 : 0;
  const shippingFee =
-  deliveryMethod === "standard" ? (subtotal >= 599 ? 0 : 99) : 149;
+  deliveryMethod === "standard" ? standardShippingFee : expressShippingFee;
  const codFee = 0;
- const totalAmount = subtotal - discount + shippingFee + tax + codFee;
+ const finalTax = Math.round((subtotal - discount) * 0.18);
+ const totalAmount = subtotal - discount + shippingFee + finalTax + codFee;
 
  const handleInputChange = (e) => {
   const { id, value, type, checked } = e.target;
@@ -246,12 +311,12 @@ export default function Checkout() {
    customer_phone: phone,
    customer_gstin: gstin || null,
    date: formattedDate,
-   est_delivery: formattedDelivery,
+   est_delivery: shippingDetails?.etd ? formatEtdDate(shippingDetails.etd) : formattedDelivery,
    payment_method: paymentMethodName,
    subtotal: subtotal,
    discount: discount,
    shipping: shippingFee,
-   tax: tax,
+   tax: finalTax,
    cod_fee: codFee,
    total: totalAmount,
    shipping_address: {
@@ -617,20 +682,35 @@ export default function Checkout() {
           onChange={handleInputChange}
          />
         </div>
-        <div className="contact-form-group">
-         <label htmlFor="pincode" className="contact-form-label">
-          PIN / ZIP Code
-         </label>
-         <input
-          type="text"
-          id="pincode"
-          className="contact-form-input"
-          placeholder="6-digit code"
-          required
-          value={formData.pincode}
-          onChange={handleInputChange}
-         />
-        </div>
+         <div className="contact-form-group">
+          <label htmlFor="pincode" className="contact-form-label">
+           PIN / ZIP Code
+          </label>
+          <input
+           type="text"
+           id="pincode"
+           className="contact-form-input"
+           placeholder="6-digit code"
+           required
+           value={formData.pincode}
+           onChange={handleInputChange}
+          />
+          {shippingLoading && (
+           <p style={{ fontSize: "0.72rem", color: "var(--color-gold)", marginTop: "0.4rem" }}>
+            ⌛ Checking courier rates...
+           </p>
+          )}
+          {shippingError && (
+           <p style={{ fontSize: "0.72rem", color: "#ef4444", marginTop: "0.4rem" }}>
+            ⚠️ Not Serviceable
+           </p>
+          )}
+          {!shippingLoading && !shippingError && shippingDetails && (
+           <p style={{ fontSize: "0.72rem", color: "#10b981", marginTop: "0.4rem" }}>
+            ✓ Serviceable
+           </p>
+          )}
+         </div>
        </div>
 
        <label
@@ -744,7 +824,9 @@ export default function Checkout() {
            color: "var(--color-gold)",
           }}
          >
-          {subtotal >= 599 ? "FREE" : "₹99"}
+          {dynamicShippingFee !== null
+           ? (standardShippingFee === 0 ? "FREE" : `₹${standardShippingFee}`)
+           : "—"}
          </span>
         </div>
         <p style={{ fontSize: "0.75rem", color: "var(--color-muted)" }}>
@@ -793,7 +875,7 @@ export default function Checkout() {
            color: "var(--color-gold)",
           }}
          >
-          ₹149
+          {dynamicShippingFee !== null ? `₹${expressShippingFee}` : "—"}
          </span>
         </div>
         <p style={{ fontSize: "0.75rem", color: "var(--color-muted)" }}>
@@ -1041,14 +1123,24 @@ export default function Checkout() {
         <span className="discount-value">-₹{discount}</span>
        </div>
       )}
-      <div className="summary-row">
-       <span>Shipping</span>
-       <span>{shippingFee === 0 ? "Free" : `₹${shippingFee}`}</span>
-      </div>
-      <div className="summary-row">
-       <span>Tax (18%)</span>
-       <span>₹{tax}</span>
-      </div>
+       <div className="summary-row">
+        <span>Shipping</span>
+        <span>
+         {dynamicShippingFee !== null
+          ? (shippingFee === 0 ? "Free" : `₹${shippingFee}`)
+          : "Enter Pincode"}
+        </span>
+       </div>
+       {dynamicShippingFee !== null && shippingDetails?.etd && (
+        <div className="summary-row" style={{ fontSize: "0.8rem", marginTop: "-0.5rem", marginBottom: "0.5rem" }}>
+         <span style={{ color: "var(--color-muted)" }}>Est. Delivery</span>
+         <span style={{ color: "var(--color-white)" }}>{formatEtdDate(shippingDetails.etd)}</span>
+        </div>
+       )}
+       <div className="summary-row">
+        <span>Tax (18%)</span>
+        <span>₹{finalTax}</span>
+       </div>
       {codFee > 0 && (
        <div className="summary-row">
         <span style={{ color: "var(--color-white)" }}>COD Fee</span>
@@ -1060,43 +1152,48 @@ export default function Checkout() {
        <span>Total Tally</span>
        <span style={{ color: "var(--color-gold)" }}>₹{totalAmount}</span>
       </div>
-
-      <button
-       type="submit"
-       className="btn btn-primary checkout-btn"
-       disabled={isSubmitting}
-       style={{ width: "100%", height: "48px" }}
-      >
-       {isSubmitting ? (
-        <>
-         <svg
-          className="spinner-icon"
-          xmlns="http://www.w3.org/2000/svg"
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          style={{ marginRight: "8px" }}
-         >
-          <line x1="12" y1="2" x2="12" y2="6" />
-          <line x1="12" y1="18" x2="12" y2="22" />
-          <line x1="4.93" y1="4.93" x2="7.76" y2="7.76" />
-          <line x1="16.24" y1="16.24" x2="19.07" y2="19.07" />
-          <line x1="2" y1="12" x2="6" y2="12" />
-          <line x1="18" y1="12" x2="22" y2="12" />
-          <line x1="4.93" y1="19.07" x2="7.76" y2="16.24" />
-          <line x1="16.24" y1="7.76" x2="19.07" y2="4.93" />
-         </svg>
-         Processing Order...
-        </>
-       ) : (
-        "Pay Securely with Razorpay"
-       )}
-       </button>
+       <button
+        type="submit"
+        className="btn btn-primary checkout-btn"
+        disabled={isSubmitting || shippingLoading || Boolean(shippingError) || dynamicShippingFee === null}
+        style={{ width: "100%", height: "48px" }}
+       >
+        {isSubmitting ? (
+         <>
+          <svg
+           className="spinner-icon"
+           xmlns="http://www.w3.org/2000/svg"
+           width="16"
+           height="16"
+           viewBox="0 0 24 24"
+           fill="none"
+           stroke="currentColor"
+           strokeWidth="2"
+           strokeLinecap="round"
+           strokeLinejoin="round"
+           style={{ marginRight: "8px" }}
+          >
+           <line x1="12" y1="2" x2="12" y2="6" />
+           <line x1="12" y1="18" x2="12" y2="22" />
+           <line x1="4.93" y1="4.93" x2="7.76" y2="7.76" />
+           <line x1="16.24" y1="16.24" x2="19.07" y2="19.07" />
+           <line x1="2" y1="12" x2="6" y2="12" />
+           <line x1="18" y1="12" x2="22" y2="12" />
+           <line x1="4.93" y1="19.07" x2="7.76" y2="16.24" />
+           <line x1="16.24" y1="7.76" x2="19.07" y2="4.93" />
+          </svg>
+          Processing Order...
+         </>
+        ) : shippingLoading ? (
+         "Checking Pincode Serviceability..."
+        ) : shippingError ? (
+         "Pincode Not Serviceable"
+        ) : dynamicShippingFee === null ? (
+         "Enter Pincode to Continue"
+        ) : (
+         "Pay Securely with Razorpay"
+        )}
+        </button>
       </div>
      </section>
     </form>

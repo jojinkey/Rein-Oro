@@ -1476,10 +1476,21 @@ export default function Dashboard() {
                marginBottom: "0.8rem",
               }}
              >
-              Estimated Delivery:{" "}
-              <strong style={{ color: "var(--color-gold)" }}>
-               {order.est_delivery || "Updating soon"}
-              </strong>
+              {order.status === "Delivered" ? (
+               <span>
+                Delivery Status:{" "}
+                <strong style={{ color: "#10b981", fontWeight: 600 }}>
+                 ✓ Delivered
+                </strong>
+               </span>
+              ) : (
+               <span>
+                Estimated Delivery:{" "}
+                <strong style={{ color: "var(--color-gold)" }}>
+                 {order.est_delivery || "Updating soon"}
+                </strong>
+               </span>
+              )}
              </p>
             )}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "1rem" }}>

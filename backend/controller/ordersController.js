@@ -12,7 +12,11 @@ import {
 import {
  createShiprocketOrder,
  getShiprocketStatus,
+ getShiprocketBillingServiceability,
+ assignShiprocketAwb,
+ generateShiprocketLabel,
 } from "../util/shiprocket.js";
+import { invalidateDashboardCache } from "../routes/crmRoutes.js";
 
 const RAZORPAY_BUSINESS_NAME = "Rein Oro Foods";
 const GST_RATE_PERCENT = 18;
@@ -395,11 +399,39 @@ export async function createOrder(req, res) {
 
   // Store order as a single document in Firestore
   await mirrorToFirestore("orders", id, orderRecord);
+
+  try {
+   invalidateDashboardCache();
+  } catch (cacheErr) {
+   console.error("Failed to invalidate dashboard cache:", cacheErr);
+  }
+
+  let finalOrderRecord = { ...orderRecord };
+
+  // Automatically sync order to Shiprocket on checkout
+  try {
+   const shipment = await createShiprocketOrder(orderRecord);
+   if (shipment && shipment.shipment_id) {
+    const shiprocket = {
+     ...shipment,
+     created_at: new Date().toISOString(),
+    };
+    const status = "Confirmed";
+    const updates = { shiprocket, status };
+    await mirrorToFirestore("orders", id, updates);
+    finalOrderRecord = { ...orderRecord, ...updates };
+    console.log(`Successfully auto-synced order ${id} to Shiprocket. Shipment ID: ${shipment.shipment_id}`);
+   }
+  } catch (shiprocketErr) {
+   console.error(`Automatic Shiprocket sync failed for order ${id}:`, shiprocketErr.message || shiprocketErr);
+   // Do not block checkout if Shiprocket fails
+  }
+
   res.json({
    success: true,
    orderId: id,
    invoice: gstInvoice,
-   order: orderRecord,
+   order: finalOrderRecord,
   });
  } catch (err) {
   res.status(err.statusCode || 400).json({ error: err.message });
@@ -621,3 +653,205 @@ export async function createOrderShiprocketShipment(req, res) {
  }
 }
 
+export async function estimateShippingPrice(req, res) {
+ const pincode = String(req.body.pincode || "").trim();
+ const items = req.body.items;
+
+ if (!pincode || !/^\d{6}$/.test(pincode)) {
+  return res.status(400).json({ error: "A valid 6-digit delivery pincode is required." });
+ }
+ if (!Array.isArray(items) || items.length === 0) {
+  return res.status(400).json({ error: "Cart items are required for shipping price estimation." });
+ }
+
+ // Calculate items subtotal for fallback rules
+ const subtotal = items.reduce((sum, item) => {
+  const units = Math.max(1, Number(item.qty ?? item.quantity) || 1);
+  return sum + (Number(item.price) || 0) * units;
+ }, 0);
+
+ try {
+  const serviceability = await getShiprocketBillingServiceability(pincode, items);
+
+  if (!serviceability || serviceability.serviceable === false || serviceability.is_fallback) {
+   const errorMsg = !serviceability
+    ? "Shiprocket is not configured on the server."
+    : serviceability.is_fallback
+      ? (serviceability.error || "Failed to query Shiprocket API.")
+      : "This pincode is not serviceable by our courier partners.";
+   return res.json({
+    serviceable: false,
+    error: errorMsg,
+   });
+  }
+
+  // Free shipping override if subtotal >= 599
+  const rate = subtotal >= 599 ? 0 : serviceability.rate;
+
+  res.json({
+   serviceable: true,
+   rate,
+   etd: serviceability.etd,
+   courier_name: serviceability.courier_name,
+   is_fallback: false,
+  });
+ } catch (err) {
+  console.error("estimateShippingPrice controller error:", err);
+  res.json({
+   serviceable: false,
+   error: err.message || "Failed to query shipping rates.",
+  });
+ }
+}
+
+export async function assignOrderShiprocketAwb(req, res) {
+ const orderId = String(req.params.id || "").trim();
+ if (!orderId) {
+  return res.status(400).json({ error: "Order id is required" });
+ }
+ try {
+  const existing = await getFirestoreDocument("orders", orderId);
+  if (!existing) {
+   return res.status(404).json({ error: "Order not found" });
+  }
+  const shipmentId = existing.shiprocket?.shipment_id;
+  if (!shipmentId) {
+   return res.status(400).json({ error: "No Shiprocket shipment associated with this order." });
+  }
+
+  const awbDetails = await assignShiprocketAwb(shipmentId);
+  if (!awbDetails.awb_code) {
+   return res.status(400).json({ error: "Failed to assign AWB from Shiprocket." });
+  }
+
+  const shiprocket = {
+   ...(existing.shiprocket || {}),
+   awb_code: awbDetails.awb_code,
+   courier_name: awbDetails.courier_name || existing.shiprocket?.courier_name || "",
+  };
+
+  const status = "Shipped"; // Auto-transition to Shipped on AWB assignment
+  const updates = { shiprocket, status };
+  await mirrorToFirestore("orders", orderId, updates);
+
+  res.json({
+   success: true,
+   shipment: shiprocket,
+   order: { ...existing, ...updates },
+  });
+ } catch (err) {
+  res.status(err.statusCode || 500).json({
+   error: err.message || "Unable to assign AWB",
+   ...(err.details ? { details: err.details } : {}),
+  });
+ }
+}
+
+export async function generateOrderShiprocketLabel(req, res) {
+ const orderId = String(req.params.id || "").trim();
+ if (!orderId) {
+  return res.status(400).json({ error: "Order id is required" });
+ }
+ try {
+  const existing = await getFirestoreDocument("orders", orderId);
+  if (!existing) {
+   return res.status(404).json({ error: "Order not found" });
+  }
+  const shipmentId = existing.shiprocket?.shipment_id;
+  if (!shipmentId) {
+   return res.status(400).json({ error: "No Shiprocket shipment associated with this order." });
+  }
+
+  const labelDetails = await generateShiprocketLabel(shipmentId);
+  if (!labelDetails.label_url) {
+   return res.status(400).json({ error: "Failed to generate label from Shiprocket." });
+  }
+
+  const shiprocket = {
+   ...(existing.shiprocket || {}),
+   label_url: labelDetails.label_url,
+  };
+
+  await mirrorToFirestore("orders", orderId, { shiprocket });
+
+  res.json({
+   success: true,
+   label_url: labelDetails.label_url,
+   shipment: shiprocket,
+   order: { ...existing, shiprocket },
+  });
+ } catch (err) {
+  res.status(err.statusCode || 500).json({
+   error: err.message || "Unable to generate label",
+   ...(err.details ? { details: err.details } : {}),
+  });
+ }
+}
+
+export async function receiveShippingWebhook(req, res) {
+ const payload = req.body || {};
+ const awbCode = String(payload.awb || payload.awb_code || "").trim();
+ const shipmentId = payload.shipment_id;
+ const statusName = String(payload.status || payload.current_status || "").trim();
+ const statusCode = Number(payload.status_code);
+
+ if (!awbCode && !shipmentId) {
+  console.warn("Received empty or invalid Shiprocket webhook payload");
+  return res.status(200).json({ success: true, message: "Acknowledge empty payload" });
+ }
+
+ try {
+  // Find order in Firestore by AWB or shipment ID
+  let orders = [];
+  if (awbCode) {
+   orders = await queryFirestoreCollection("orders", {
+    where: [["shiprocket.awb_code", "==", awbCode]]
+   });
+  }
+  if (orders.length === 0 && shipmentId) {
+   orders = await queryFirestoreCollection("orders", {
+    where: [["shiprocket.shipment_id", "==", Number(shipmentId)]]
+   });
+  }
+
+  if (orders.length === 0) {
+   console.warn(`No matching order found for AWB: ${awbCode}, ShipmentID: ${shipmentId}`);
+   return res.status(200).json({ success: true, message: "No matching order found" });
+  }
+
+  const order = orders[0];
+  const orderId = order.id;
+
+  let status = order.status || "Processing";
+  const lowerStatus = statusName.toLowerCase();
+
+  if (statusCode === 7 || lowerStatus.includes("delivered")) {
+   status = "Delivered";
+  } else if (statusCode === 6 || statusCode === 17 || lowerStatus.includes("shipped") || lowerStatus.includes("transit") || lowerStatus.includes("out for delivery")) {
+   status = "Shipped";
+  } else if (statusCode === 5 || lowerStatus.includes("cancelled")) {
+   status = "Cancelled";
+  }
+
+  const shiprocket = {
+   ...(order.shiprocket || {}),
+   status: statusName,
+   status_code: statusCode,
+   awb_code: awbCode || order.shiprocket?.awb_code,
+   updated_at: new Date().toISOString()
+  };
+
+  const updates = { shiprocket, status };
+  if (status === "Delivered") {
+   updates.delivered_at = new Date().toISOString();
+  }
+
+  await mirrorToFirestore("orders", orderId, updates);
+  console.log(`Successfully updated order ${orderId} status to ${status} via Shiprocket webhook.`);
+
+  return res.status(200).json({ success: true });
+ } catch (err) {
+  console.error("Error processing Shiprocket webhook:", err);
+  return res.status(200).json({ success: true, error: err.message });
+ }
+}

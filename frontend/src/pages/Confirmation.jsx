@@ -141,14 +141,17 @@ function buildInvoiceHtml(order) {
        font-size: 16px !important;
        font-weight: bold;
      }
-     .footer-note {
-       text-align: center;
-       font-size: 11px;
-       color: #666;
-       margin-top: 35px;
-       border-top: 1px dashed #ccc;
-       padding-top: 15px;
-     }
+      .footer-note {
+        text-align: center;
+        font-size: 10px;
+        color: #777;
+        margin-top: 45px;
+        border-top: 1px solid #eee;
+        padding-top: 12px;
+        font-family: 'Courier New', Courier, monospace;
+        letter-spacing: 0.02em;
+        line-height: 1.5;
+      }
     </style>
    </head>
    <body>

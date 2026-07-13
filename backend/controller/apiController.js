@@ -491,10 +491,30 @@ async function recordWebsiteVisit(req, res) {
 
 async function buildOwnerDashboard() {
  const now = new Date();
- const orders = (await queryFirestoreCollection("orders")).map((order) => ({
+
+ const [
+  ordersRows,
+  usersRows,
+  enquiriesRows,
+  newsletterRows,
+  reviewRows,
+  productsRows,
+  visitsRowsRaw
+ ] = await Promise.all([
+  queryFirestoreCollection("orders"),
+  queryFirestoreCollection("users"),
+  queryFirestoreCollection("enquiries"),
+  queryFirestoreCollection("newsletter"),
+  queryFirestoreCollection("reviews"),
+  queryFirestoreCollection("products"),
+  queryFirestoreCollection("website_visits")
+ ]);
+
+ const orders = ordersRows.map((order) => ({
   ...order,
   timestampMs: getOrderTimestamp(order),
  }));
+
  const sales = {
   total_orders: orders.length,
   revenue: orders.reduce((sum, order) => sum + Number(order.total || 0), 0),
@@ -518,7 +538,6 @@ async function buildOwnerDashboard() {
  );
  const orders7 = buildDashboardRange(orders, 7, () => 1, now);
 
- const usersRows = await queryFirestoreCollection("users");
  const customerCount = {
   count: usersRows.filter((u) => (u.role || "") !== "admin").length,
  };
@@ -535,16 +554,14 @@ async function buildOwnerDashboard() {
   () => 1,
   now,
  );
- const enquiriesRows = await queryFirestoreCollection("enquiries");
+ 
  const leadCount = { count: enquiriesRows.length };
  const openLeadCount = {
   count: enquiriesRows.filter((e) =>
    ["New", "Open", "Pending"].includes(e.status),
   ).length,
  };
- const newsletterRows = await queryFirestoreCollection("newsletter");
  const newsletterCount = { count: newsletterRows.length };
- const reviewRows = await queryFirestoreCollection("reviews");
  const reviewCount = { count: reviewRows.length };
  const pendingReviewCount = {
   count: reviewRows.filter((r) => (r.status || "") !== "approved").length,
@@ -557,7 +574,7 @@ async function buildOwnerDashboard() {
    getDashboardTimestamp(review.firestore_updated_at),
  }));
  const reviews30 = buildDashboardRange(reviewRowsWithTimestamps, 30, () => 1, now);
- const productsRows = await queryFirestoreCollection("products");
+ 
  const productRowsWithTimestamps = productsRows.map((product) => ({
   ...product,
   timestampMs:
@@ -571,7 +588,7 @@ async function buildOwnerDashboard() {
   () => 1,
   now,
  );
- const visitsRows = (await queryFirestoreCollection("website_visits")).map(
+ const visitsRows = visitsRowsRaw.map(
   (visit) => ({
    ...visit,
    timestampMs:

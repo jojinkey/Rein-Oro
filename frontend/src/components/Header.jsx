@@ -7,7 +7,8 @@ export default function Header() {
     cart, updateQty, removeFromCart, giftNote, setGiftNote, 
     appliedPromo, discountRate, applyPromoCode, removePromoCode,
     subtotal, discount, shipping, tax, total, cartCount,
-    isCartOpen: isDrawerOpen, setIsCartOpen: setIsDrawerOpen
+    isCartOpen: isDrawerOpen, setIsCartOpen: setIsDrawerOpen,
+    shippingSettings
   } = useContext(CartContext);
 
   const { user } = useContext(AuthContext);
@@ -46,9 +47,10 @@ export default function Header() {
   };
 
   // Shipping progress calculation
-  const freeShippingThreshold = 599;
+  const freeShippingThreshold = shippingSettings?.freeShippingThreshold ?? 599;
   const progressPercent = Math.min(100, (subtotal / freeShippingThreshold) * 100);
   const awayAmount = freeShippingThreshold - subtotal;
+  const localTotal = subtotal - discount + tax;
 
   const handleAccountClick = () => {
     if (user) {
@@ -71,7 +73,7 @@ export default function Header() {
           <div className="utility-right">
             <span className="utility-item">
               <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-              Free Shipping on Orders ₹599+
+              Free Shipping on Orders ₹{shippingSettings?.freeShippingThreshold ?? 599}+
             </span>
             <span className="utility-item" style={{ cursor: 'pointer' }} onClick={() => navigate('/dashboard')}>
               <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
@@ -281,27 +283,20 @@ export default function Header() {
                   </div>
                 )}
                 <div className="summary-row">
-                  <span>Shipping</span>
-                  <div className="shipping-value-col">
-                    <span>{shipping === 0 ? 'Free' : `₹${shipping}`}</span>
-                    <p className="shipping-hint">Free shipping on orders above ₹599</p>
-                  </div>
-                </div>
-                <div className="summary-row">
-                  <span>Tax (18%)</span>
-                  <span>₹{tax}</span>
-                </div>
-                <hr className="summary-divider" />
-                <div className="summary-row total-row">
-                  <span>Total</span>
-                  <span>₹{total}</span>
-                </div>
+                   <span>Tax (18%)</span>
+                   <span>₹{tax}</span>
+                 </div>
+                 <hr className="summary-divider" />
+                 <div className="summary-row total-row">
+                   <span>Total</span>
+                   <span>₹{localTotal}</span>
+                 </div>
               </div>
 
               {/* Free Shipping Tracker */}
               <div className="shipping-tracker-wrapper">
                 <p id="shipping-tracker-text" className="shipping-tracker-text">
-                  {subtotal >= 599 
+                  {subtotal >= (shippingSettings?.freeShippingThreshold ?? 599) 
                     ? "Congratulations! You qualify for FREE shipping!" 
                     : `You are ₹${awayAmount} away from FREE shipping!`
                   }

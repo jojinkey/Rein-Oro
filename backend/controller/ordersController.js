@@ -8,7 +8,9 @@ import {
  mirrorToFirestore,
  queryFirestoreCollection,
  getFirestoreDocument,
+ deleteFromFirestore,
 } from "../util/firestore.js";
+import { invalidateDashboardCache } from "../routes/crmRoutes.js";
 
 const RAZORPAY_BUSINESS_NAME = "Rein Oro Foods";
 const GST_RATE_PERCENT = 18;
@@ -391,6 +393,13 @@ export async function createOrder(req, res) {
 
   // Store order as a single document in Firestore
   await mirrorToFirestore("orders", id, orderRecord);
+
+  try {
+   invalidateDashboardCache();
+  } catch (cacheErr) {
+   console.error("Failed to invalidate dashboard cache:", cacheErr);
+  }
+
   res.json({
    success: true,
    orderId: id,
@@ -555,3 +564,47 @@ export async function updateOrderStatus(req, res) {
  }
 }
 
+export async function getShippingRegions(req, res) {
+ try {
+  const list = await queryFirestoreCollection("shipping_regions");
+  res.json(list);
+ } catch (err) {
+  res.status(500).json({ error: err.message });
+ }
+}
+
+export async function saveShippingRegion(req, res) {
+ const { id, name, states, price } = req.body;
+ if (!name || !Array.isArray(states) || typeof price !== "number") {
+  return res.status(400).json({ error: "Invalid payload. Name, states (array), and price (number) are required." });
+ }
+
+ const safeId = id || `region_${Date.now()}`;
+ const data = {
+  id: safeId,
+  name: name.trim(),
+  states: states.map((s) => String(s).trim()),
+  price: Number(price) || 0,
+ };
+
+ try {
+  await mirrorToFirestore("shipping_regions", safeId, data);
+  res.json({ success: true, region: data });
+ } catch (err) {
+  res.status(500).json({ error: err.message });
+ }
+}
+
+export async function deleteShippingRegion(req, res) {
+ const { id } = req.params;
+ if (!id) {
+  return res.status(400).json({ error: "Region ID is required." });
+ }
+
+ try {
+  await deleteFromFirestore("shipping_regions", id);
+  res.json({ success: true });
+ } catch (err) {
+  res.status(500).json({ error: err.message });
+ }
+}

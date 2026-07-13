@@ -613,6 +613,7 @@ const formatInvoiceINR = (value) =>
  `Rs. ${Math.round(toAdminNumber(value, 0)).toLocaleString("en-IN")}`;
 
 const getOrderInvoice = (order = {}) => order.gst_invoice || order.invoice || null;
+const getOrderShipment = (order = {}) => order.shiprocket || order.shipment || null;
 
 const getSellerAddressLines = (seller = {}) => {
  if (Array.isArray(seller.address_lines) && seller.address_lines.length) {
@@ -632,21 +633,68 @@ const escapeAdminHtml = (value) =>
 const buildAdminInvoiceHtml = (order = {}) => {
  const invoice = getOrderInvoice(order);
  if (!invoice) return "";
- const seller = getGstSellerProfile(invoice.seller || {});
  const buyer = invoice.buyer || {};
+ const seller = getGstSellerProfile(invoice.seller || {});
  const address = buyer.address || {};
+
+ const formatINR = (val) => {
+  const num = Number(val || 0);
+  return "Rs. " + num.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+ };
+
+ const escapeHtml = (str) => {
+  return String(str || "")
+   .replace(/&/g, "&amp;")
+   .replace(/</g, "&lt;")
+   .replace(/>/g, "&gt;")
+   .replace(/"/g, "&quot;")
+   .replace(/'/g, "&#039;");
+ };
+
  const sellerAddressRows = getSellerAddressLines(seller)
-  .map((line) => `<p>${escapeAdminHtml(line)}</p>`)
+  .map((line) => `<p style="margin: 2px 0;">${escapeHtml(line)}</p>`)
   .join("");
- const rows = (invoice.items || [])
+
+ const sellerState = seller.state || "Uttarakhand";
+ const buyerState = address.state || buyer.state || "";
+ const isIntraState = sellerState.trim().toLowerCase() === buyerState.trim().toLowerCase();
+
+ const rawSubtotal = Number(invoice.subtotal || order.subtotal || 0);
+ const rawDiscount = Number(invoice.discount || order.discount || 0);
+ const shipping = Number(invoice.shipping || order.shipping || 0);
+
+ // Taxable Value is subtotal - discount (product value)
+ const taxableBase = Math.max(0, rawSubtotal - rawDiscount);
+
+ // GST amount (18% of taxable base)
+ const totalGst = Math.round(taxableBase * 0.18);
+ const cgst = isIntraState ? Math.round(totalGst / 2) : 0;
+ const sgst = isIntraState ? Math.round(totalGst / 2) : 0;
+ const igst = isIntraState ? 0 : totalGst;
+
+ const totalVal = taxableBase + totalGst + shipping;
+
+ const shippingRow = shipping > 0
+  ? `
+    <div style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 13px;">
+      <span style="color: #555;">Delivery Charges</span>
+      <strong style="color: #111;">${formatINR(shipping)}</strong>
+    </div>`
+  : "";
+
+ const itemRows = (invoice.items || [])
   .map(
    (item) => `
-    <tr>
-     <td>${escapeAdminHtml(item.name)}</td>
-     <td>${escapeAdminHtml(item.hsn || "-")}</td>
-     <td>${escapeAdminHtml(item.qty)}</td>
-     <td>${formatInvoiceINR(item.unit_price)}</td>
-     <td>${formatInvoiceINR(item.line_total)}</td>
+    <tr style="border-bottom: 1px solid #eee;">
+     <td style="padding: 10px 12px; color: #111; font-size: 13px; text-align: left; border: 1px solid #ddd;">
+       <div style="font-weight: bold; color: #111;">${escapeHtml(item.name)}</div>
+       ${item.flavor ? `<div style="color: #666; font-size: 11px;">Flavor: ${escapeHtml(item.flavor)}</div>` : ""}
+       ${item.weight ? `<div style="color: #666; font-size: 11px;">Weight: ${escapeHtml(item.weight)}</div>` : ""}
+     </td>
+     <td style="padding: 10px 12px; color: #333; font-size: 13px; text-align: left; border: 1px solid #ddd;">${escapeHtml(item.hsn || "-")}</td>
+     <td style="padding: 10px 12px; color: #333; font-size: 13px; text-align: left; border: 1px solid #ddd;">${escapeHtml(item.qty)}</td>
+     <td style="padding: 10px 12px; color: #333; font-size: 13px; text-align: left; border: 1px solid #ddd;">${formatINR(item.unit_price)}</td>
+     <td style="padding: 10px 12px; color: #111; font-size: 13px; text-align: right; font-weight: bold; border: 1px solid #ddd;">${formatINR(item.line_total)}</td>
     </tr>
    `,
   )
@@ -656,75 +704,205 @@ const buildAdminInvoiceHtml = (order = {}) => {
   <!doctype html>
   <html>
    <head>
-    <title>${escapeAdminHtml(invoice.invoice_no)}</title>
+    <title>${escapeHtml(invoice.invoice_no)}</title>
     <style>
-     body { font-family: Arial, sans-serif; color: #111; padding: 32px; }
-     .top { display: flex; justify-content: space-between; gap: 24px; margin-bottom: 28px; }
-     .box { border: 1px solid #ddd; padding: 14px; margin-bottom: 18px; }
-     table { width: 100%; border-collapse: collapse; margin-top: 16px; }
-     th, td { border: 1px solid #ddd; padding: 10px; text-align: left; font-size: 13px; }
-     th { background: #f5f5f5; }
-     .totals { max-width: 360px; margin-left: auto; margin-top: 18px; }
-     .row { display: flex; justify-content: space-between; padding: 6px 0; }
-     .total { font-weight: 700; border-top: 1px solid #111; margin-top: 8px; padding-top: 10px; }
+     * { box-sizing: border-box; }
+     body {
+       font-family: Arial, sans-serif;
+       color: #111;
+       background: #fff;
+       padding: 0;
+       margin: 0;
+     }
+     .invoice-card {
+       background: #ffffff;
+       padding: 10px;
+       max-width: 800px;
+       margin: 0 auto;
+     }
+     table {
+       width: 100%;
+       border-collapse: collapse;
+       margin: 15px 0;
+     }
+     th {
+       color: #000;
+       background: #f2f2f2;
+       font-weight: bold;
+       text-transform: uppercase;
+       font-size: 11px;
+       letter-spacing: 0.05em;
+       padding: 10px 12px;
+       text-align: left;
+       border: 1px solid #ddd;
+     }
+     .grand-total {
+       border-top: 2px solid #000;
+       padding-top: 8px;
+       margin-top: 4px;
+       color: #000 !important;
+       font-size: 16px !important;
+       font-weight: bold;
+     }
+     .footer-note {
+        text-align: center;
+        font-size: 10px;
+        color: #777;
+        margin-top: 45px;
+        border-top: 1px solid #eee;
+        padding-top: 12px;
+        font-family: 'Courier New', Courier, monospace;
+        letter-spacing: 0.02em;
+        line-height: 1.5;
+      }
     </style>
    </head>
    <body>
-    <div class="top">
-     <div>
-      <h1>Tax Invoice</h1>
-      <p>Invoice No: <strong>${escapeAdminHtml(invoice.invoice_no)}</strong></p>
-      <p>Order ID: ${escapeAdminHtml(invoice.order_id || order.id)}</p>
-     <p>Date: ${new Date(invoice.invoice_date || Date.now()).toLocaleString("en-IN")}</p>
-     </div>
-     <div>
-      <h2>${escapeAdminHtml(seller.trade_name || seller.name || "Rein Oro Foods")}</h2>
-      <p>Legal Name: ${escapeAdminHtml(seller.legal_name || "-")}</p>
-      <p>GSTIN / Registration No.: ${escapeAdminHtml(seller.gstin || seller.registration_no || "-")}</p>
-      <p>Constitution: ${escapeAdminHtml(seller.constitution || "-")}</p>
-      ${sellerAddressRows}
-     </div>
+    <div class="invoice-card">
+      <table style="width: 100%; margin-bottom: 25px; border: none !important;">
+        <tr style="border: none !important;">
+          <td style="text-align: left; width: 50%; vertical-align: top; border: none !important; padding: 0;">
+            <h1 style="margin: 0; font-size: 32px; font-weight: bold; color: #000;">Tax Invoice</h1>
+            <p style="margin: 12px 0 4px 0; font-size: 13px; color: #111;"><strong>Invoice No:</strong> ${escapeHtml(invoice.invoice_no)}</p>
+            <p style="margin: 4px 0; font-size: 13px; color: #111;"><strong>Order ID:</strong> ${escapeHtml(invoice.order_id || order.id || order.orderId)}</p>
+            <p style="margin: 4px 0; font-size: 13px; color: #111;"><strong>Date:</strong> ${new Date(invoice.invoice_date || Date.now()).toLocaleString("en-IN")}</p>
+          </td>
+          <td style="text-align: right; width: 50%; vertical-align: top; border: none !important; padding: 0;">
+            <h2 style="margin: 0 0 6px 0; font-size: 22px; font-weight: bold; color: #000;">REIN ORO FOODS</h2>
+            <p style="margin: 3px 0; font-size: 13px; color: #333;"><strong>Legal Name:</strong> ${escapeHtml(seller.legal_name || "VAIBHAV SINGH PANWAR")}</p>
+            <p style="margin: 3px 0; font-size: 13px; color: #333;"><strong>GSTIN / Registration No.:</strong> ${escapeHtml(seller.gstin || "05GMOPP5339F1ZN")}</p>
+            <p style="margin: 3px 0; font-size: 13px; color: #333;"><strong>Constitution:</strong> Proprietorship</p>
+            <p style="margin: 3px 0; font-size: 13px; color: #333;">Building No./Flat No.: 499/3</p>
+            <p style="margin: 3px 0; font-size: 13px; color: #333;">Street Number 11, Rajender Nagar</p>
+            <p style="margin: 3px 0; font-size: 13px; color: #333;">Near Vashu Electricals & All Dish Services</p>
+            <p style="margin: 3px 0; font-size: 13px; color: #333;">Roorkee, Haridwar, Uttarakhand - 247667</p>
+          </td>
+        </tr>
+      </table>
+      
+      <div style="border: 1px solid #ddd; border-radius: 6px; padding: 15px; background: #fafafa; margin-bottom: 20px;">
+        <h3 style="margin: 0 0 8px 0; font-size: 14px; font-weight: bold; text-transform: uppercase; color: #000; border-bottom: 1px solid #eee; padding-bottom: 4px;">Bill To</h3>
+        <p style="margin: 4px 0; font-size: 13px; font-weight: bold; color: #000;">${escapeHtml(buyer.name || order.customer_email || order.user_email)}</p>
+        <p style="margin: 3px 0; font-size: 13px; color: #333;">${escapeHtml(buyer.email || order.customer_email || order.user_email)} | ${escapeHtml(buyer.phone || order.customer_phone || address.phone || "-")}</p>
+        <p style="margin: 3px 0; font-size: 13px; color: #333;"><strong>GSTIN:</strong> ${escapeHtml(buyer.gstin || "-")}</p>
+        <p style="margin: 3px 0; font-size: 13px; color: #333;">${escapeHtml(address.street || "")} ${escapeHtml(address.apartment || "")}</p>
+        <p style="margin: 3px 0; font-size: 13px; color: #333;">${escapeHtml(address.city || "")}, ${escapeHtml(address.state || "")} ${escapeHtml(address.pincode || "")}</p>
+      </div>
+
+      <table style="width: 100%; border: 1px solid #ddd; border-collapse: collapse;">
+        <thead>
+          <tr>
+            <th style="border: 1px solid #ddd; background: #f2f2f2; padding: 10px; font-size: 12px; text-align: left;">Item</th>
+            <th style="border: 1px solid #ddd; background: #f2f2f2; padding: 10px; font-size: 12px; text-align: left;">HSN</th>
+            <th style="border: 1px solid #ddd; background: #f2f2f2; padding: 10px; font-size: 12px; text-align: left;">Qty</th>
+            <th style="border: 1px solid #ddd; background: #f2f2f2; padding: 10px; font-size: 12px; text-align: left;">Rate</th>
+            <th style="border: 1px solid #ddd; background: #f2f2f2; padding: 10px; font-size: 12px; text-align: right;">Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${itemRows}
+        </tbody>
+      </table>
+      
+      <table style="width: 100%; margin-top: 15px; border: none !important;">
+        <tr style="border: none !important;">
+          <td style="width: 55%; text-align: left; padding-right: 20px; vertical-align: top; border: none !important;">
+            <p style="margin: 0; font-size: 12px; font-weight: bold; text-transform: uppercase; color: #000; border-bottom: 1px solid #eee; padding-bottom: 4px;">Payment Information</p>
+            <p style="margin: 6px 0 3px 0; font-size: 13px; color: #333;"><strong>Method:</strong> ${escapeHtml(order.payment_method || invoice.payment_method || "Paid via Razorpay Online")}</p>
+            <p style="margin: 3px 0; font-size: 13px; color: #333;"><strong>Transaction ID:</strong> ${escapeHtml(invoice.payment_id || order.payment_id || "-")}</p>
+            <p style="margin: 3px 0; font-size: 13px; color: #333;"><strong>Place of Supply:</strong> ${escapeHtml(invoice.place_of_supply || buyerState || "Uttarakhand")}</p>
+            <p style="margin: 3px 0; font-size: 13px; color: #333;"><strong>Tax Type:</strong> ${isIntraState ? "CGST + SGST (Intra-State)" : "IGST (Inter-State)"}</p>
+          </td>
+          <td style="width: 45%; vertical-align: top; border: none !important;">
+            <div style="width: 100%;">
+              <div style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 13px;">
+                <span style="color: #555;">Taxable Value</span>
+                <strong style="color: #111;">${formatINR(taxableBase)}</strong>
+              </div>
+              ${shippingRow}
+              <div style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 13px;">
+                <span style="color: #555;">CGST (9%)</span>
+                <strong style="color: #111;">${formatINR(cgst)}</strong>
+              </div>
+              <div style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 13px;">
+                <span style="color: #555;">SGST (9%)</span>
+                <strong style="color: #111;">${formatINR(sgst)}</strong>
+              </div>
+              <div style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 13px;">
+                <span style="color: #555;">IGST (18%)</span>
+                <strong style="color: #111;">${formatINR(igst)}</strong>
+              </div>
+              <div class="grand-total" style="display: flex; justify-content: space-between; font-size: 16px;">
+                <span>Total</span>
+                <strong>${formatINR(totalVal)}</strong>
+              </div>
+            </div>
+          </td>
+        </tr>
+      </table>
+      
+      <p class="footer-note">
+        This is a system-generated invoice and does not require a physical signature.<br/>
+        Website: <strong>www.reinoro.com</strong> | Thank you for shopping with us!
+      </p>
     </div>
-    <div class="box">
-     <h3>Bill To</h3>
-     <p><strong>${escapeAdminHtml(buyer.name || order.user_email)}</strong></p>
-     <p>${escapeAdminHtml(buyer.email || order.user_email)} ${buyer.phone ? `| ${escapeAdminHtml(buyer.phone)}` : ""}</p>
-     <p>GSTIN: ${escapeAdminHtml(buyer.gstin || "-")}</p>
-     <p>${escapeAdminHtml(address.street || "")} ${escapeAdminHtml(address.apartment || "")}</p>
-     <p>${escapeAdminHtml(address.city || "")}, ${escapeAdminHtml(address.state || "")} ${escapeAdminHtml(address.pincode || "")}</p>
-    </div>
-    <table>
-     <thead>
-      <tr><th>Item</th><th>HSN</th><th>Qty</th><th>Rate</th><th>Amount</th></tr>
-     </thead>
-     <tbody>${rows}</tbody>
-    </table>
-    <div class="totals">
-     <div class="row"><span>Taxable Value</span><span>${formatInvoiceINR(invoice.taxable_value)}</span></div>
-     <div class="row"><span>CGST</span><span>${formatInvoiceINR(invoice.cgst)}</span></div>
-     <div class="row"><span>SGST</span><span>${formatInvoiceINR(invoice.sgst)}</span></div>
-     <div class="row"><span>IGST</span><span>${formatInvoiceINR(invoice.igst)}</span></div>
-     <div class="row total"><span>Total</span><span>${formatInvoiceINR(invoice.total || order.total)}</span></div>
-    </div>
-    <script>window.print();</script>
    </body>
   </html>
  `;
 };
 
-const openAdminInvoicePrintWindow = (order = {}) => {
- const html = buildAdminInvoiceHtml(order);
- if (!html) {
+const loadHtml2Pdf = () => {
+ return new Promise((resolve, reject) => {
+  if (window.html2pdf) {
+   resolve(window.html2pdf);
+   return;
+  }
+  const script = document.createElement("script");
+  script.src = "https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js";
+  script.crossOrigin = "anonymous";
+  script.referrerPolicy = "no-referrer";
+  script.onload = () => resolve(window.html2pdf);
+  script.onerror = (err) => reject(err);
+  document.body.appendChild(script);
+ });
+};
+
+const openAdminInvoicePrintWindow = async (order = {}) => {
+ const invoice = getOrderInvoice(order);
+ if (!invoice) {
   alert("GST invoice is not available for this order yet.");
   return;
  }
- const printWindow = window.open("", "_blank", "noopener,noreferrer");
- if (!printWindow) {
-  alert("Please allow popups to print the GST invoice.");
-  return;
+ const html = buildAdminInvoiceHtml(order);
+ if (!html) return;
+
+ try {
+  const html2pdf = await loadHtml2Pdf();
+  const element = document.createElement("div");
+  const bodyContent = html.substring(html.indexOf("<body>") + 6, html.indexOf("</body>"));
+  element.innerHTML = `
+    <div style="font-family: Arial, sans-serif; padding: 20px; color: #111; max-width: 800px; margin: 0 auto; background: #fff;">
+      ${bodyContent}
+    </div>
+  `;
+  const scripts = element.getElementsByTagName("script");
+  for (let i = scripts.length - 1; i >= 0; i--) {
+   scripts[i].parentNode.removeChild(scripts[i]);
+  }
+
+  const opt = {
+   margin: [0.5, 0.5, 0.5, 0.5],
+   filename: `${invoice.invoice_no}.pdf`,
+   image: { type: "jpeg", quality: 0.98 },
+   html2canvas: { scale: 2, logging: false, useCORS: true },
+   jsPDF: { unit: "in", format: "letter", orientation: "portrait" }
+  };
+
+  await html2pdf().from(element).set(opt).save();
+ } catch (err) {
+  console.error("PDF generation failed:", err);
+  alert("Failed to download PDF invoice. Please check your connection.");
  }
- printWindow.document.write(html);
- printWindow.document.close();
 };
 
 const sumOrderTotals = (rows = []) =>
@@ -953,6 +1131,45 @@ const normalizeVariantRows = (prod = {}) => {
  ];
 };
 
+const INDIAN_STATES = [
+ "Andhra Pradesh",
+ "Arunachal Pradesh",
+ "Assam",
+ "Bihar",
+ "Chhattisgarh",
+ "Goa",
+ "Gujarat",
+ "Haryana",
+ "Himachal Pradesh",
+ "Jharkhand",
+ "Karnataka",
+ "Kerala",
+ "Madhya Pradesh",
+ "Maharashtra",
+ "Manipur",
+ "Meghalaya",
+ "Mizoram",
+ "Nagaland",
+ "Odisha",
+ "Punjab",
+ "Rajasthan",
+ "Sikkim",
+ "Tamil Nadu",
+ "Telangana",
+ "Tripura",
+ "Uttar Pradesh",
+ "Uttarakhand",
+ "West Bengal",
+ "Andaman and Nicobar Islands",
+ "Chandigarh",
+ "Dadra and Nagar Haveli and Daman and Diu",
+ "Delhi",
+ "Jammu and Kashmir",
+ "Ladakh",
+ "Lakshadweep",
+ "Puducherry"
+];
+
 export default function Admin() {
  const { user, login, logout } = useContext(AuthContext);
  const { cmsContent, cmsStyles, fetchCMSData, getCMSValue } =
@@ -1021,6 +1238,7 @@ export default function Admin() {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [selectedOrderAddresses, setSelectedOrderAddresses] = useState([]);
   const [loadingAddresses, setLoadingAddresses] = useState(false);
+  const [shiprocketLoadingOrderId, setShiprocketLoadingOrderId] = useState("");
 
   const handleOpenOrderDetails = (order) => {
    setSelectedOrder(order);
@@ -1123,6 +1341,14 @@ export default function Admin() {
   freeShippingThreshold: "",
   shippingFee: "",
  });
+ const [shippingRegions, setShippingRegions] = useState([]);
+ const [regionForm, setRegionForm] = useState({
+  id: "",
+  name: "",
+  price: 0,
+  states: [],
+ });
+ const [stateInput, setStateInput] = useState("");
  const [gatewaySettings, setGatewaySettings] = useState({
   razorpay_key_id: "",
   razorpay_key_secret: "",
@@ -1210,7 +1436,14 @@ export default function Admin() {
    .then((data) => setPaymentSettings(data))
    .catch((err) => console.error(err));
  };
- const fetchShippingSettings = () => {
+  const fetchShippingRegions = () => {
+   fetch("/api/shipping-regions")
+    .then((res) => res.json())
+    .then((data) => setShippingRegions(Array.isArray(data) ? data : []))
+    .catch((err) => console.error(err));
+  };
+
+  const fetchShippingSettings = () => {
   fetch("/api/settings/shipping")
    .then((res) => res.json())
    .then((data) => setShippingSettings(data))
@@ -1258,52 +1491,96 @@ export default function Admin() {
   navigate("/login");
  }, [user, navigate]);
 
- // Fetch Dashboard statistics and lists
- useEffect(() => {
-  if (!isAdminLoggedIn) return;
+  // Lazy load data based on the active panel to reduce Firebase reads
+  useEffect(() => {
+   if (!isAdminLoggedIn) return;
 
-  // Fetch products
-  fetch("/api/products")
-   .then((res) => res.json())
-   .then((data) => setProducts(data))
-   .catch((err) => console.error(err));
+   switch (activePanel) {
+    case "overview":
+     fetchOwnerDashboard();
+     fetchFirestoreStatus();
+     break;
+    case "products":
+     fetch("/api/products")
+      .then((res) => res.json())
+      .then((data) => setProducts(data))
+      .catch((err) => console.error(err));
+     fetchCategories();
+     break;
+    case "orders":
+     fetchOrders();
+     break;
+    case "categories":
+     fetchCategories();
+     break;
+    case "banners":
+     fetchBanners();
+     break;
+    case "media":
+     fetchMedia();
+     break;
+    case "testimonials":
+     fetchTestimonials();
+     break;
+    case "blog":
+     fetchBlogs();
+     break;
+    case "faqs":
+     fetchFaqs();
+     break;
+    case "customers":
+    case "users":
+     fetchUsers();
+     break;
+    case "enquiries":
+     fetchEnquiries();
+     break;
+    case "coupons":
+     fetchCoupons();
+     break;
+    case "newsletter":
+     fetchNewsletter();
+     break;
+    case "seo":
+     fetchSeoSettings();
+     break;
+    case "payment":
+     fetchPaymentSettings();
+     fetchGatewaySettings();
+     break;
+    case "shipping":
+     fetchShippingSettings();
+     fetchShippingRegions();
+     break;
+    default:
+     break;
+   }
+  }, [isAdminLoggedIn, activePanel]);
 
-  fetchOrders();
+  // Sync styles form separate from data loading
+  useEffect(() => {
+   if (cmsStyles) {
+    setStylesForm((prev) => ({
+     ...prev,
+     ...cmsStyles,
+    }));
+   }
+  }, [cmsStyles]);
 
-  fetchCategories();
-  fetchBanners();
-  fetchMedia();
-  fetchTestimonials();
-  fetchBlogs();
-  fetchFaqs();
-  fetchEnquiries();
-  fetchCoupons();
-  fetchNewsletter();
-  fetchUsers();
-  fetchSeoSettings();
-  fetchPaymentSettings();
-  fetchShippingSettings();
-  fetchGatewaySettings();
-  fetchOwnerDashboard();
-  fetchFirestoreStatus();
-
-  // Sync styles form
-  if (cmsStyles) {
-   setStylesForm((prev) => ({
-    ...prev,
-    ...cmsStyles,
-   }));
-  }
- }, [isAdminLoggedIn, cmsStyles]);
-
- useEffect(() => {
-  if (!isAdminLoggedIn) return undefined;
-  const timer = window.setInterval(() => {
-   fetchOrders();
-   fetchOwnerDashboard();
-  }, 15000);
-  return () => window.clearInterval(timer);
- }, [isAdminLoggedIn]);
+  // Handle polling intervals for active screen only (decreases background reads dramatically)
+  useEffect(() => {
+   if (!isAdminLoggedIn) return undefined;
+   const timer = window.setInterval(() => {
+    if (activePanel === "overview") {
+     fetchOwnerDashboard();
+    } else if (activePanel === "orders") {
+     fetchOrders();
+    } else if (activePanel === "enquiries") {
+     fetchEnquiries();
+    }
+   }, 30000); // Poll every 30 seconds instead of 15 seconds
+   return () => window.clearInterval(timer);
+  }, [isAdminLoggedIn, activePanel]);
 
  // Setup Page Content form values
  useEffect(() => {
@@ -2177,6 +2454,56 @@ export default function Admin() {
    if (!res.ok) throw new Error("Failed to save shipping settings");
    alert("Shipping settings saved successfully.");
    fetchShippingSettings();
+  } catch (err) {
+   alert(err.message);
+  }
+ };
+
+ const handleSaveShippingRegion = async (e) => {
+  e.preventDefault();
+  const trimmedState = stateInput.trim();
+
+  if (!regionForm.name.trim() || !trimmedState) {
+   alert("Please provide both a region name and a state.");
+   return;
+  }
+  try {
+   const res = await fetch("/api/shipping-regions", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+    body: JSON.stringify({
+     id: regionForm.id || undefined,
+     name: regionForm.name,
+     price: Number(regionForm.price) || 0,
+     states: [trimmedState],
+    }),
+   });
+   if (!res.ok) {
+    const data = await res.json();
+    throw new Error(data.error || "Failed to save shipping region");
+   }
+   alert("Shipping region saved successfully.");
+   setRegionForm({ id: "", name: "", price: 0, states: [] });
+   setStateInput("");
+   fetchShippingRegions();
+  } catch (err) {
+   alert(err.message);
+  }
+ };
+
+ const handleDeleteShippingRegion = async (id) => {
+  if (!window.confirm("Are you sure you want to delete this shipping region?")) return;
+  try {
+   const res = await fetch(`/api/shipping-regions/${id}`, {
+    method: "DELETE",
+    headers: getAuthHeaders(),
+   });
+   if (!res.ok) {
+    const data = await res.json();
+    throw new Error(data.error || "Failed to delete shipping region");
+   }
+   alert("Shipping region deleted successfully.");
+   fetchShippingRegions();
   } catch (err) {
    alert(err.message);
   }
@@ -5741,75 +6068,253 @@ export default function Admin() {
       </div>
      )}
 
-     {activePanel === "shipping" && (
-      <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
-       <form
-        onSubmit={handleSaveShippingSettings}
-        style={{
-         border: "1px solid rgba(255,255,255,0.03)",
-         borderRadius: "8px",
-         padding: "2.5rem",
-         backgroundColor: "#0a0a0a",
-         display: "flex",
-         flexDirection: "column",
-         gap: "1.5rem",
-        }}
-       >
-        <h3
+      {activePanel === "shipping" && (
+       <div style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
+        {/* General settings form */}
+        <form
+         onSubmit={handleSaveShippingSettings}
          style={{
-          fontSize: "1.2rem",
-          fontFamily: "var(--font-heading)",
-          color: "var(--color-white)",
-          marginBottom: "0.5rem",
+          border: "1px solid rgba(255,255,255,0.03)",
+          borderRadius: "8px",
+          padding: "2rem",
+          backgroundColor: "#0a0a0a",
+          display: "flex",
+          flexDirection: "column",
+          gap: "1.5rem",
          }}
         >
-         Shipping Cost & Rules
-        </h3>
+         <h3
+          style={{
+           fontSize: "1.2rem",
+           fontFamily: "var(--font-heading)",
+           color: "var(--color-white)",
+           marginBottom: "0.2rem",
+          }}
+         >
+          General Shipping Settings
+         </h3>
+         <p style={{ fontSize: "0.85rem", color: "var(--color-muted)", margin: 0 }}>
+          Configure standard fallback charges and free delivery thresholds.
+         </p>
 
-        <div className="contact-form-group">
-         <label className="contact-form-label">
-          Free Shipping Threshold Amount (INR ₹)
-         </label>
-         <input
-          type="number"
-          className="contact-form-input"
-          required
-          value={shippingSettings.freeShippingThreshold || ""}
-          onChange={(e) =>
-           setShippingSettings((prev) => ({
-            ...prev,
-            freeShippingThreshold: e.target.value,
-           }))
-          }
-         />
-        </div>
+         <div className="contact-form-row" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.5rem" }}>
+          <div className="contact-form-group">
+           <label className="contact-form-label">
+            Free Shipping Threshold (INR ₹)
+           </label>
+           <input
+            type="number"
+            className="contact-form-input"
+            required
+            value={shippingSettings.freeShippingThreshold || ""}
+            onChange={(e) =>
+             setShippingSettings((prev) => ({
+              ...prev,
+              freeShippingThreshold: e.target.value,
+             }))
+            }
+           />
+          </div>
 
-        <div className="contact-form-group">
-         <label className="contact-form-label">
-          Standard Shipping Fee Amount (INR ₹)
-         </label>
-         <input
-          type="number"
-          className="contact-form-input"
-          required
-          value={shippingSettings.shippingFee || ""}
-          onChange={(e) =>
-           setShippingSettings((prev) => ({
-            ...prev,
-            shippingFee: e.target.value,
-           }))
-          }
-         />
-        </div>
+          <div className="contact-form-group">
+           <label className="contact-form-label">
+            Default Shipping Fee (INR ₹)
+           </label>
+           <input
+            type="number"
+            className="contact-form-input"
+            required
+            value={shippingSettings.shippingFee || ""}
+            onChange={(e) =>
+             setShippingSettings((prev) => ({
+              ...prev,
+              shippingFee: e.target.value,
+             }))
+            }
+           />
+          </div>
+         </div>
 
-        <button
-         type="submit"
-         className="btn btn-primary"
-         style={{ height: "40px", alignSelf: "flex-start" }}
+         <button
+          type="submit"
+          className="btn btn-primary"
+          style={{ height: "40px", alignSelf: "flex-start" }}
+         >
+          Save Shipping Rules
+         </button>
+        </form>
+
+        {/* Custom Regions & Pricing Manager */}
+        <div
+         style={{
+          border: "1px solid rgba(255,255,255,0.03)",
+          borderRadius: "8px",
+          padding: "2rem",
+          backgroundColor: "#0a0a0a",
+          display: "flex",
+          flexDirection: "column",
+          gap: "2rem",
+         }}
         >
-         Save Shipping Rules
-        </button>
-       </form>
+         <div>
+          <h3
+           style={{
+            fontSize: "1.2rem",
+            fontFamily: "var(--font-heading)",
+            color: "var(--color-white)",
+            marginBottom: "0.2rem",
+           }}
+          >
+           Custom Regional Shipping Rates
+          </h3>
+          <p style={{ fontSize: "0.85rem", color: "var(--color-muted)", margin: 0 }}>
+           Add specific delivery charges for different states/union territories.
+          </p>
+         </div>
+
+         {/* Region Form */}
+         <form
+          onSubmit={handleSaveShippingRegion}
+          style={{
+           border: "1px solid rgba(255,255,255,0.05)",
+           borderRadius: "6px",
+           padding: "1.5rem",
+           backgroundColor: "#111",
+           display: "flex",
+           flexDirection: "column",
+           gap: "1.5rem",
+          }}
+         >
+          <h4 style={{ margin: 0, color: "var(--color-gold)", fontSize: "1rem" }}>
+           {regionForm.id ? "Edit Shipping Region" : "Add New Shipping Region"}
+          </h4>
+
+          <div className="contact-form-row" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.5rem" }}>
+           <div className="contact-form-group">
+            <label className="contact-form-label">Region Name</label>
+            <input
+             type="text"
+             className="contact-form-input"
+             required
+             value={regionForm.name}
+             onChange={(e) => setRegionForm((prev) => ({ ...prev, name: e.target.value }))}
+             placeholder="e.g. South India Delivery"
+            />
+           </div>
+
+           <div className="contact-form-group">
+            <label className="contact-form-label">Shipping Cost (INR ₹)</label>
+            <input
+             type="number"
+             className="contact-form-input"
+             required
+             value={regionForm.price}
+             onChange={(e) => setRegionForm((prev) => ({ ...prev, price: Number(e.target.value) || 0 }))}
+             placeholder="e.g. 80"
+            />
+           </div>
+          </div>
+
+          <div className="contact-form-group">
+           <label className="contact-form-label">
+            State Name
+           </label>
+           <input
+            type="text"
+            className="contact-form-input"
+            required
+            value={stateInput}
+            onChange={(e) => setStateInput(e.target.value)}
+            placeholder="e.g. Uttarakhand"
+           />
+          </div>
+
+          <div style={{ display: "flex", gap: "1rem" }}>
+           <button type="submit" className="btn btn-primary" style={{ height: "38px" }}>
+            {regionForm.id ? "Update Region" : "Save Region"}
+           </button>
+           {regionForm.id && (
+            <button
+             type="button"
+             className="btn"
+             style={{
+              height: "38px",
+              backgroundColor: "#222",
+              color: "#fff",
+              border: "1px solid rgba(255,255,255,0.08)",
+             }}
+             onClick={() => {
+              setRegionForm({ id: "", name: "", price: 0, states: [] });
+              setStateInput("");
+             }}
+            >
+             Cancel Edit
+            </button>
+           )}
+          </div>
+         </form>
+
+         {/* Regions List */}
+         <div>
+          <h4 style={{ margin: "0 0 1rem 0", color: "#fff", fontSize: "1rem" }}>
+           Configured Regions ({shippingRegions.length})
+          </h4>
+          {shippingRegions.length === 0 ? (
+           <p style={{ color: "var(--color-muted)", fontSize: "0.85rem", fontStyle: "italic" }}>
+            No custom regions configured yet. Fallback standard delivery fees will apply.
+           </p>
+          ) : (
+           <table className="admin-dash-table" style={{ width: "100%" }}>
+            <thead>
+             <tr>
+              <th>Region Name</th>
+              <th>State Name</th>
+              <th>Shipping Fee</th>
+              <th style={{ textAlign: "right" }}>Actions</th>
+             </tr>
+            </thead>
+            <tbody>
+             {shippingRegions.map((region) => (
+              <tr key={region.id}>
+               <td style={{ color: "var(--color-white)", fontWeight: 600 }}>
+                {region.name}
+               </td>
+               <td style={{ color: "var(--color-muted)" }}>
+                {region.states && region.states[0] ? region.states[0] : "-"}
+               </td>
+               <td style={{ color: "var(--color-gold)", fontWeight: "bold" }}>
+                ₹{region.price}
+               </td>
+               <td style={{ textAlign: "right" }}>
+                <button
+                 className="admin-dash-action-btn"
+                 style={{ marginRight: "0.5rem" }}
+                 onClick={() => {
+                  setRegionForm({
+                   id: region.id,
+                   name: region.name,
+                   price: region.price,
+                   states: region.states || [],
+                  });
+                   setStateInput(region.states && region.states[0] ? region.states[0] : "");
+                 }}
+                >
+                 Edit
+                </button>
+                <button
+                 className="admin-dash-action-btn delete"
+                 onClick={() => handleDeleteShippingRegion(region.id)}
+                >
+                 Delete
+                </button>
+               </td>
+              </tr>
+             ))}
+            </tbody>
+           </table>
+          )}
+         </div>
+        </div>
       </div>
      )}
 
@@ -6940,7 +7445,7 @@ export default function Admin() {
           Payment ID: <span style={{ color: "var(--color-white)", fontFamily: "monospace" }}>{selectedOrder.payment_id}</span>
          </p>
         )}
-       </div>
+        </div>
        <div style={{ textAlign: "right" }}>
         <label style={{ display: "block", fontSize: "0.75rem", textTransform: "uppercase", color: "var(--color-gold)", marginBottom: "0.4rem" }}>
          Order Status

@@ -5,14 +5,16 @@ import { CartContext } from '../App.jsx';
 export default function Cart() {
   const {
     cart, updateQty, removeFromCart, clearCart,
-    appliedPromo, discountRate, subtotal, discount, shipping, tax, total, cartCount
+    appliedPromo, discountRate, subtotal, discount, shipping, tax, total, cartCount,
+    shippingSettings
   } = useContext(CartContext);
 
   const navigate = useNavigate();
 
-  const freeShippingThreshold = 599;
+  const freeShippingThreshold = shippingSettings?.freeShippingThreshold ?? 599;
   const progressPercent = Math.min(100, (subtotal / freeShippingThreshold) * 100);
   const awayAmount = freeShippingThreshold - subtotal;
+  const localTotal = subtotal - discount + tax;
 
   if (cart.length === 0) {
     return (
@@ -121,26 +123,19 @@ export default function Cart() {
               </div>
             )}
             <div className="summary-row">
-              <span>Shipping</span>
-              <div className="shipping-value-col">
-                <span>{shipping === 0 ? 'Free' : `₹${shipping}`}</span>
-                <p className="shipping-hint">Free shipping on orders above ₹599</p>
-              </div>
-            </div>
-            <div className="summary-row">
               <span>Tax (18%)</span>
               <span>₹{tax}</span>
             </div>
             <hr className="summary-divider" />
             <div className="summary-row total-row" style={{ marginBottom: '1.8rem' }}>
               <span>Total</span>
-              <span>₹{total}</span>
+              <span>₹{localTotal}</span>
             </div>
 
             {/* Shipping Progress tracker */}
             <div className="shipping-tracker-wrapper" style={{ margin: '1.5rem 0 2rem 0' }}>
               <p className="shipping-tracker-text" style={{ fontSize: '0.78rem', marginBottom: '0.5rem' }}>
-                {subtotal >= 599 
+                {subtotal >= freeShippingThreshold 
                   ? "Congratulations! You qualify for FREE shipping!" 
                   : `You are ₹${awayAmount} away from FREE shipping!`
                 }

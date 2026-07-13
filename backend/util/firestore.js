@@ -1,8 +1,32 @@
 import fs from "fs";
+import { getApps, initializeApp, cert } from "firebase-admin/app";
+import { getFirestore, FieldValue } from "firebase-admin/firestore";
 
 let cachedDb = null;
 let cachedFieldValue = null;
-let cachedStatus = null;
+
+// Server-side in-memory cache for static/frequently-read collections
+const memoryCache = new Map();
+const CACHE_TTL = 15 * 60 * 1000; // 15 minutes TTL
+
+function isCacheableCollection(collectionName) {
+ return [
+  "products",
+  "categories",
+  "cms_content",
+  "cms_styles",
+  "coupons",
+  "reviews"
+ ].includes(collectionName);
+}
+
+function clearCacheForCollection(collectionName) {
+ for (const key of memoryCache.keys()) {
+  if (key === collectionName || key.startsWith(`${collectionName}:`)) {
+   memoryCache.delete(key);
+  }
+ }
+}
 
 function cleanPrivateKey(value) {
  return value ? value.replace(/\\n/g, "\n") : "";
@@ -99,148 +123,192 @@ export function getFirestoreStatus() {
       !config.clientEmail ? "FIREBASE_CLIENT_EMAIL" : null,
       !config.privateKey ? "FIREBASE_PRIVATE_KEY" : null,
      ].filter(Boolean),
-  mode: enabled && configured ? "firestore" : "sqlite-local",
+  mode: "firestore",
   message: enabled
    ? configured
      ? "Firestore sync is configured."
      : "Firestore is enabled but credentials are missing."
-   : configured
-     ? "Firestore credentials are available but FIRESTORE_ENABLED is disabled."
-     : "Firestore sync is off. SQLite is the active local database.",
+   : "Firestore sync is off.",
  };
 }
 
 export async function getFirestoreDb() {
  const status = getFirestoreStatus();
- cachedStatus = status;
 
  if (!status.enabled || !status.configured) {
-  return null;
+  throw new Error("Firestore is not enabled or not configured.");
  }
 
  if (cachedDb) {
   return cachedDb;
  }
 
- const { initializeApp, cert, getApps } = await import("firebase-admin/app");
- const { getFirestore, FieldValue } = await import("firebase-admin/firestore");
- const config = getFirebaseAdminConfig();
+ try {
+  if (getApps().length === 0) {
+   initializeApp({
+    credential: cert({
+     projectId: status.projectId || getFirebaseAdminConfig().projectId,
+     clientEmail: getFirebaseAdminConfig().clientEmail,
+     privateKey: getFirebaseAdminConfig().privateKey,
+    }),
+   });
+  }
 
- if (getApps().length === 0) {
-  initializeApp({
-   credential: cert({
-    projectId: config.projectId,
-    clientEmail: config.clientEmail,
-    privateKey: config.privateKey,
-   }),
-  });
+  cachedDb = getFirestore();
+  cachedFieldValue = FieldValue;
+  return cachedDb;
+ } catch (err) {
+  console.error("Firestore initialization error:", err);
+  throw err;
  }
-
- cachedDb = getFirestore();
- cachedFieldValue = FieldValue;
- return cachedDb;
 }
 
 export async function mirrorToFirestore(collectionName, documentId, data) {
- const firestore = await getFirestoreDb();
- if (!firestore) {
-  return { skipped: true, status: cachedStatus || getFirestoreStatus() };
+ try {
+  const firestore = await getFirestoreDb();
+  const cleanData = JSON.parse(JSON.stringify(data ?? {}));
+  
+  await firestore
+   .collection(collectionName)
+   .doc(String(documentId))
+   .set(
+    {
+     ...cleanData,
+     firestore_updated_at: cachedFieldValue.serverTimestamp(),
+    },
+    { merge: true },
+   );
+
+  if (isCacheableCollection(collectionName)) {
+   clearCacheForCollection(collectionName);
+  }
+  return { synced: true };
+ } catch (err) {
+  console.error(`Error mirroring to Firestore (${collectionName}):`, err);
+  throw err;
  }
-
- const cleanData = JSON.parse(JSON.stringify(data ?? {}));
- await firestore
-  .collection(collectionName)
-  .doc(String(documentId))
-  .set(
-   {
-    ...cleanData,
-    firestore_updated_at: cachedFieldValue.serverTimestamp(),
-   },
-   { merge: true },
-  );
-
- return { synced: true };
 }
 
 export async function deleteFromFirestore(collectionName, documentId) {
- const firestore = await getFirestoreDb();
- if (!firestore) {
-  return { skipped: true, status: cachedStatus || getFirestoreStatus() };
+ try {
+  const firestore = await getFirestoreDb();
+  await firestore.collection(collectionName).doc(String(documentId)).delete();
+  
+  if (isCacheableCollection(collectionName)) {
+   clearCacheForCollection(collectionName);
+  }
+  return { deleted: true };
+ } catch (err) {
+  console.error(`Error deleting from Firestore (${collectionName}):`, err);
+  throw err;
  }
-
- await firestore.collection(collectionName).doc(String(documentId)).delete();
- return { deleted: true };
 }
 
 export async function getFirestoreDocument(collectionName, documentId) {
- const firestore = await getFirestoreDb();
- if (!firestore) {
-  return null;
+ if (isCacheableCollection(collectionName)) {
+  const cacheKey = `${collectionName}:doc:${documentId}`;
+  const cached = memoryCache.get(cacheKey);
+  if (cached && (Date.now() - cached.timestamp < CACHE_TTL)) {
+   return JSON.parse(JSON.stringify(cached.data));
+  }
  }
 
- const doc = await firestore
-  .collection(collectionName)
-  .doc(String(documentId))
-  .get();
- return doc.exists ? { id: doc.id, ...doc.data() } : null;
+ try {
+  const firestore = await getFirestoreDb();
+  const doc = await firestore
+   .collection(collectionName)
+   .doc(String(documentId))
+   .get();
+  const res = doc.exists ? { id: doc.id, ...doc.data() } : null;
+
+  if (res && isCacheableCollection(collectionName)) {
+   const cacheKey = `${collectionName}:doc:${documentId}`;
+   memoryCache.set(cacheKey, { data: res, timestamp: Date.now() });
+  }
+  return res;
+ } catch (err) {
+  console.error(`Error getting document from Firestore (${collectionName}/${documentId}):`, err);
+  throw err;
+ }
 }
 
 export async function queryFirestoreCollection(collectionName, options = {}) {
- const firestore = await getFirestoreDb();
- if (!firestore) {
-  return [];
- }
-
- let ref = firestore.collection(collectionName);
- const where = Array.isArray(options.where) ? options.where : [];
- const orderBy = Array.isArray(options.orderBy) ? options.orderBy : [];
- const limit = options.limit;
-
- for (const clause of where) {
-  if (Array.isArray(clause) && clause.length === 3) {
-   ref = ref.where(clause[0], clause[1], clause[2]);
+ if (isCacheableCollection(collectionName)) {
+  const cacheKey = `${collectionName}:${JSON.stringify(options)}`;
+  const cached = memoryCache.get(cacheKey);
+  if (cached && (Date.now() - cached.timestamp < CACHE_TTL)) {
+   return JSON.parse(JSON.stringify(cached.data));
   }
  }
 
- for (const clause of orderBy) {
-  if (Array.isArray(clause) && clause.length === 2) {
-   ref = ref.orderBy(clause[0], clause[1]);
+ try {
+  const firestore = await getFirestoreDb();
+  let ref = firestore.collection(collectionName);
+  const where = Array.isArray(options.where) ? options.where : [];
+  const orderBy = Array.isArray(options.orderBy) ? options.orderBy : [];
+  const limit = options.limit;
+
+  for (const clause of where) {
+   if (Array.isArray(clause) && clause.length === 3) {
+    ref = ref.where(clause[0], clause[1], clause[2]);
+   }
   }
- }
 
- if (limit && Number.isFinite(limit)) {
-  ref = ref.limit(limit);
- }
+  for (const clause of orderBy) {
+   if (Array.isArray(clause) && clause.length === 2) {
+    ref = ref.orderBy(clause[0], clause[1]);
+   }
+  }
 
- const snapshot = await ref.get();
- return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+  if (limit && Number.isFinite(limit)) {
+   ref = ref.limit(limit);
+  }
+
+  const snapshot = await ref.get();
+  const results = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+
+  if (isCacheableCollection(collectionName)) {
+   const cacheKey = `${collectionName}:${JSON.stringify(options)}`;
+   memoryCache.set(cacheKey, { data: results, timestamp: Date.now() });
+  }
+
+  return results;
+ } catch (err) {
+  console.error(`Error querying Firestore collection (${collectionName}):`, err);
+  throw err;
+ }
 }
 
 export async function syncCollectionsToFirestore(snapshot) {
- const firestore = await getFirestoreDb();
- if (!firestore) {
-  return { skipped: true, status: cachedStatus || getFirestoreStatus() };
- }
-
- const counts = {};
- for (const [collectionName, rows] of Object.entries(snapshot)) {
-  counts[collectionName] = 0;
-  for (const row of rows) {
-   const id = row.id || row.code || row.email || row.local_order_id;
-   if (!id) continue;
-   await firestore
-    .collection(collectionName)
-    .doc(String(id))
-    .set(
-     {
-      ...JSON.parse(JSON.stringify(row)),
-      firestore_updated_at: cachedFieldValue.serverTimestamp(),
-     },
-     { merge: true },
-    );
-   counts[collectionName] += 1;
+ try {
+  const firestore = await getFirestoreDb();
+  const counts = {};
+  
+  for (const [collectionName, rows] of Object.entries(snapshot)) {
+   if (isCacheableCollection(collectionName)) {
+    clearCacheForCollection(collectionName);
+   }
+   counts[collectionName] = 0;
+   for (const row of rows) {
+    const id = row.id || row.code || row.email || row.local_order_id;
+    if (!id) continue;
+    await firestore
+     .collection(collectionName)
+     .doc(String(id))
+     .set(
+      {
+       ...JSON.parse(JSON.stringify(row)),
+       firestore_updated_at: cachedFieldValue.serverTimestamp(),
+      },
+      { merge: true },
+     );
+    counts[collectionName] += 1;
+   }
   }
- }
 
- return { synced: true, counts };
+  return { synced: true, counts };
+ } catch (err) {
+  console.error("Error syncing collections to Firestore:", err);
+  throw err;
+ }
 }

@@ -20,7 +20,7 @@ const getCdnHomeFramePath = (index) =>
 
 export default function Home() {
   const navigate = useNavigate();
-  const { addToCart } = useContext(CartContext);
+  const { addToCart, shippingSettings } = useContext(CartContext);
   const { getCMSValue } = useContext(CMSContext);
 
   useSEO({
@@ -579,7 +579,7 @@ export default function Home() {
               "Cold-Pressed Oils",
               "Premium Grade A Makhana",
               "Lab Certified",
-              "Free Shipping on ₹599+",
+              `Free Shipping on ₹${shippingSettings?.freeShippingThreshold ?? 599}+`,
               "10,000+ Happy Customers",
               "Pan India Delivery"
             ].map((text, i) => (
@@ -594,7 +594,7 @@ export default function Home() {
               "Cold-Pressed Oils",
               "Premium Grade A Makhana",
               "Lab Certified",
-              "Free Shipping on ₹599+",
+              `Free Shipping on ₹${shippingSettings?.freeShippingThreshold ?? 599}+`,
               "10,000+ Happy Customers",
               "Pan India Delivery"
             ].map((text, i) => (

@@ -57,9 +57,36 @@ export default function App() {
  const [appliedPromo, setAppliedPromo] = useState(
   () => localStorage.getItem("rein_oro_promo") || "",
  );
- const [discountRate, setDiscountRate] = useState(0.0);
- const [coupons, setCoupons] = useState([]);
- const [isCartOpen, setIsCartOpen] = useState(false);
+  const [discountRate, setDiscountRate] = useState(0.0);
+  const [coupons, setCoupons] = useState([]);
+  const [isCartOpen, setIsCartOpen] = useState(false);
+  const [shippingSettings, setShippingSettings] = useState({ freeShippingThreshold: 599, shippingFee: 60 });
+
+  const fetchShippingSettings = async () => {
+   try {
+    const res = await fetch(apiUrl("/api/settings/shipping"));
+    if (!res.ok) return;
+    const data = await res.json();
+    if (data) {
+     setShippingSettings({
+      freeShippingThreshold: typeof data.freeShippingThreshold !== "undefined" && data.freeShippingThreshold !== "" ? Number(data.freeShippingThreshold) : 599,
+      shippingFee: typeof data.shippingFee !== "undefined" && data.shippingFee !== "" ? Number(data.shippingFee) : 60,
+     });
+    }
+   } catch (err) {
+    console.warn("Failed to load shipping settings in App", err);
+   }
+  };
+
+  useEffect(() => {
+   fetchShippingSettings();
+  }, []);
+
+  useEffect(() => {
+   if (isCartOpen) {
+    fetchShippingSettings();
+   }
+  }, [isCartOpen]);
 
  useEffect(() => {
   localStorage.setItem("rein_oro_cart", JSON.stringify(cart));
@@ -190,12 +217,14 @@ export default function App() {
   setDiscountRate(0.0);
  };
 
- const subtotal = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
- const discount = Math.round(subtotal * discountRate);
- const shipping = subtotal === 0 ? 0 : subtotal >= 599 ? 0 : 99;
- const tax = Math.round((subtotal - discount) * 0.18);
- const total = subtotal - discount + shipping + tax;
- const cartCount = cart.reduce((sum, item) => sum + item.qty, 0);
+  const subtotal = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
+  const discount = Math.round(subtotal * discountRate);
+  const threshold = shippingSettings.freeShippingThreshold ?? 599;
+  const fallbackFee = shippingSettings.shippingFee ?? 60;
+  const shipping = subtotal === 0 ? 0 : subtotal >= threshold ? 0 : fallbackFee;
+  const tax = Math.round((subtotal - discount) * 0.18);
+  const total = subtotal - discount + shipping + tax;
+  const cartCount = cart.reduce((sum, item) => sum + item.qty, 0);
 
  // --- Auth State ---
   const [user, setUser] = useState(() => {
@@ -560,6 +589,8 @@ export default function App() {
       cartCount,
       isCartOpen,
       setIsCartOpen,
+      shippingSettings,
+      fetchShippingSettings,
      }}
     >
      <HashRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>

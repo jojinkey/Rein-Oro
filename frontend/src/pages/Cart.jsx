@@ -5,12 +5,13 @@ import { CartContext } from '../App.jsx';
 export default function Cart() {
   const {
     cart, updateQty, removeFromCart, clearCart,
-    appliedPromo, discountRate, subtotal, discount, shipping, tax, total, cartCount
+    appliedPromo, discountRate, subtotal, discount, shipping, tax, total, cartCount,
+    shippingSettings
   } = useContext(CartContext);
 
   const navigate = useNavigate();
 
-  const freeShippingThreshold = 599;
+  const freeShippingThreshold = shippingSettings?.freeShippingThreshold ?? 599;
   const progressPercent = Math.min(100, (subtotal / freeShippingThreshold) * 100);
   const awayAmount = freeShippingThreshold - subtotal;
   const localTotal = subtotal - discount + tax;
@@ -134,7 +135,7 @@ export default function Cart() {
             {/* Shipping Progress tracker */}
             <div className="shipping-tracker-wrapper" style={{ margin: '1.5rem 0 2rem 0' }}>
               <p className="shipping-tracker-text" style={{ fontSize: '0.78rem', marginBottom: '0.5rem' }}>
-                {subtotal >= 599 
+                {subtotal >= freeShippingThreshold 
                   ? "Congratulations! You qualify for FREE shipping!" 
                   : `You are ₹${awayAmount} away from FREE shipping!`
                 }

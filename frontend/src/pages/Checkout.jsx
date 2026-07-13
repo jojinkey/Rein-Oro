@@ -38,6 +38,8 @@ export default function Checkout() {
   tax,
   total: baseTotal,
   clearCart,
+  shippingSettings,
+  fetchShippingSettings,
  } = useContext(CartContext);
  const { user } = useContext(AuthContext);
  const navigate = useNavigate();
@@ -65,90 +67,98 @@ export default function Checkout() {
  const [agreed, setAgreed] = useState(false);
  const [isSubmitting, setIsSubmitting] = useState(false);
 
- // Shiprocket shipping estimation states
- const [dynamicShippingFee, setDynamicShippingFee] = useState(null);
- const [shippingLoading, setShippingLoading] = useState(false);
- const [shippingError, setShippingError] = useState(null);
- const [shippingDetails, setShippingDetails] = useState(null);
+  // Custom shipping estimation states
+  const [dynamicShippingFee, setDynamicShippingFee] = useState(null);
+  const [shippingLoading, setShippingLoading] = useState(false);
+  const [shippingError, setShippingError] = useState(null);
+  const [shippingDetails, setShippingDetails] = useState(null);
+  const [shippingRegions, setShippingRegions] = useState([]);
 
- React.useEffect(() => {
-  if (user?.email) {
-   setFormData((prev) => ({ ...prev, email: user.email }));
-  }
-  if (user?.phone) {
-   setFormData((prev) => ({ ...prev, phone: user.phone }));
-  }
- }, [user]);
-
- // Auto-fill City & State via India Post Pincode API
- React.useEffect(() => {
-  const pincode = formData.pincode.trim();
-  if (pincode.length === 6 && /^\d+$/.test(pincode)) {
-   fetch(`https://api.postalpincode.in/pincode/${pincode}`)
+  // Fetch Shipping Regions and latest settings on component mount
+  React.useEffect(() => {
+   fetch(apiUrl("/api/shipping-regions"))
     .then((res) => res.json())
-    .then((data) => {
-     if (data && data[0] && data[0].Status === "Success") {
-      const postOffice = data[0].PostOffice && data[0].PostOffice[0];
-      if (postOffice) {
-       setFormData((prev) => ({
-        ...prev,
-        city: postOffice.District || postOffice.Block || prev.city,
-        state: postOffice.State || prev.state,
-       }));
-      }
-     }
-    })
-    .catch((err) => console.error("Pincode API Error:", err));
-  }
- }, [formData.pincode]);
+    .then((data) => setShippingRegions(Array.isArray(data) ? data : []))
+    .catch((err) => console.error("Failed to load shipping regions:", err));
 
- // Fetch real-time shipping estimate from Shiprocket
- React.useEffect(() => {
-  const pincode = formData.pincode.trim();
-  if (pincode.length === 6 && /^\d+$/.test(pincode) && cart.length > 0) {
-   setShippingLoading(true);
-   setShippingError(null);
-   fetch(apiUrl("/api/shipping/estimate"), {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ pincode, items: cart }),
-   })
-    .then((res) => {
-     if (!res.ok) {
-      throw new Error("Failed to fetch shipping rate from server.");
-     }
-     return res.json();
-    })
-    .then((data) => {
-     if (data.serviceable === false) {
-      setShippingError(data.error || "This pincode is not serviceable by our courier partners.");
-      setDynamicShippingFee(0);
-      setShippingDetails(null);
-     } else {
-      setDynamicShippingFee(Number(data.rate) ?? 0);
-      setShippingDetails({
-       etd: data.etd || "",
-       courier_name: data.courier_name || "",
-       is_fallback: data.is_fallback || false,
-      });
-      setShippingError(null);
-     }
-    })
-    .catch((err) => {
-     console.warn("Shiprocket serviceability query failed:", err);
-     setDynamicShippingFee(null);
-     setShippingDetails(null);
-     setShippingError(err.message || "Failed to calculate Shiprocket shipping price.");
-    })
-    .finally(() => {
-     setShippingLoading(false);
+   if (fetchShippingSettings) {
+    fetchShippingSettings();
+   }
+  }, []);
+
+  React.useEffect(() => {
+   if (user?.email) {
+    setFormData((prev) => ({ ...prev, email: user.email }));
+   }
+   if (user?.phone) {
+    setFormData((prev) => ({ ...prev, phone: user.phone }));
+   }
+  }, [user]);
+
+  // Auto-fill City & State via India Post Pincode API
+  React.useEffect(() => {
+   const pincode = formData.pincode.trim();
+   if (pincode.length === 6 && /^\d+$/.test(pincode)) {
+    fetch(`https://api.postalpincode.in/pincode/${pincode}`)
+     .then((res) => res.json())
+     .then((data) => {
+      if (data && data[0] && data[0].Status === "Success") {
+       const postOffice = data[0].PostOffice && data[0].PostOffice[0];
+       if (postOffice) {
+        setFormData((prev) => ({
+         ...prev,
+         city: postOffice.District || postOffice.Block || prev.city,
+         state: postOffice.State || prev.state,
+        }));
+       }
+      }
+     })
+     .catch((err) => console.error("Pincode API Error:", err));
+   }
+  }, [formData.pincode]);
+
+  // Recalculate shipping cost based on selected state / regions
+  React.useEffect(() => {
+   const selectedState = String(formData.state || "").trim().toLowerCase();
+   if (!selectedState) {
+    setDynamicShippingFee(null);
+    setShippingDetails(null);
+    return;
+   }
+
+   // Free shipping override if subtotal - discount >= threshold
+   const threshold = shippingSettings.freeShippingThreshold ?? 599;
+   const productVal = subtotal - discount;
+   if (productVal >= threshold) {
+    setDynamicShippingFee(0);
+    setShippingDetails({
+     etd: "Standard Delivery (4-6 days)",
+     courier_name: "Free Shipping applied",
     });
-  } else {
-   setDynamicShippingFee(null);
-   setShippingDetails(null);
-   setShippingError(null);
-  }
- }, [formData.pincode, cart]);
+    return;
+   }
+
+   // Match selected state with configured regions
+   const matchedRegion = shippingRegions.find((region) =>
+    region.states && region.states.some((s) => s.trim().toLowerCase() === selectedState)
+   );
+
+   if (matchedRegion) {
+    setDynamicShippingFee(matchedRegion.price);
+    setShippingDetails({
+     etd: "Standard Delivery (4-6 days)",
+     courier_name: matchedRegion.name,
+    });
+   } else {
+    // Fallback standard delivery charge
+    const fallbackFee = shippingSettings.shippingFee ?? 60;
+    setDynamicShippingFee(fallbackFee);
+    setShippingDetails({
+     etd: "Standard Delivery (4-6 days)",
+     courier_name: "Standard rate",
+    });
+   }
+  }, [formData.state, shippingRegions, shippingSettings, subtotal, discount]);
 
  const loadRazorpayScript = () => {
   return new Promise((resolve) => {
@@ -672,15 +682,15 @@ export default function Checkout() {
          <label htmlFor="state" className="contact-form-label">
           State / Region
          </label>
-         <input
-          type="text"
-          id="state"
-          className="contact-form-input"
-          placeholder="State"
-          required
-          value={formData.state}
-          onChange={handleInputChange}
-         />
+          <input
+           type="text"
+           id="state"
+           className="contact-form-input"
+           placeholder="State"
+           required
+           value={formData.state}
+           onChange={handleInputChange}
+          />
         </div>
          <div className="contact-form-group">
           <label htmlFor="pincode" className="contact-form-label">
@@ -695,21 +705,11 @@ export default function Checkout() {
            value={formData.pincode}
            onChange={handleInputChange}
           />
-          {shippingLoading && (
-           <p style={{ fontSize: "0.72rem", color: "var(--color-gold)", marginTop: "0.4rem" }}>
-            ⌛ Checking courier rates...
-           </p>
-          )}
-          {shippingError && (
-           <p style={{ fontSize: "0.72rem", color: "#ef4444", marginTop: "0.4rem" }}>
-            ⚠️ Not Serviceable
-           </p>
-          )}
-          {!shippingLoading && !shippingError && shippingDetails && (
-           <p style={{ fontSize: "0.72rem", color: "#10b981", marginTop: "0.4rem" }}>
-            ✓ Serviceable
-           </p>
-          )}
+           {dynamicShippingFee !== null && shippingDetails && (
+            <p style={{ fontSize: "0.72rem", color: "#10b981", marginTop: "0.4rem" }}>
+             ✓ Delivery: Rs. {dynamicShippingFee} ({shippingDetails.courier_name})
+            </p>
+           )}
          </div>
        </div>
 

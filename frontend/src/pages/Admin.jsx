@@ -1128,6 +1128,45 @@ const normalizeVariantRows = (prod = {}) => {
  ];
 };
 
+const INDIAN_STATES = [
+ "Andhra Pradesh",
+ "Arunachal Pradesh",
+ "Assam",
+ "Bihar",
+ "Chhattisgarh",
+ "Goa",
+ "Gujarat",
+ "Haryana",
+ "Himachal Pradesh",
+ "Jharkhand",
+ "Karnataka",
+ "Kerala",
+ "Madhya Pradesh",
+ "Maharashtra",
+ "Manipur",
+ "Meghalaya",
+ "Mizoram",
+ "Nagaland",
+ "Odisha",
+ "Punjab",
+ "Rajasthan",
+ "Sikkim",
+ "Tamil Nadu",
+ "Telangana",
+ "Tripura",
+ "Uttar Pradesh",
+ "Uttarakhand",
+ "West Bengal",
+ "Andaman and Nicobar Islands",
+ "Chandigarh",
+ "Dadra and Nagar Haveli and Daman and Diu",
+ "Delhi",
+ "Jammu and Kashmir",
+ "Ladakh",
+ "Lakshadweep",
+ "Puducherry"
+];
+
 export default function Admin() {
  const { user, login, logout } = useContext(AuthContext);
  const { cmsContent, cmsStyles, fetchCMSData, getCMSValue } =
@@ -1299,6 +1338,14 @@ export default function Admin() {
   freeShippingThreshold: "",
   shippingFee: "",
  });
+ const [shippingRegions, setShippingRegions] = useState([]);
+ const [regionForm, setRegionForm] = useState({
+  id: "",
+  name: "",
+  price: 0,
+  states: [],
+ });
+ const [stateInput, setStateInput] = useState("");
  const [gatewaySettings, setGatewaySettings] = useState({
   razorpay_key_id: "",
   razorpay_key_secret: "",
@@ -1386,7 +1433,14 @@ export default function Admin() {
    .then((data) => setPaymentSettings(data))
    .catch((err) => console.error(err));
  };
- const fetchShippingSettings = () => {
+  const fetchShippingRegions = () => {
+   fetch("/api/shipping-regions")
+    .then((res) => res.json())
+    .then((data) => setShippingRegions(Array.isArray(data) ? data : []))
+    .catch((err) => console.error(err));
+  };
+
+  const fetchShippingSettings = () => {
   fetch("/api/settings/shipping")
    .then((res) => res.json())
    .then((data) => setShippingSettings(data))
@@ -1493,6 +1547,7 @@ export default function Admin() {
      break;
     case "shipping":
      fetchShippingSettings();
+     fetchShippingRegions();
      break;
     default:
      break;
@@ -2281,145 +2336,6 @@ export default function Admin() {
    }
   };
 
-  const handleCreateShiprocketShipment = async (id) => {
-   setShiprocketLoadingOrderId(id);
-   try {
-    const res = await fetch(`/api/orders/${id}/shiprocket`, {
-     method: "POST",
-     headers: {
-      "Content-Type": "application/json",
-      ...(user?.token ? { Authorization: `Bearer ${user.token}` } : {}),
-     },
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-     const missing = Array.isArray(data.details?.missing)
-      ? ` Missing: ${data.details.missing.join(", ")}.`
-      : "";
-     throw new Error(`${data.error || "Shiprocket shipment creation failed."}${missing}`);
-    }
-    const updatedOrder = data.order || null;
-    const shipment = data.shipment || updatedOrder?.shiprocket || null;
-    setOrders((prev) =>
-     prev.map((order) =>
-      order.id === id
-       ? {
-          ...order,
-          ...(updatedOrder || {}),
-          ...(shipment ? { shiprocket: shipment } : {}),
-         }
-       : order,
-     ),
-    );
-    setSelectedOrder((prev) =>
-     prev && prev.id === id
-      ? {
-         ...prev,
-         ...(updatedOrder || {}),
-         ...(shipment ? { shiprocket: shipment } : {}),
-        }
-      : prev,
-    );
-    alert(data.alreadyExists ? "Shiprocket shipment already exists for this order." : "Shiprocket shipment created successfully.");
-   } catch (err) {
-    alert(err.message);
-    } finally {
-     setShiprocketLoadingOrderId("");
-    }
-   };
-
-   const handleAssignShiprocketAwb = async (id) => {
-    setShiprocketLoadingOrderId(id);
-    try {
-     const res = await fetch(`/api/orders/${id}/awb`, {
-      method: "POST",
-      headers: {
-       "Content-Type": "application/json",
-       ...(user?.token ? { Authorization: `Bearer ${user.token}` } : {}),
-      },
-     });
-     const data = await res.json().catch(() => ({}));
-     if (!res.ok) {
-      throw new Error(data.error || "AWB assignment failed.");
-     }
-     const updatedOrder = data.order || null;
-     const shipment = data.shipment || updatedOrder?.shiprocket || null;
-     setOrders((prev) =>
-      prev.map((order) =>
-       order.id === id
-        ? {
-           ...order,
-           ...(updatedOrder || {}),
-           ...(shipment ? { shiprocket: shipment } : {}),
-          }
-        : order,
-      ),
-     );
-     setSelectedOrder((prev) =>
-      prev && prev.id === id
-       ? {
-          ...prev,
-          ...(updatedOrder || {}),
-          ...(shipment ? { shiprocket: shipment } : {}),
-         }
-       : prev,
-     );
-     alert("AWB assigned successfully!");
-    } catch (err) {
-     alert(err.message);
-    } finally {
-     setShiprocketLoadingOrderId("");
-    }
-   };
-
-   const handleGenerateShiprocketLabel = async (id) => {
-    setShiprocketLoadingOrderId(id);
-    try {
-     const res = await fetch(`/api/orders/${id}/label`, {
-      method: "POST",
-      headers: {
-       "Content-Type": "application/json",
-       ...(user?.token ? { Authorization: `Bearer ${user.token}` } : {}),
-      },
-     });
-     const data = await res.json().catch(() => ({}));
-     if (!res.ok) {
-      throw new Error(data.error || "Label generation failed.");
-     }
-     const updatedOrder = data.order || null;
-     const shipment = data.shipment || updatedOrder?.shiprocket || null;
-     setOrders((prev) =>
-      prev.map((order) =>
-       order.id === id
-        ? {
-           ...order,
-           ...(updatedOrder || {}),
-           ...(shipment ? { shiprocket: shipment } : {}),
-          }
-        : order,
-      ),
-     );
-     setSelectedOrder((prev) =>
-      prev && prev.id === id
-       ? {
-          ...prev,
-          ...(updatedOrder || {}),
-          ...(shipment ? { shiprocket: shipment } : {}),
-         }
-       : prev,
-     );
-     if (data.label_url) {
-      window.open(data.label_url, "_blank");
-     } else {
-      alert("Label generated successfully, but URL was not returned.");
-     }
-    } catch (err) {
-     alert(err.message);
-    } finally {
-     setShiprocketLoadingOrderId("");
-    }
-   };
-
   // --- Enquiries Handlers ---
  const handleUpdateEnquiryStatus = async (id, status) => {
   try {
@@ -2535,6 +2451,56 @@ export default function Admin() {
    if (!res.ok) throw new Error("Failed to save shipping settings");
    alert("Shipping settings saved successfully.");
    fetchShippingSettings();
+  } catch (err) {
+   alert(err.message);
+  }
+ };
+
+ const handleSaveShippingRegion = async (e) => {
+  e.preventDefault();
+  const trimmedState = stateInput.trim();
+
+  if (!regionForm.name.trim() || !trimmedState) {
+   alert("Please provide both a region name and a state.");
+   return;
+  }
+  try {
+   const res = await fetch("/api/shipping-regions", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+    body: JSON.stringify({
+     id: regionForm.id || undefined,
+     name: regionForm.name,
+     price: Number(regionForm.price) || 0,
+     states: [trimmedState],
+    }),
+   });
+   if (!res.ok) {
+    const data = await res.json();
+    throw new Error(data.error || "Failed to save shipping region");
+   }
+   alert("Shipping region saved successfully.");
+   setRegionForm({ id: "", name: "", price: 0, states: [] });
+   setStateInput("");
+   fetchShippingRegions();
+  } catch (err) {
+   alert(err.message);
+  }
+ };
+
+ const handleDeleteShippingRegion = async (id) => {
+  if (!window.confirm("Are you sure you want to delete this shipping region?")) return;
+  try {
+   const res = await fetch(`/api/shipping-regions/${id}`, {
+    method: "DELETE",
+    headers: getAuthHeaders(),
+   });
+   if (!res.ok) {
+    const data = await res.json();
+    throw new Error(data.error || "Failed to delete shipping region");
+   }
+   alert("Shipping region deleted successfully.");
+   fetchShippingRegions();
   } catch (err) {
    alert(err.message);
   }
@@ -4143,7 +4109,6 @@ export default function Admin() {
             <th>Payment Status</th>
             <th>Payment ID</th>
             <th>GST Invoice</th>
-            <th>Shiprocket</th>
             <th>Subtotal</th>
             <th>Total Paid</th>
             <th>Status</th>
@@ -4153,7 +4118,7 @@ export default function Admin() {
           {orders.length === 0 ? (
            <tr>
             <td
-              colSpan="11"
+              colSpan="10"
              style={{
               textAlign: "center",
               padding: "3rem",
@@ -4203,53 +4168,6 @@ export default function Admin() {
                 </button>
                ) : (
                 "-"
-               )}
-              </td>
-              <td>
-               {getOrderShipment(o)?.shipment_id ? (
-                <button
-                 type="button"
-                 className="btn btn-outline"
-                 onClick={() => handleOpenOrderDetails(o)}
-                 style={{
-                  height: "28px",
-                  padding: "0 0.7rem",
-                  fontSize: "0.68rem",
-                  color: "#3b82f6",
-                  borderColor: "rgba(59,130,246,0.45)",
-                 }}
-                >
-                 #{getOrderShipment(o).shipment_id}
-                </button>
-               ) : (
-                <button
-                 type="button"
-                 className="btn btn-outline"
-                 disabled={
-                  shiprocketLoadingOrderId === o.id ||
-                  o.status === "Cancelled" ||
-                  (o.payment_status || "Pending") !== "Paid"
-                 }
-                 onClick={() =>
-                  triggerConfirm(
-                   `Create Shiprocket shipment for order ${o.id}?`,
-                   () => handleCreateShiprocketShipment(o.id),
-                  )
-                 }
-                 style={{
-                  height: "28px",
-                  padding: "0 0.7rem",
-                  fontSize: "0.68rem",
-                  opacity:
-                   shiprocketLoadingOrderId === o.id ||
-                   o.status === "Cancelled" ||
-                   (o.payment_status || "Pending") !== "Paid"
-                    ? 0.55
-                    : 1,
-                 }}
-                >
-                 {shiprocketLoadingOrderId === o.id ? "Creating..." : "Create"}
-                </button>
                )}
               </td>
               <td>₹{o.subtotal}</td>
@@ -6147,75 +6065,253 @@ export default function Admin() {
       </div>
      )}
 
-     {activePanel === "shipping" && (
-      <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
-       <form
-        onSubmit={handleSaveShippingSettings}
-        style={{
-         border: "1px solid rgba(255,255,255,0.03)",
-         borderRadius: "8px",
-         padding: "2.5rem",
-         backgroundColor: "#0a0a0a",
-         display: "flex",
-         flexDirection: "column",
-         gap: "1.5rem",
-        }}
-       >
-        <h3
+      {activePanel === "shipping" && (
+       <div style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
+        {/* General settings form */}
+        <form
+         onSubmit={handleSaveShippingSettings}
          style={{
-          fontSize: "1.2rem",
-          fontFamily: "var(--font-heading)",
-          color: "var(--color-white)",
-          marginBottom: "0.5rem",
+          border: "1px solid rgba(255,255,255,0.03)",
+          borderRadius: "8px",
+          padding: "2rem",
+          backgroundColor: "#0a0a0a",
+          display: "flex",
+          flexDirection: "column",
+          gap: "1.5rem",
          }}
         >
-         Shipping Cost & Rules
-        </h3>
+         <h3
+          style={{
+           fontSize: "1.2rem",
+           fontFamily: "var(--font-heading)",
+           color: "var(--color-white)",
+           marginBottom: "0.2rem",
+          }}
+         >
+          General Shipping Settings
+         </h3>
+         <p style={{ fontSize: "0.85rem", color: "var(--color-muted)", margin: 0 }}>
+          Configure standard fallback charges and free delivery thresholds.
+         </p>
 
-        <div className="contact-form-group">
-         <label className="contact-form-label">
-          Free Shipping Threshold Amount (INR ₹)
-         </label>
-         <input
-          type="number"
-          className="contact-form-input"
-          required
-          value={shippingSettings.freeShippingThreshold || ""}
-          onChange={(e) =>
-           setShippingSettings((prev) => ({
-            ...prev,
-            freeShippingThreshold: e.target.value,
-           }))
-          }
-         />
-        </div>
+         <div className="contact-form-row" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.5rem" }}>
+          <div className="contact-form-group">
+           <label className="contact-form-label">
+            Free Shipping Threshold (INR ₹)
+           </label>
+           <input
+            type="number"
+            className="contact-form-input"
+            required
+            value={shippingSettings.freeShippingThreshold || ""}
+            onChange={(e) =>
+             setShippingSettings((prev) => ({
+              ...prev,
+              freeShippingThreshold: e.target.value,
+             }))
+            }
+           />
+          </div>
 
-        <div className="contact-form-group">
-         <label className="contact-form-label">
-          Standard Shipping Fee Amount (INR ₹)
-         </label>
-         <input
-          type="number"
-          className="contact-form-input"
-          required
-          value={shippingSettings.shippingFee || ""}
-          onChange={(e) =>
-           setShippingSettings((prev) => ({
-            ...prev,
-            shippingFee: e.target.value,
-           }))
-          }
-         />
-        </div>
+          <div className="contact-form-group">
+           <label className="contact-form-label">
+            Default Shipping Fee (INR ₹)
+           </label>
+           <input
+            type="number"
+            className="contact-form-input"
+            required
+            value={shippingSettings.shippingFee || ""}
+            onChange={(e) =>
+             setShippingSettings((prev) => ({
+              ...prev,
+              shippingFee: e.target.value,
+             }))
+            }
+           />
+          </div>
+         </div>
 
-        <button
-         type="submit"
-         className="btn btn-primary"
-         style={{ height: "40px", alignSelf: "flex-start" }}
+         <button
+          type="submit"
+          className="btn btn-primary"
+          style={{ height: "40px", alignSelf: "flex-start" }}
+         >
+          Save Shipping Rules
+         </button>
+        </form>
+
+        {/* Custom Regions & Pricing Manager */}
+        <div
+         style={{
+          border: "1px solid rgba(255,255,255,0.03)",
+          borderRadius: "8px",
+          padding: "2rem",
+          backgroundColor: "#0a0a0a",
+          display: "flex",
+          flexDirection: "column",
+          gap: "2rem",
+         }}
         >
-         Save Shipping Rules
-        </button>
-       </form>
+         <div>
+          <h3
+           style={{
+            fontSize: "1.2rem",
+            fontFamily: "var(--font-heading)",
+            color: "var(--color-white)",
+            marginBottom: "0.2rem",
+           }}
+          >
+           Custom Regional Shipping Rates
+          </h3>
+          <p style={{ fontSize: "0.85rem", color: "var(--color-muted)", margin: 0 }}>
+           Add specific delivery charges for different states/union territories.
+          </p>
+         </div>
+
+         {/* Region Form */}
+         <form
+          onSubmit={handleSaveShippingRegion}
+          style={{
+           border: "1px solid rgba(255,255,255,0.05)",
+           borderRadius: "6px",
+           padding: "1.5rem",
+           backgroundColor: "#111",
+           display: "flex",
+           flexDirection: "column",
+           gap: "1.5rem",
+          }}
+         >
+          <h4 style={{ margin: 0, color: "var(--color-gold)", fontSize: "1rem" }}>
+           {regionForm.id ? "Edit Shipping Region" : "Add New Shipping Region"}
+          </h4>
+
+          <div className="contact-form-row" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.5rem" }}>
+           <div className="contact-form-group">
+            <label className="contact-form-label">Region Name</label>
+            <input
+             type="text"
+             className="contact-form-input"
+             required
+             value={regionForm.name}
+             onChange={(e) => setRegionForm((prev) => ({ ...prev, name: e.target.value }))}
+             placeholder="e.g. South India Delivery"
+            />
+           </div>
+
+           <div className="contact-form-group">
+            <label className="contact-form-label">Shipping Cost (INR ₹)</label>
+            <input
+             type="number"
+             className="contact-form-input"
+             required
+             value={regionForm.price}
+             onChange={(e) => setRegionForm((prev) => ({ ...prev, price: Number(e.target.value) || 0 }))}
+             placeholder="e.g. 80"
+            />
+           </div>
+          </div>
+
+          <div className="contact-form-group">
+           <label className="contact-form-label">
+            State Name
+           </label>
+           <input
+            type="text"
+            className="contact-form-input"
+            required
+            value={stateInput}
+            onChange={(e) => setStateInput(e.target.value)}
+            placeholder="e.g. Uttarakhand"
+           />
+          </div>
+
+          <div style={{ display: "flex", gap: "1rem" }}>
+           <button type="submit" className="btn btn-primary" style={{ height: "38px" }}>
+            {regionForm.id ? "Update Region" : "Save Region"}
+           </button>
+           {regionForm.id && (
+            <button
+             type="button"
+             className="btn"
+             style={{
+              height: "38px",
+              backgroundColor: "#222",
+              color: "#fff",
+              border: "1px solid rgba(255,255,255,0.08)",
+             }}
+             onClick={() => {
+              setRegionForm({ id: "", name: "", price: 0, states: [] });
+              setStateInput("");
+             }}
+            >
+             Cancel Edit
+            </button>
+           )}
+          </div>
+         </form>
+
+         {/* Regions List */}
+         <div>
+          <h4 style={{ margin: "0 0 1rem 0", color: "#fff", fontSize: "1rem" }}>
+           Configured Regions ({shippingRegions.length})
+          </h4>
+          {shippingRegions.length === 0 ? (
+           <p style={{ color: "var(--color-muted)", fontSize: "0.85rem", fontStyle: "italic" }}>
+            No custom regions configured yet. Fallback standard delivery fees will apply.
+           </p>
+          ) : (
+           <table className="admin-dash-table" style={{ width: "100%" }}>
+            <thead>
+             <tr>
+              <th>Region Name</th>
+              <th>State Name</th>
+              <th>Shipping Fee</th>
+              <th style={{ textAlign: "right" }}>Actions</th>
+             </tr>
+            </thead>
+            <tbody>
+             {shippingRegions.map((region) => (
+              <tr key={region.id}>
+               <td style={{ color: "var(--color-white)", fontWeight: 600 }}>
+                {region.name}
+               </td>
+               <td style={{ color: "var(--color-muted)" }}>
+                {region.states && region.states[0] ? region.states[0] : "-"}
+               </td>
+               <td style={{ color: "var(--color-gold)", fontWeight: "bold" }}>
+                ₹{region.price}
+               </td>
+               <td style={{ textAlign: "right" }}>
+                <button
+                 className="admin-dash-action-btn"
+                 style={{ marginRight: "0.5rem" }}
+                 onClick={() => {
+                  setRegionForm({
+                   id: region.id,
+                   name: region.name,
+                   price: region.price,
+                   states: region.states || [],
+                  });
+                   setStateInput(region.states && region.states[0] ? region.states[0] : "");
+                 }}
+                >
+                 Edit
+                </button>
+                <button
+                 className="admin-dash-action-btn delete"
+                 onClick={() => handleDeleteShippingRegion(region.id)}
+                >
+                 Delete
+                </button>
+               </td>
+              </tr>
+             ))}
+            </tbody>
+           </table>
+          )}
+         </div>
+        </div>
       </div>
      )}
 
@@ -7346,17 +7442,7 @@ export default function Admin() {
           Payment ID: <span style={{ color: "var(--color-white)", fontFamily: "monospace" }}>{selectedOrder.payment_id}</span>
          </p>
         )}
-        {getOrderShipment(selectedOrder)?.shipment_id && (
-         <p style={{ margin: "0.2rem 0", color: "var(--color-muted)", fontSize: "0.85rem" }}>
-          Shiprocket Shipment: <span style={{ color: "#3b82f6", fontFamily: "monospace" }}>#{getOrderShipment(selectedOrder).shipment_id}</span>
-         </p>
-        )}
-        {getOrderShipment(selectedOrder)?.awb_code && (
-         <p style={{ margin: "0.2rem 0", color: "var(--color-muted)", fontSize: "0.85rem" }}>
-          AWB: <span style={{ color: "var(--color-white)", fontFamily: "monospace" }}>{getOrderShipment(selectedOrder).awb_code}</span>
-         </p>
-        )}
-       </div>
+        </div>
        <div style={{ textAlign: "right" }}>
         <label style={{ display: "block", fontSize: "0.75rem", textTransform: "uppercase", color: "var(--color-gold)", marginBottom: "0.4rem" }}>
          Order Status
@@ -7511,55 +7597,6 @@ export default function Admin() {
       </div>
 
       <div style={{ display: "flex", justifyContent: "flex-end", gap: "1rem", marginTop: "1.5rem" }}>
-       {!getOrderShipment(selectedOrder)?.shipment_id &&
-        selectedOrder.status !== "Cancelled" &&
-        (selectedOrder.payment_status || "Pending") === "Paid" && (
-        <button
-         type="button"
-         className="btn btn-outline"
-         disabled={shiprocketLoadingOrderId === selectedOrder.id}
-         onClick={() =>
-          triggerConfirm(
-           `Create Shiprocket shipment for order ${selectedOrder.id}?`,
-           () => handleCreateShiprocketShipment(selectedOrder.id),
-          )
-         }
-         style={{ width: "190px", height: "40px" }}
-        >
-         {shiprocketLoadingOrderId === selectedOrder.id ? "CREATING..." : "CREATE SHIPROCKET"}
-        </button>
-       )}
-       {getOrderShipment(selectedOrder)?.shipment_id &&
-        !getOrderShipment(selectedOrder)?.awb_code &&
-        selectedOrder.status !== "Cancelled" && (
-         <button
-          type="button"
-          className="btn btn-outline"
-          disabled={shiprocketLoadingOrderId === selectedOrder.id}
-          onClick={() =>
-           triggerConfirm(
-            `Assign Shiprocket AWB for order ${selectedOrder.id}?`,
-            () => handleAssignShiprocketAwb(selectedOrder.id),
-           )
-          }
-          style={{ width: "190px", height: "40px" }}
-         >
-          {shiprocketLoadingOrderId === selectedOrder.id ? "ASSIGNING..." : "ASSIGN AWB"}
-         </button>
-       )}
-       {getOrderShipment(selectedOrder)?.shipment_id &&
-        getOrderShipment(selectedOrder)?.awb_code &&
-        selectedOrder.status !== "Cancelled" && (
-         <button
-          type="button"
-          className="btn btn-outline"
-          disabled={shiprocketLoadingOrderId === selectedOrder.id}
-          onClick={() => handleGenerateShiprocketLabel(selectedOrder.id)}
-          style={{ width: "190px", height: "40px" }}
-         >
-          {shiprocketLoadingOrderId === selectedOrder.id ? "PRINTING..." : "PRINT LABEL"}
-         </button>
-       )}
        {getOrderInvoice(selectedOrder) && (
         <button
          type="button"

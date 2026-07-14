@@ -287,8 +287,7 @@ async function mirrorPaymentRecord({
  is_mock = 0,
  raw_payload = {},
 }) {
- const amountValue =
-  Number(amount) > 1000 ? parseInteger(amount) : toPaise(amount);
+ const amountValue = toPaise(amount);
  const paymentDocId =
   provider_payment_id || provider_order_id || local_order_id;
  const record = {

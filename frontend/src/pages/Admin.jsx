@@ -2992,8 +2992,8 @@ export default function Admin() {
          <div className="admin-dash-kpi-body">
           <div className="admin-dash-kpi-value-row">
            <h4 className="admin-dash-kpi-value">
-             {products.length}
-            </h4>
+            {ownerDashboard?.kpis?.products ?? products.length}
+           </h4>
            <span
             className={`admin-dash-kpi-trend ${getTrendType(activeTrends.products?.change)}`}
            >
@@ -4122,98 +4122,142 @@ export default function Admin() {
           </tr>
          </thead>
          <tbody>
-          {orders.length === 0 ? (
-           <tr>
-            <td
-              colSpan="10"
-             style={{
-              textAlign: "center",
-              padding: "3rem",
-              color: "var(--color-muted)",
-             }}
-            >
-             No orders registered in system.
-            </td>
-           </tr>
-          ) : (
-           orders.map((o) => (
-             <tr key={o.id}>
+          {(() => {
+           const getStatusWeight = (status) => {
+            const s = (status || "Processing").trim();
+            const normalized = s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+            if (normalized === "Processing") return 1;
+            if (normalized === "Confirmed") return 2;
+            if (normalized === "Shipped") return 3;
+            if (normalized === "Delivered") return 4;
+            if (normalized === "Cancelled" || normalized === "Canceled") return 5;
+            return 6;
+           };
+           const sortedOrders = [...orders].sort((a, b) => {
+            const wA = getStatusWeight(a.status);
+            const wB = getStatusWeight(b.status);
+            if (wA !== wB) return wA - wB;
+            const aTime = Date.parse(a.date || "") || 0;
+            const bTime = Date.parse(b.date || "") || 0;
+            return bTime - aTime;
+           });
+           if (sortedOrders.length === 0) {
+            return (
+             <tr>
               <td
-               className="highlight"
+               colSpan="10"
                style={{
-                fontFamily: "monospace",
-                cursor: "pointer",
-                textDecoration: "underline",
-                color: "var(--color-gold)",
+                textAlign: "center",
+                padding: "3rem",
+                color: "var(--color-muted)",
                }}
-               onClick={() => handleOpenOrderDetails(o)}
               >
-               #{o.id}
+               No orders registered in system.
               </td>
-              <td>{o.user_email}</td>
-              <td>{o.date}</td>
-              <td>{o.payment_method}</td>
-              <td>{o.payment_status || "Pending"}</td>
-              <td style={{ fontFamily: "monospace", fontSize: "0.72rem" }}>
-               {o.payment_id || "-"}
-              </td>
-              <td>
-               {getOrderInvoice(o) ? (
-                <button
-                 type="button"
-                 className="btn btn-outline"
-                 onClick={() => openAdminInvoicePrintWindow(o)}
-                 style={{
-                  height: "28px",
-                  padding: "0 0.7rem",
-                  fontSize: "0.68rem",
-                  color: "var(--color-gold)",
-                  borderColor: "rgba(201,168,76,0.35)",
-                 }}
-                >
-                 {getOrderInvoice(o).invoice_no}
-                </button>
-               ) : (
-                "-"
-               )}
-              </td>
-              <td>₹{o.subtotal}</td>
+             </tr>
+            );
+           }
+           return sortedOrders.map((o) => (
+            <tr key={o.id}>
+             <td
+              className="highlight"
+              style={{
+               fontFamily: "monospace",
+               cursor: "pointer",
+               textDecoration: "underline",
+               color: "var(--color-gold)",
+              }}
+              onClick={() => handleOpenOrderDetails(o)}
+             >
+              #{o.id}
+             </td>
+             <td>{o.user_email}</td>
+             <td>{o.date}</td>
+             <td>{o.payment_method}</td>
+             <td>{o.payment_status || "Pending"}</td>
+             <td style={{ fontFamily: "monospace", fontSize: "0.72rem" }}>
+              {o.payment_id || "-"}
+             </td>
+             <td>
+              {getOrderInvoice(o) ? (
+               <button
+                type="button"
+                className="btn btn-outline"
+                onClick={() => openAdminInvoicePrintWindow(o)}
+                style={{
+                 height: "28px",
+                 padding: "0 0.7rem",
+                 fontSize: "0.68rem",
+                 color: "var(--color-gold)",
+                 borderColor: "rgba(201,168,76,0.35)",
+                }}
+               >
+                {getOrderInvoice(o).invoice_no}
+               </button>
+              ) : (
+               "-"
+              )}
+             </td>
+             <td>₹{o.subtotal}</td>
              <td style={{ color: "var(--color-gold)", fontWeight: 600 }}>
               ₹{o.total}
              </td>
              <td>
-               <select
-                value={o.status || "Processing"}
-                onChange={(e) =>
-                 handleUpdateOrderStatus(o.id, e.target.value)
-                }
-                style={{
-                 backgroundColor: "#050505",
-                 color:
-                  o.status === "Delivered"
-                   ? "#10b981"
-                   : o.status === "Cancelled"
-                     ? "#ef4444"
-                     : o.status === "Shipped"
-                       ? "#3b82f6"
-                       : "#c9a84c",
-                 border: "1px solid rgba(255,255,255,0.08)",
-                 borderRadius: "4px",
-                 fontSize: "0.75rem",
-                 padding: "2px 4px",
-                 cursor: "pointer",
-                }}
+              <select
+               value={o.status || "Processing"}
+               onChange={(e) => handleUpdateOrderStatus(o.id, e.target.value)}
+               style={{
+                backgroundColor: "#050505",
+                color:
+                 o.status === "Delivered"
+                  ? "#10b981"
+                  : o.status === "Cancelled"
+                  ? "#ef4444"
+                  : o.status === "Shipped"
+                  ? "#3b82f6"
+                  : "#c9a84c",
+                border: "1px solid rgba(255,255,255,0.08)",
+                borderRadius: "4px",
+                fontSize: "0.75rem",
+                padding: "2px 4px",
+                cursor: "pointer",
+               }}
+              >
+               <option
+                value="Processing"
+                style={{ backgroundColor: "#050505", color: "#c9a84c" }}
                >
-                <option value="Processing" style={{ backgroundColor: "#050505", color: "#c9a84c" }}>Processing</option>
-                <option value="Confirmed" style={{ backgroundColor: "#050505", color: "#c9a84c" }}>Confirmed</option>
-                <option value="Shipped" style={{ backgroundColor: "#050505", color: "#3b82f6" }}>Shipped</option>
-                <option value="Delivered" style={{ backgroundColor: "#050505", color: "#10b981" }}>Delivered</option>
-                <option value="Cancelled" style={{ backgroundColor: "#050505", color: "#ef4444" }}>Cancelled</option>
-               </select>
-              </td>
+                Processing
+               </option>
+               <option
+                value="Confirmed"
+                style={{ backgroundColor: "#050505", color: "#c9a84c" }}
+               >
+                Confirmed
+               </option>
+               <option
+                value="Shipped"
+                style={{ backgroundColor: "#050505", color: "#3b82f6" }}
+               >
+                Shipped
+               </option>
+               <option
+                value="Delivered"
+                style={{ backgroundColor: "#050505", color: "#10b981" }}
+               >
+                Delivered
+               </option>
+               <option
+                value="Cancelled"
+                style={{ backgroundColor: "#050505", color: "#ef4444" }}
+               >
+                Cancelled
+               </option>
+              </select>
+             </td>
             </tr>
-           ))
-          )}
+           ));
+          })()}
          </tbody>
         </table>
        </div>

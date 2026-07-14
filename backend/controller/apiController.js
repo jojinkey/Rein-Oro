@@ -490,6 +490,7 @@ async function recordWebsiteVisit(req, res) {
 
 async function buildOwnerDashboard() {
  const now = new Date();
+ const thirtyDaysAgoStr = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
  const [
   ordersRows,
@@ -506,7 +507,9 @@ async function buildOwnerDashboard() {
   queryFirestoreCollection("newsletter"),
   queryFirestoreCollection("reviews"),
   queryFirestoreCollection("products"),
-  queryFirestoreCollection("website_visits")
+  queryFirestoreCollection("website_visits", {
+   where: [["created_at", ">=", thirtyDaysAgoStr]]
+  })
  ]);
 
  const orders = ordersRows.map((order) => ({
@@ -659,6 +662,7 @@ async function buildOwnerDashboard() {
    newsletter_subscribers: newsletterCount.count || 0,
    reviews: reviewCount.count || 0,
    pending_reviews: pendingReviewCount.count || 0,
+   products: productsRows.length,
   },
   trends: {
    "30d": {

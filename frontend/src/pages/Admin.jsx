@@ -7607,7 +7607,7 @@ export default function Admin() {
          onClick={() => openAdminInvoicePrintWindow(selectedOrder)}
          style={{ width: "190px", height: "40px" }}
         >
-         PRINT GST INVOICE
+         DOWNLOAD GST INVOICE
         </button>
        )}
        <button

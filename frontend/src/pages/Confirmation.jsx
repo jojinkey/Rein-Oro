@@ -295,7 +295,7 @@ async function printInvoice(order) {
    margin: [0.5, 0.5, 0.5, 0.5],
    filename: `${invoice.invoice_no}.pdf`,
    image: { type: "jpeg", quality: 0.98 },
-   html2canvas: { scale: 2, logging: false, useCORS: true },
+   html2canvas: { scale: 2, logging: false, useCORS: true, scrollY: 0, scrollX: 0 },
    jsPDF: { unit: "in", format: "letter", orientation: "portrait" }
   };
 
@@ -494,123 +494,47 @@ export default function Confirmation() {
     </section>
 
     {invoice && seller && (
-     <section className="gst-invoice-preview-section">
-      <div className="gst-invoice-preview-header">
+     <section className="gst-invoice-preview-section" style={{ background: "rgba(15,15,15,0.4)", border: "1px solid rgba(255,255,255,0.05)", borderRadius: "8px", padding: "1.5rem", marginTop: "2rem" }}>
+      <div className="gst-invoice-preview-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem", borderBottom: "1px solid rgba(255,255,255,0.05)", paddingBottom: "1rem" }}>
        <div>
-        <span className="gst-invoice-kicker">GST Tax Invoice</span>
-        <h2>{invoice.invoice_no}</h2>
-        <p>Generated after verified Razorpay payment.</p>
+        <span className="gst-invoice-kicker" style={{ textTransform: "uppercase", fontSize: "0.68rem", color: "var(--color-gold)", letterSpacing: "0.05em" }}>GST Tax Invoice</span>
+        <h2 style={{ fontFamily: "var(--font-heading)", fontSize: "1.4rem", fontWeight: 300, color: "var(--color-white)", margin: "0.2rem 0 0 0" }}>{invoice.invoice_no}</h2>
+        <p style={{ margin: "0.2rem 0 0 0", fontSize: "0.75rem", color: "var(--color-muted)" }}>Generated after verified Razorpay payment.</p>
        </div>
        <button
         className="btn btn-primary"
         onClick={() => printInvoice(order)}
         type="button"
+        style={{ height: "36px", padding: "0 1.2rem", fontSize: "0.75rem" }}
        >
         Download GST invoice
        </button>
       </div>
 
-      <div className="gst-invoice-party-grid">
-       <div className="gst-invoice-party">
-        <span className="gst-invoice-label">Seller</span>
-        <h3>{seller.trade_name || seller.name}</h3>
-        <p>Legal Name: {seller.legal_name}</p>
-        <p>GSTIN / Registration No.: {seller.gstin || seller.registration_no}</p>
-        <p>Constitution: {seller.constitution}</p>
-        {sellerAddressLines.map((line) => (
-         <p key={line}>{line}</p>
-        ))}
-       </div>
-
-       <div className="gst-invoice-party">
-        <span className="gst-invoice-label">Bill To</span>
-        <h3>{buyer.name || order.customer_email || order.user_email}</h3>
-        <p>{buyer.email || order.customer_email || order.user_email}</p>
-        {buyer.phone && <p>Phone: {buyer.phone}</p>}
-        <p>GSTIN: {buyer.gstin || "-"}</p>
-        <p>
-         {[buyerAddress.street, buyerAddress.apartment]
-          .filter(Boolean)
-          .join(", ")}
-        </p>
-        <p>
-         {[buyerAddress.city, buyerAddress.state].filter(Boolean).join(", ")}
-         {buyerAddress.pincode ? ` - ${buyerAddress.pincode}` : ""}
-        </p>
-       </div>
-
-       <div className="gst-invoice-party gst-invoice-meta">
-        <span className="gst-invoice-label">Invoice Details</span>
-        <p>Order ID: {invoice.order_id || order.id}</p>
-        <p>
-         Date:{" "}
-         {new Date(invoice.invoice_date || Date.now()).toLocaleString("en-IN")}
-        </p>
-        <p>Payment ID: {invoice.payment_id || order.payment_id || "-"}</p>
-        <p>Place of Supply: {invoice.place_of_supply || buyer.state || "-"}</p>
-        <p>
-         Tax Type:{" "}
-         {invoice.tax_type === "CGST_SGST" ? "CGST + SGST" : "IGST"}
-        </p>
-       </div>
-      </div>
-
-      <div className="gst-invoice-table-wrap">
-       <table className="gst-invoice-table">
-        <thead>
-         <tr>
-          <th>Item</th>
-          <th>HSN</th>
-          <th>Qty</th>
-          <th>Rate</th>
-          <th>Amount</th>
-         </tr>
-        </thead>
-        <tbody>
-         {invoiceItems.map((item, index) => (
-          <tr key={`${item.name || "item"}-${index}`}>
-           <td>
-            {item.name}
-            {item.weight ? <span>{item.weight}</span> : null}
-           </td>
-           <td>{item.hsn || "-"}</td>
-           <td>{item.qty}</td>
-           <td>{formatINR(item.unit_price)}</td>
-           <td>{formatINR(item.line_total)}</td>
-          </tr>
-         ))}
-        </tbody>
-       </table>
-      </div>
-
-      <div className="gst-invoice-total-grid">
-       <div>
-        <span className="gst-invoice-label">Registered Address</span>
-        <p>{seller.address}</p>
-       </div>
-       <div className="gst-invoice-totals">
-        <div>
-         <span>Taxable Value</span>
-         <strong>{formatINR(invoice.taxable_value)}</strong>
-        </div>
-        <div>
-         <span>CGST</span>
-         <strong>{formatINR(invoice.cgst)}</strong>
-        </div>
-        <div>
-         <span>SGST</span>
-         <strong>{formatINR(invoice.sgst)}</strong>
-        </div>
-        <div>
-         <span>IGST</span>
-         <strong>{formatINR(invoice.igst)}</strong>
-        </div>
-        <div className="gst-invoice-grand-total">
-         <span>Total Paid</span>
-         <strong>{formatINR(invoice.total || order.total)}</strong>
-        </div>
-       </div>
-      </div>
+      <div 
+        style={{ 
+          background: "#fff", 
+          color: "#111", 
+          borderRadius: "6px", 
+          padding: "15px", 
+          overflowX: "auto"
+        }}
+        dangerouslySetInnerHTML={{ 
+          __html: (() => {
+            const htmlInvoice = buildInvoiceHtml(order);
+            const styleStart = htmlInvoice.indexOf("<style>");
+            const styleEnd = htmlInvoice.indexOf("</style>");
+            const styleTag = styleStart !== -1 && styleEnd !== -1 
+              ? htmlInvoice.substring(styleStart, styleEnd + 8) 
+              : "";
+            const bodyContent = htmlInvoice.substring(
+              htmlInvoice.indexOf("<body>") + 6, 
+              htmlInvoice.indexOf("</body>")
+            );
+            return `${styleTag}${bodyContent}`;
+          })()
+        }}
+      />
      </section>
     )}
 

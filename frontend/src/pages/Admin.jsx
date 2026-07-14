@@ -898,7 +898,7 @@ const openAdminInvoicePrintWindow = async (order = {}) => {
    margin: [0.5, 0.5, 0.5, 0.5],
    filename: `${invoice.invoice_no}.pdf`,
    image: { type: "jpeg", quality: 0.98 },
-   html2canvas: { scale: 2, logging: false, useCORS: true },
+   html2canvas: { scale: 2, logging: false, useCORS: true, scrollY: 0, scrollX: 0 },
    jsPDF: { unit: "in", format: "letter", orientation: "portrait" }
   };
 

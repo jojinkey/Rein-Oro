@@ -27,7 +27,7 @@ function getSellerAddressLines(seller = {}) {
  return seller.address ? [seller.address] : [];
 }
 
-function buildInvoiceHtml(order) {
+function buildInvoiceHtml(order = {}) {
  const invoice = getOrderInvoice(order);
  if (!invoice) return "";
  const buyer = invoice.buyer || {};
@@ -141,7 +141,7 @@ function buildInvoiceHtml(order) {
        font-size: 16px !important;
        font-weight: bold;
      }
-      .footer-note {
+     .footer-note {
         text-align: center;
         font-size: 10px;
         color: #777;
@@ -245,7 +245,7 @@ function buildInvoiceHtml(order) {
     </div>
    </body>
   </html>
-  `;
+ `;
 }
 
 const loadHtml2Pdf = () => {
@@ -420,7 +420,7 @@ export default function Confirmation() {
          onClick={() => printInvoice(order)}
          style={{ width: "100%", marginTop: "0.8rem", height: "40px", padding: 0 }}
         >
-         Download GST Invoice
+         Download GST invoice
         </button>
        )}
       </div>
@@ -502,7 +502,7 @@ export default function Confirmation() {
         onClick={() => printInvoice(order)}
         type="button"
        >
-        Download GST Invoice
+        Download GST invoice
        </button>
       </div>
 

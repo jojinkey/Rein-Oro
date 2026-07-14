@@ -442,7 +442,7 @@ export async function createRazorpayOrder(req, res) {
   await mirrorPaymentRecord({
    local_order_id: receipt || null,
    provider_order_id: data.id,
-   amount: data.amount,
+   amount: Number(data.amount) / 100,
    currency: data.currency,
    status: "created",
    is_mock: 0,

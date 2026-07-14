@@ -745,42 +745,40 @@ const buildAdminInvoiceHtml = (order = {}) => {
        font-weight: bold;
      }
      .footer-note {
-        text-align: center;
-        font-size: 10px;
-        color: #777;
-        margin-top: 45px;
-        border-top: 1px solid #eee;
-        padding-top: 12px;
-        font-family: 'Courier New', Courier, monospace;
-        letter-spacing: 0.02em;
-        line-height: 1.5;
-      }
-    </style>
-   </head>
-   <body>
-    <div class="invoice-card">
-      <table style="width: 100%; margin-bottom: 25px; border: none !important;">
-        <tr style="border: none !important;">
-          <td style="text-align: left; width: 50%; vertical-align: top; border: none !important; padding: 0;">
-            <h1 style="margin: 0; font-size: 32px; font-weight: bold; color: #000;">Tax Invoice</h1>
-            <p style="margin: 12px 0 4px 0; font-size: 13px; color: #111;"><strong>Invoice No:</strong> ${escapeHtml(invoice.invoice_no)}</p>
-            <p style="margin: 4px 0; font-size: 13px; color: #111;"><strong>Order ID:</strong> ${escapeHtml(invoice.order_id || order.id || order.orderId)}</p>
-            <p style="margin: 4px 0; font-size: 13px; color: #111;"><strong>Date:</strong> ${new Date(invoice.invoice_date || Date.now()).toLocaleString("en-IN")}</p>
-          </td>
-          <td style="text-align: right; width: 50%; vertical-align: top; border: none !important; padding: 0;">
-            <h2 style="margin: 0 0 6px 0; font-size: 22px; font-weight: bold; color: #000;">REIN ORO FOODS</h2>
-            <p style="margin: 3px 0; font-size: 13px; color: #333;"><strong>Legal Name:</strong> ${escapeHtml(seller.legal_name || "VAIBHAV SINGH PANWAR")}</p>
-            <p style="margin: 3px 0; font-size: 13px; color: #333;"><strong>GSTIN / Registration No.:</strong> ${escapeHtml(seller.gstin || "05GMOPP5339F1ZN")}</p>
-            <p style="margin: 3px 0; font-size: 13px; color: #333;"><strong>Constitution:</strong> Proprietorship</p>
-            <p style="margin: 3px 0; font-size: 13px; color: #333;">Building No./Flat No.: 499/3</p>
-            <p style="margin: 3px 0; font-size: 13px; color: #333;">Street Number 11, Rajender Nagar</p>
-            <p style="margin: 3px 0; font-size: 13px; color: #333;">Near Vashu Electricals & All Dish Services</p>
-            <p style="margin: 3px 0; font-size: 13px; color: #333;">Roorkee, Haridwar, Uttarakhand - 247667</p>
-          </td>
-        </tr>
-      </table>
-      
-      <div style="border: 1px solid #ddd; border-radius: 6px; padding: 15px; background: #fafafa; margin-bottom: 20px;">
+         text-align: left;
+         font-size: 13px;
+         color: #111;
+         margin-top: 35px;
+         line-height: 1.5;
+       }
+     </style>
+    </head>
+    <body>
+     <div class="invoice-card">
+       <table style="width: 100%; margin-bottom: 25px; border: none !important;">
+         <tr style="border: none !important;">
+           <td style="text-align: left; width: 50%; vertical-align: top; border: none !important; padding: 0;">
+             <h1 style="margin: 0; font-size: 32px; font-weight: bold; color: #000;">Tax Invoice</h1>
+             <p style="margin: 12px 0 4px 0; font-size: 13px; color: #111;"><strong>Invoice No:</strong> ${escapeHtml(invoice.invoice_no)}</p>
+             <p style="margin: 4px 0; font-size: 13px; color: #111;"><strong>Order ID:</strong> ${escapeHtml(invoice.order_id || order.id || order.orderId)}</p>
+             <p style="margin: 4px 0; font-size: 13px; color: #111;"><strong>Date:</strong> ${new Date(invoice.invoice_date || Date.now()).toLocaleString("en-IN")}</p>
+           </td>
+           <td style="text-align: right; width: 50%; vertical-align: top; border: none !important; padding: 0;">
+             <h2 style="margin: 0 0 6px 0; font-size: 22px; font-weight: bold; color: #000;">REIN ORO FOODS</h2>
+             <p style="margin: 3px 0; font-size: 13px; color: #333;"><strong>Legal Name:</strong> ${escapeHtml(seller.legal_name || "VAIBHAV SINGH PANWAR")}</p>
+             <p style="margin: 3px 0; font-size: 13px; color: #333;"><strong>GSTIN / Registration No.:</strong> ${escapeHtml(seller.gstin || "05GMOPP5339F1ZN")}</p>
+             <p style="margin: 3px 0; font-size: 13px; color: #333;"><strong>Constitution:</strong> Proprietorship</p>
+             <p style="margin: 3px 0; font-size: 13px; color: #333;">Building No./Flat No.: 499/3</p>
+             <p style="margin: 3px 0; font-size: 13px; color: #333;">Street Number 11, Rajender Nagar</p>
+             <p style="margin: 3px 0; font-size: 13px; color: #333;">Near Vashu Electricals & All Dish Services</p>
+             <p style="margin: 3px 0; font-size: 13px; color: #333;">Roorkee, Haridwar, Uttarakhand - 247667</p>
+           </td>
+         </tr>
+       </table>
+       
+       <div style="border-bottom: 1px solid #ddd; margin-bottom: 20px;"></div>
+       
+       <div style="border: 1px solid #ddd; border-radius: 6px; padding: 15px; background: #fafafa; margin-bottom: 20px;">
         <h3 style="margin: 0 0 8px 0; font-size: 14px; font-weight: bold; text-transform: uppercase; color: #000; border-bottom: 1px solid #eee; padding-bottom: 4px;">Bill To</h3>
         <p style="margin: 4px 0; font-size: 13px; font-weight: bold; color: #000;">${escapeHtml(buyer.name || order.customer_email || order.user_email)}</p>
         <p style="margin: 3px 0; font-size: 13px; color: #333;">${escapeHtml(buyer.email || order.customer_email || order.user_email)} | ${escapeHtml(buyer.phone || order.customer_phone || address.phone || "-")}</p>
@@ -879,8 +877,14 @@ const openAdminInvoicePrintWindow = async (order = {}) => {
  try {
   const html2pdf = await loadHtml2Pdf();
   const element = document.createElement("div");
+  const styleStart = html.indexOf("<style>");
+  const styleEnd = html.indexOf("</style>");
+  const styleTag = styleStart !== -1 && styleEnd !== -1 
+   ? html.substring(styleStart, styleEnd + 8) 
+   : "";
   const bodyContent = html.substring(html.indexOf("<body>") + 6, html.indexOf("</body>"));
   element.innerHTML = `
+    ${styleTag}
     <div style="font-family: Arial, sans-serif; padding: 20px; color: #111; max-width: 800px; margin: 0 auto; background: #fff;">
       ${bodyContent}
     </div>

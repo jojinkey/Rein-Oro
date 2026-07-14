@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { AuthContext, CMSContext } from "../App.jsx";
 import { apiUrl } from "../config/api.js";
 import { getGstSellerProfile } from "../config/gstProfile.js";
+import { getFirebaseClient, isFirebaseClientConfigured } from "../config/firebase.js";
 
 // Scoped fetch helper to ensure all API calls in this file use the env-configured backend url
 const originalFetch = window.fetch;
@@ -1170,12 +1171,12 @@ const INDIAN_STATES = [
  "Delhi",
  "Jammu and Kashmir",
  "Ladakh",
- "Lakshadweep",
+"Lakshadweep",
  "Puducherry"
 ];
 
 export default function Admin() {
- const { user, login, logout } = useContext(AuthContext);
+ const { user, login, logout, syncProfile } = useContext(AuthContext);
  const { cmsContent, cmsStyles, fetchCMSData, getCMSValue } =
   useContext(CMSContext);
  const navigate = useNavigate();
@@ -1184,6 +1185,18 @@ export default function Admin() {
  const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
  const [authEmail, setAuthEmail] = useState("");
  const [authPassword, setAuthPassword] = useState("");
+
+ // Admin Profile Settings States
+ const [adminProfileForm, setAdminProfileForm] = useState({ name: "" });
+ const [adminEmailForm, setAdminEmailForm] = useState({ newEmail: "" });
+ const [adminPasswordForm, setAdminPasswordForm] = useState({
+  currentPassword: "",
+  newPassword: "",
+  confirmPassword: ""
+ });
+ const [adminProfileLoading, setAdminProfileLoading] = useState(""); // "", "name", "email", "password"
+ const [adminProfileNotice, setAdminProfileNotice] = useState("");
+ const [adminProfileError, setAdminProfileError] = useState("");
 
  // CMS Panel States
  const [activePanel, setActivePanel] = useState("overview");
@@ -1481,7 +1494,148 @@ export default function Admin() {
    .catch((err) => console.error(err));
  };
 
- // Check role and login status
+  // Set initial admin name in form when user details change
+  useEffect(() => {
+   if (user) {
+    setAdminProfileForm({ name: user.name || "" });
+   }
+  }, [user]);
+
+  const setAdminProfileMessage = (type, message) => {
+   setAdminProfileNotice(type === "success" ? message : "");
+   setAdminProfileError(type === "error" ? message : "");
+  };
+
+  const updateAdminLocalProfile = (updates) => {
+   const nextUser = { ...user, ...updates };
+   login(nextUser, nextUser.role || "admin", nextUser.token || user.token || "");
+  };
+
+  const getAdminActiveFirebaseUser = async (auth) => {
+   if (auth.currentUser) return auth.currentUser;
+   const { onAuthStateChanged } = await import("firebase/auth");
+   return new Promise((resolve) => {
+    let done = false;
+    const timer = setTimeout(() => {
+     if (!done) {
+      done = true;
+      resolve(null);
+     }
+    }, 5000);
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+     done = true;
+     clearTimeout(timer);
+     unsubscribe();
+     resolve(firebaseUser);
+    });
+   });
+  };
+
+  const getAdminFirebaseContext = async () => {
+   if (!isFirebaseClientConfigured) {
+    throw new Error("Firebase client is not configured.");
+   }
+   const firebaseClient = await getFirebaseClient();
+   const firebaseUser = await getAdminActiveFirebaseUser(firebaseClient.auth);
+   if (!firebaseUser) {
+    throw new Error("Please sign out and sign in again before changing profile security details.");
+   }
+   return { ...firebaseClient, firebaseUser };
+  };
+
+  const handleSaveAdminName = async (e) => {
+   e.preventDefault();
+   const cleanName = adminProfileForm.name.trim();
+   if (!cleanName) {
+    setAdminProfileMessage("error", "Name is required.");
+    return;
+   }
+   setAdminProfileLoading("name");
+   setAdminProfileMessage("success", "");
+   try {
+    const { auth, db, firebaseUser } = await getAdminFirebaseContext();
+    const { updateProfile } = await import("firebase/auth");
+    const { doc, setDoc, serverTimestamp } = await import("firebase/firestore");
+
+    if (cleanName !== (user.name || "")) {
+     await updateProfile(firebaseUser, { displayName: cleanName });
+     await setDoc(
+      doc(db, "users", firebaseUser.uid),
+      { name: cleanName, updatedAt: serverTimestamp() },
+      { merge: true }
+     );
+     const token = await auth.currentUser.getIdToken(true);
+     updateAdminLocalProfile({ name: cleanName, token });
+     const syncRes = await syncProfile(token);
+     if (!syncRes || !syncRes.success) {
+      throw new Error(syncRes?.error || "Failed to sync name changes to the database.");
+     }
+    }
+    setAdminProfileMessage("success", "Name updated successfully.");
+   } catch (err) {
+    setAdminProfileMessage("error", err.message);
+   } finally {
+    setAdminProfileLoading("");
+   }
+  };
+
+  const handleUpdateAdminEmail = async (e) => {
+   e.preventDefault();
+   const newEmail = adminEmailForm.newEmail.trim().toLowerCase();
+   if (!newEmail || !/\S+@\S+\.\S+/.test(newEmail)) {
+    setAdminProfileMessage("error", "Please enter a valid email address.");
+    return;
+   }
+   setAdminProfileLoading("email");
+   setAdminProfileMessage("success", "");
+   try {
+    const { firebaseUser } = await getAdminFirebaseContext();
+    const { verifyBeforeUpdateEmail } = await import("firebase/auth");
+    await verifyBeforeUpdateEmail(firebaseUser, newEmail);
+    setAdminProfileMessage(
+     "success",
+     `Verification email sent to ${newEmail}. Please verify the link, then refresh or sync profile to complete the change.`
+    );
+    setAdminEmailForm({ newEmail: "" });
+   } catch (err) {
+    setAdminProfileMessage("error", err.message);
+   } finally {
+    setAdminProfileLoading("");
+   }
+  };
+
+  const handleSaveAdminPassword = async (e) => {
+   e.preventDefault();
+   if (!adminPasswordForm.currentPassword) {
+    setAdminProfileMessage("error", "Please enter your current password.");
+    return;
+   }
+   if (adminPasswordForm.newPassword.length < 6) {
+    setAdminProfileMessage("error", "New password must be at least 6 characters.");
+    return;
+   }
+   if (adminPasswordForm.newPassword !== adminPasswordForm.confirmPassword) {
+    setAdminProfileMessage("error", "New passwords do not match.");
+    return;
+   }
+   setAdminProfileLoading("password");
+   setAdminProfileMessage("success", "");
+   try {
+    const { firebaseUser } = await getAdminFirebaseContext();
+    const { EmailAuthProvider, reauthenticateWithCredential, updatePassword } = await import("firebase/auth");
+    const credential = EmailAuthProvider.credential(firebaseUser.email || user.email, adminPasswordForm.currentPassword);
+    await reauthenticateWithCredential(firebaseUser, credential);
+    await updatePassword(firebaseUser, adminPasswordForm.newPassword);
+    setAdminProfileMessage("success", "Password updated successfully.");
+    setAdminPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
+   } catch (err) {
+    setAdminProfileMessage("error", err.message);
+   } finally {
+    setAdminProfileLoading("");
+   }
+  };
+
+  // Check role and login status
  useEffect(() => {
   if (user === null) {
    setIsAdminLoggedIn(false);
@@ -2713,6 +2867,7 @@ export default function Admin() {
       <div className="admin-dash-group-title">Settings</div>
       {[
        { id: "system", label: "General Settings", icon: <IconSettings /> },
+       { id: "admin_profile", label: "Admin Profile", icon: <IconUsers /> },
        { id: "styles", label: "Theme Style Editor", icon: <IconSettings /> },
        { id: "payment", label: "Payment Methods", icon: <IconPayment /> },
        { id: "shipping", label: "Shipping Settings", icon: <IconShipping /> },
@@ -4260,6 +4415,144 @@ export default function Admin() {
           })()}
          </tbody>
         </table>
+       </div>
+      </div>
+     )}
+
+     {activePanel === "admin_profile" && (
+      <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+       <h2 style={{ fontFamily: "var(--font-heading)", color: "var(--color-white)", fontWeight: 300, fontSize: "1.6rem", margin: 0 }}>
+        Admin Profile Settings
+       </h2>
+
+       {adminProfileNotice && (
+        <div style={{ background: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.2)", borderRadius: "6px", padding: "1rem", color: "#10b981", fontSize: "0.85rem" }}>
+         {adminProfileNotice}
+        </div>
+       )}
+       {adminProfileError && (
+        <div style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)", borderRadius: "6px", padding: "1rem", color: "#ef4444", fontSize: "0.85rem" }}>
+         {adminProfileError}
+        </div>
+       )}
+
+       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "1.5rem" }}>
+        
+        {/* Name Form */}
+        <div style={{ border: "1px solid rgba(255,255,255,0.03)", borderRadius: "8px", padding: "2rem", backgroundColor: "#0a0a0a" }}>
+         <h3 style={{ fontFamily: "var(--font-heading)", color: "var(--color-white)", fontWeight: 300, fontSize: "1.2rem", margin: "0 0 1.5rem 0", borderBottom: "1px solid rgba(255,255,255,0.05)", paddingBottom: "0.5rem" }}>
+          Update Name
+         </h3>
+         <form onSubmit={handleSaveAdminName} style={{ display: "flex", flexDirection: "column", gap: "1.2rem" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+           <label style={{ color: "var(--color-muted)", fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>Display Name</label>
+           <input
+            type="text"
+            className="admin-dash-table-search-input"
+            value={adminProfileForm.name}
+            onChange={(e) => setAdminProfileForm({ ...adminProfileForm, name: e.target.value })}
+            style={{ width: "100%", height: "42px", padding: "0 1rem", backgroundColor: "#000", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "6px", color: "#fff", fontSize: "0.85rem" }}
+            placeholder="Admin display name"
+            required
+           />
+          </div>
+          <button
+           type="submit"
+           className="btn btn-primary"
+           disabled={adminProfileLoading === "name"}
+           style={{ height: "40px", fontSize: "0.8rem", alignSelf: "flex-start", padding: "0 1.5rem" }}
+          >
+           {adminProfileLoading === "name" ? "Saving Name..." : "Save Name"}
+          </button>
+         </form>
+        </div>
+
+        {/* Email Form */}
+        <div style={{ border: "1px solid rgba(255,255,255,0.03)", borderRadius: "8px", padding: "2rem", backgroundColor: "#0a0a0a" }}>
+         <h3 style={{ fontFamily: "var(--font-heading)", color: "var(--color-white)", fontWeight: 300, fontSize: "1.2rem", margin: "0 0 1.5rem 0", borderBottom: "1px solid rgba(255,255,255,0.05)", paddingBottom: "0.5rem" }}>
+          Update Email
+         </h3>
+         <form onSubmit={handleUpdateAdminEmail} style={{ display: "flex", flexDirection: "column", gap: "1.2rem" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "0.3rem" }}>
+           <span style={{ color: "var(--color-muted)", fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>Current Email</span>
+           <span style={{ fontSize: "0.88rem", color: "var(--color-gold)", fontFamily: "monospace" }}>{user?.email}</span>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+           <label style={{ color: "var(--color-muted)", fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>New Email Address</label>
+           <input
+            type="email"
+            className="admin-dash-table-search-input"
+            value={adminEmailForm.newEmail}
+            onChange={(e) => setAdminEmailForm({ newEmail: e.target.value })}
+            style={{ width: "100%", height: "42px", padding: "0 1rem", backgroundColor: "#000", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "6px", color: "#fff", fontSize: "0.85rem" }}
+            placeholder="admin@example.com"
+            required
+           />
+          </div>
+          <button
+           type="submit"
+           className="btn btn-primary"
+           disabled={adminProfileLoading === "email"}
+           style={{ height: "40px", fontSize: "0.8rem", alignSelf: "flex-start", padding: "0 1.5rem" }}
+          >
+           {adminProfileLoading === "email" ? "Sending Verification..." : "Update Email"}
+          </button>
+         </form>
+        </div>
+
+        {/* Password Form */}
+        <div style={{ border: "1px solid rgba(255,255,255,0.03)", borderRadius: "8px", padding: "2rem", backgroundColor: "#0a0a0a", gridColumn: "span 1" }}>
+         <h3 style={{ fontFamily: "var(--font-heading)", color: "var(--color-white)", fontWeight: 300, fontSize: "1.2rem", margin: "0 0 1.5rem 0", borderBottom: "1px solid rgba(255,255,255,0.05)", paddingBottom: "0.5rem" }}>
+          Update Password
+         </h3>
+         <form onSubmit={handleSaveAdminPassword} style={{ display: "flex", flexDirection: "column", gap: "1.2rem" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+           <label style={{ color: "var(--color-muted)", fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>Current Password</label>
+           <input
+            type="password"
+            className="admin-dash-table-search-input"
+            value={adminPasswordForm.currentPassword}
+            onChange={(e) => setAdminPasswordForm({ ...adminPasswordForm, currentPassword: e.target.value })}
+            style={{ width: "100%", height: "42px", padding: "0 1rem", backgroundColor: "#000", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "6px", color: "#fff", fontSize: "0.85rem" }}
+            placeholder="••••••••"
+            required
+           />
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+           <label style={{ color: "var(--color-muted)", fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>New Password</label>
+           <input
+            type="password"
+            className="admin-dash-table-search-input"
+            value={adminPasswordForm.newPassword}
+            onChange={(e) => setAdminPasswordForm({ ...adminPasswordForm, newPassword: e.target.value })}
+            style={{ width: "100%", height: "42px", padding: "0 1rem", backgroundColor: "#000", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "6px", color: "#fff", fontSize: "0.85rem" }}
+            placeholder="Min 6 characters"
+            required
+           />
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+           <label style={{ color: "var(--color-muted)", fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>Confirm New Password</label>
+           <input
+            type="password"
+            className="admin-dash-table-search-input"
+            value={adminPasswordForm.confirmPassword}
+            onChange={(e) => setAdminPasswordForm({ ...adminPasswordForm, confirmPassword: e.target.value })}
+            style={{ width: "100%", height: "42px", padding: "0 1rem", backgroundColor: "#000", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "6px", color: "#fff", fontSize: "0.85rem" }}
+            placeholder="Confirm new password"
+            required
+           />
+          </div>
+          <button
+           type="submit"
+           className="btn btn-primary"
+           disabled={adminProfileLoading === "password"}
+           style={{ height: "40px", fontSize: "0.8rem", alignSelf: "flex-start", padding: "0 1.5rem" }}
+          >
+           {adminProfileLoading === "password" ? "Updating..." : "Update Password"}
+          </button>
+         </form>
+        </div>
+
        </div>
       </div>
      )}

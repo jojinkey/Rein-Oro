@@ -884,6 +884,8 @@ export default function Dashboard() {
  useEffect(() => {
   if (!user) {
    navigate("/login");
+  } else if (user.role === "admin") {
+   navigate("/admin");
   }
  }, [user, navigate]);
 

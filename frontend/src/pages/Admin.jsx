@@ -667,8 +667,8 @@ const buildAdminInvoiceHtml = (order = {}) => {
  // Taxable Value is subtotal - discount (product value)
  const taxableBase = Math.max(0, rawSubtotal - rawDiscount);
 
- // GST amount (18% of taxable base)
- const totalGst = Math.round(taxableBase * 0.18);
+ // GST amount (5% of taxable base)
+ const totalGst = Math.round(taxableBase * 0.05);
  const cgst = isIntraState ? Math.round(totalGst / 2) : 0;
  const sgst = isIntraState ? Math.round(totalGst / 2) : 0;
  const igst = isIntraState ? 0 : totalGst;
@@ -820,15 +820,15 @@ const buildAdminInvoiceHtml = (order = {}) => {
               </div>
               ${shippingRow}
               <div style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 13px;">
-                <span style="color: #555;">CGST (9%)</span>
+                <span style="color: #555;">CGST (2.5%)</span>
                 <strong style="color: #111;">${formatINR(cgst)}</strong>
               </div>
               <div style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 13px;">
-                <span style="color: #555;">SGST (9%)</span>
+                <span style="color: #555;">SGST (2.5%)</span>
                 <strong style="color: #111;">${formatINR(sgst)}</strong>
               </div>
               <div style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 13px;">
-                <span style="color: #555;">IGST (18%)</span>
+                <span style="color: #555;">IGST (5%)</span>
                 <strong style="color: #111;">${formatINR(igst)}</strong>
               </div>
               <div class="grand-total" style="display: flex; justify-content: space-between; font-size: 16px;">

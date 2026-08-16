@@ -123,7 +123,7 @@ export default function Cart() {
               </div>
             )}
             <div className="summary-row">
-              <span>Tax (18%)</span>
+              <span>Tax (5%)</span>
               <span>₹{tax}</span>
             </div>
             <hr className="summary-divider" />

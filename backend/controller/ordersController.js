@@ -13,7 +13,7 @@ import {
 import { invalidateDashboardCache } from "../routes/crmRoutes.js";
 
 const RAZORPAY_BUSINESS_NAME = "Rein Oro Foods";
-const GST_RATE_PERCENT = 18;
+const GST_RATE_PERCENT = 5;
 const DEFAULT_GST_BUSINESS_PROFILE = Object.freeze({
  name: "REIN ORO FOODS",
  legal_name: "VAIBHAV SINGH PANWAR",

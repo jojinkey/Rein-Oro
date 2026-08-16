@@ -180,7 +180,7 @@ export default function Checkout() {
  const shippingFee =
   deliveryMethod === "standard" ? standardShippingFee : expressShippingFee;
  const codFee = 0;
- const finalTax = Math.round((subtotal - discount) * 0.18);
+ const finalTax = Math.round((subtotal - discount) * 0.05);
  const totalAmount = subtotal - discount + shippingFee + finalTax + codFee;
 
  const handleInputChange = (e) => {
@@ -1138,7 +1138,7 @@ export default function Checkout() {
         </div>
        )}
        <div className="summary-row">
-        <span>Tax (18%)</span>
+        <span>Tax (5%)</span>
         <span>₹{finalTax}</span>
        </div>
       {codFee > 0 && (

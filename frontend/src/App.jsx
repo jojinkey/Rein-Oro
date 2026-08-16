@@ -222,7 +222,7 @@ export default function App() {
   const threshold = shippingSettings.freeShippingThreshold ?? 599;
   const fallbackFee = shippingSettings.shippingFee ?? 60;
   const shipping = subtotal === 0 ? 0 : subtotal >= threshold ? 0 : fallbackFee;
-  const tax = Math.round((subtotal - discount) * 0.18);
+  const tax = Math.round((subtotal - discount) * 0.05);
   const total = subtotal - discount + shipping + tax;
   const cartCount = cart.reduce((sum, item) => sum + item.qty, 0);
 
